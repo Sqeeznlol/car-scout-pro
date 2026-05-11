@@ -1,14 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
-import { Save, Sliders, Mail, Users, Sparkles, Ban } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Save, Sliders, Mail, Sparkles, Ban, RefreshCw } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
-import { useRadarStore } from "@/lib/store";
-import { vehicles, analyses } from "@/lib/seed";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { fetchConfig, saveConfig, fetchVehicles, type DbConfig } from "@/lib/db";
 import { fmtChf } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -17,117 +16,147 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
+async function triggerSync() {
+  const res = await fetch("/api/public/hooks/sync-gmail", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  return res.json();
+}
+
 function AdminPage() {
-  const config = useRadarStore((s) => s.config);
-  const setConfig = useRadarStore((s) => s.setConfig);
-  const decisions = useRadarStore((s) => s.decisions);
+  const qc = useQueryClient();
+  const { data: config } = useQuery({ queryKey: ["config"], queryFn: fetchConfig });
+  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: fetchVehicles });
+  const [draft, setDraft] = useState<DbConfig | null>(null);
 
-  const [draft, setDraft] = useState(config);
-  const [autoFx, setAutoFx] = useState(false);
+  useEffect(() => { if (config && !draft) setDraft(config); }, [config, draft]);
 
-  const weightSum = Object.values(draft.scoreWeights).reduce((a, b) => a + b, 0);
+  const saveMut = useMutation({
+    mutationFn: (patch: Partial<DbConfig>) => saveConfig(patch),
+    onSuccess: () => { toast.success("Konfiguration gespeichert"); qc.invalidateQueries({ queryKey: ["config"] }); },
+    onError: (e: Error) => toast.error("Fehler beim Speichern", { description: e.message }),
+  });
 
-  const save = () => {
-    if (weightSum !== 100) {
-      toast.error(`Score weights must sum to 100% (currently ${weightSum}%)`);
-      return;
-    }
-    setConfig(draft);
-    toast.success("Configuration saved");
-  };
+  const syncMut = useMutation({
+    mutationFn: triggerSync,
+    onSuccess: (r) => {
+      toast.success(`${r.inserted ?? 0} neue Inserate`, { description: `${r.checked ?? 0} Mails geprüft` });
+      qc.invalidateQueries({ queryKey: ["vehicles"] });
+    },
+  });
+
+  const weightSum = useMemo(() => {
+    if (!draft) return 0;
+    return (draft.weight_margin + draft.weight_liquidity + draft.weight_risk + draft.weight_learning);
+  }, [draft]);
 
   const insights = useMemo(() => {
-    const liked = Object.values(decisions).filter((d) => d.decision === "interesting");
+    const liked = vehicles.filter((v) => v.decision?.decision === "interesting");
     const makes: Record<string, number> = {};
-    let totalScore = 0;
-    for (const d of liked) {
-      const v = vehicles.find((x) => x.id === d.vehicleId);
-      const a = analyses[d.vehicleId];
-      if (v) makes[v.make] = (makes[v.make] || 0) + 1;
-      if (a) totalScore += a.dealScore;
+    let total = 0;
+    for (const v of liked) {
+      if (v.make) makes[v.make] = (makes[v.make] || 0) + 1;
+      total += v.analysis?.deal_score ?? 0;
     }
     return {
       count: liked.length,
       topMakes: Object.entries(makes).sort((a, b) => b[1] - a[1]).slice(0, 5),
-      avgScore: liked.length ? Math.round(totalScore / liked.length) : 0,
+      avgScore: liked.length ? Math.round(total / liked.length) : 0,
+      decisionCount: vehicles.filter((v) => v.decision).length,
     };
-  }, [decisions]);
+  }, [vehicles]);
+
+  if (!draft) return <div className="p-12 text-center text-muted-foreground">Lade Konfiguration…</div>;
+
+  const save = () => {
+    if (weightSum !== 100) { toast.error(`Score-Gewichte müssen 100 ergeben (aktuell ${weightSum})`); return; }
+    saveMut.mutate(draft);
+  };
+
+  const update = <K extends keyof DbConfig>(k: K, v: DbConfig[K]) => setDraft({ ...draft, [k]: v });
 
   return (
     <div className="mx-auto max-w-5xl px-4 lg:px-8 py-4 lg:py-8 space-y-6">
-      <div>
-        <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Admin</h1>
-        <p className="text-sm text-muted-foreground">Calibrate cost model, score weights, sources and filters.</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Admin</h1>
+          <p className="text-sm text-muted-foreground">Kostenmodell, Score-Gewichte und Gmail-Sync verwalten.</p>
+        </div>
+        <Button variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
+          <RefreshCw className={cn("h-4 w-4", syncMut.isPending && "animate-spin")} />
+          Gmail Sync
+        </Button>
       </div>
 
       <Tabs defaultValue="costs">
-        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-6">
-          <TabsTrigger value="costs"><Sliders className="h-4 w-4" /> Costs</TabsTrigger>
-          <TabsTrigger value="weights"><Sparkles className="h-4 w-4" /> Weights</TabsTrigger>
-          <TabsTrigger value="email"><Mail className="h-4 w-4" /> Email</TabsTrigger>
-          <TabsTrigger value="users"><Users className="h-4 w-4" /> Users</TabsTrigger>
+        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-5">
+          <TabsTrigger value="costs"><Sliders className="h-4 w-4" /> Kosten</TabsTrigger>
+          <TabsTrigger value="weights"><Sparkles className="h-4 w-4" /> Gewichte</TabsTrigger>
+          <TabsTrigger value="email"><Mail className="h-4 w-4" /> E-Mail</TabsTrigger>
           <TabsTrigger value="insights"><Sparkles className="h-4 w-4" /> Insights</TabsTrigger>
-          <TabsTrigger value="blacklist"><Ban className="h-4 w-4" /> Filters</TabsTrigger>
+          <TabsTrigger value="blacklist"><Ban className="h-4 w-4" /> Filter</TabsTrigger>
         </TabsList>
 
-        {/* Costs */}
         <TabsContent value="costs" className="space-y-4 mt-4">
           <Card>
             <div className="grid sm:grid-cols-2 gap-4">
-              <Field label="EUR / CHF rate">
-                <div className="flex items-center gap-2">
-                  <Input type="number" step="0.01" value={draft.eurChfRate}
-                    onChange={(e) => setDraft({ ...draft, eurChfRate: parseFloat(e.target.value) || 0 })} />
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Switch checked={autoFx} onCheckedChange={setAutoFx} /> auto
-                  </div>
-                </div>
+              <Field label="EUR / CHF Kurs">
+                <Input type="number" step="0.01" value={String(draft.eur_chf_rate)}
+                  onChange={(e) => update("eur_chf_rate", parseFloat(e.target.value) || 0)} />
               </Field>
               <Field label="Transport (CHF / km)">
-                <Input type="number" step="0.1" value={draft.chfPerKm}
-                  onChange={(e) => setDraft({ ...draft, chfPerKm: parseFloat(e.target.value) || 0 })} />
+                <Input type="number" step="0.05" value={String(draft.chf_per_km)}
+                  onChange={(e) => update("chf_per_km", parseFloat(e.target.value) || 0)} />
               </Field>
-              <Field label="Customs flat (CHF)">
-                <Input type="number" value={draft.customsFlat}
-                  onChange={(e) => setDraft({ ...draft, customsFlat: parseFloat(e.target.value) || 0 })} />
+              <Field label="Zoll pauschal (CHF)">
+                <Input type="number" value={String(draft.customs_flat)}
+                  onChange={(e) => update("customs_flat", parseFloat(e.target.value) || 0)} />
               </Field>
-              <Field label="MFK flat (CHF)">
-                <Input type="number" value={draft.mfkFlat}
-                  onChange={(e) => setDraft({ ...draft, mfkFlat: parseFloat(e.target.value) || 0 })} />
+              <Field label="MwSt. (z.B. 0.081)">
+                <Input type="number" step="0.001" value={String(draft.vat_rate)}
+                  onChange={(e) => update("vat_rate", parseFloat(e.target.value) || 0)} />
               </Field>
-              <Field label="Preparation flat (CHF)">
-                <Input type="number" value={draft.preparationFlat}
-                  onChange={(e) => setDraft({ ...draft, preparationFlat: parseFloat(e.target.value) || 0 })} />
+              <Field label="Automobilsteuer (z.B. 0.04)">
+                <Input type="number" step="0.001" value={String(draft.automobilsteuer_rate)}
+                  onChange={(e) => update("automobilsteuer_rate", parseFloat(e.target.value) || 0)} />
               </Field>
-              <Field label="Target margin (CHF)">
-                <Input type="number" value={draft.targetMarginChf}
-                  onChange={(e) => setDraft({ ...draft, targetMarginChf: parseFloat(e.target.value) || 0 })} />
+              <Field label="MFK pauschal (CHF)">
+                <Input type="number" value={String(draft.mfk_flat)}
+                  onChange={(e) => update("mfk_flat", parseFloat(e.target.value) || 0)} />
               </Field>
-              <Field label="CO₂ warning threshold (g/km)">
-                <Input type="number" value={draft.co2ThresholdGkm}
-                  onChange={(e) => setDraft({ ...draft, co2ThresholdGkm: parseFloat(e.target.value) || 0 })} />
+              <Field label="Aufbereitung pauschal (CHF)">
+                <Input type="number" value={String(draft.preparation_flat)}
+                  onChange={(e) => update("preparation_flat", parseFloat(e.target.value) || 0)} />
+              </Field>
+              <Field label="Zielmarge (CHF)">
+                <Input type="number" value={String(draft.target_margin_chf)}
+                  onChange={(e) => update("target_margin_chf", parseFloat(e.target.value) || 0)} />
+              </Field>
+              <Field label="CO₂ Warnschwelle (g/km)">
+                <Input type="number" value={String(draft.co2_threshold_gkm)}
+                  onChange={(e) => update("co2_threshold_gkm", parseFloat(e.target.value) || 0)} />
               </Field>
             </div>
           </Card>
         </TabsContent>
 
-        {/* Weights */}
         <TabsContent value="weights" className="space-y-4 mt-4">
           <Card>
             <div className="space-y-5">
-              {(Object.keys(draft.scoreWeights) as Array<keyof typeof draft.scoreWeights>).map((k) => (
+              {([
+                ["weight_margin", "Marge"],
+                ["weight_liquidity", "Liquidität"],
+                ["weight_risk", "Risiko"],
+                ["weight_learning", "Learning"],
+              ] as const).map(([k, label]) => (
                 <div key={k}>
                   <div className="flex items-center justify-between mb-2">
-                    <Label className="capitalize">{k.replace(/([A-Z])/g, " $1")}</Label>
-                    <span className="text-sm tabular-nums font-medium">{draft.scoreWeights[k]}%</span>
+                    <Label>{label}</Label>
+                    <span className="text-sm tabular-nums font-medium">{draft[k]}%</span>
                   </div>
                   <Slider
-                    value={[draft.scoreWeights[k]]}
+                    value={[draft[k]]}
                     max={60}
                     step={1}
-                    onValueChange={([val]) =>
-                      setDraft({ ...draft, scoreWeights: { ...draft.scoreWeights, [k]: val } })
-                    }
+                    onValueChange={([val]) => update(k, val)}
                   />
                 </div>
               ))}
@@ -135,57 +164,43 @@ function AdminPage() {
                 "rounded-md p-3 text-sm flex items-center justify-between border",
                 weightSum === 100 ? "bg-success/10 border-success/30 text-success" : "bg-warning/10 border-warning/30 text-warning",
               )}>
-                <span>Total weight</span>
-                <span className="font-semibold tabular-nums">{weightSum}% {weightSum === 100 ? "✓" : "(must equal 100%)"}</span>
+                <span>Total</span>
+                <span className="font-semibold tabular-nums">{weightSum}% {weightSum === 100 ? "✓" : "(muss 100% sein)"}</span>
               </div>
             </div>
           </Card>
         </TabsContent>
 
-        {/* Email sources */}
         <TabsContent value="email" className="mt-4">
           <Card>
-            <SourceRow name="mobile.de" address="radar+mobile@inbound.example" last="2 min ago" rate={98} />
-            <SourceRow name="AutoScout24.de" address="radar+autoscout@inbound.example" last="11 min ago" rate={94} />
-            <SourceRow name="Mobile.de Alerts" address="radar+alerts@inbound.example" last="1 h ago" rate={99} />
-          </Card>
-        </TabsContent>
-
-        {/* Users */}
-        <TabsContent value="users" className="mt-4">
-          <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="text-xs uppercase text-muted-foreground">
-                  <tr className="border-b border-border">
-                    <th className="text-left py-2 px-3">Dealer</th>
-                    <th className="text-right py-2 px-3">Reviewed</th>
-                    <th className="text-right py-2 px-3">% Interested</th>
-                    <th className="text-left py-2 px-3">Top makes</th>
-                    <th className="text-right py-2 px-3">Avg score liked</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <UserRow name="Marco K." reviewed={184} pct={22} makes="BMW, Audi" avg={78} />
-                  <UserRow name="Sandra B." reviewed={97} pct={31} makes="Mercedes" avg={82} />
-                  <UserRow name="You" reviewed={Object.keys(decisions).length} pct={insights.count ? Math.round((insights.count / Math.max(1, Object.keys(decisions).length)) * 100) : 0} makes={insights.topMakes.map((m) => m[0]).join(", ") || "—"} avg={insights.avgScore} />
-                </tbody>
-              </table>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-3 border-b border-border">
+                <div>
+                  <div className="font-medium">Gmail (swissplatesdev@gmail.com)</div>
+                  <div className="text-xs text-muted-foreground">Verbunden via Lovable Connector · liest mobile.de-Mails</div>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
+                  <RefreshCw className={cn("h-4 w-4", syncMut.isPending && "animate-spin")} />
+                  Jetzt synchronisieren
+                </Button>
+              </div>
+              <div className="text-sm text-muted-foreground">
+                Bei jedem Sync werden neue mobile.de-Mails geparst, Fahrzeuge angelegt und Kosten/Deal Score berechnet.
+              </div>
             </div>
           </Card>
         </TabsContent>
 
-        {/* Insights */}
         <TabsContent value="insights" className="mt-4 space-y-4">
           <Card>
-            {Object.keys(decisions).length < 5 ? (
+            {insights.decisionCount < 5 ? (
               <div className="text-sm text-muted-foreground">
-                Insights unlock after 50+ decisions. You have <span className="font-medium text-foreground">{Object.keys(decisions).length}</span> so far.
+                Insights ab 5+ Entscheidungen. Aktuell: <span className="font-medium text-foreground">{insights.decisionCount}</span>.
               </div>
             ) : (
               <div className="space-y-4">
                 <div>
-                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Top makes you like</div>
+                  <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Bevorzugte Marken (Interessant)</div>
                   <div className="flex flex-wrap gap-2">
                     {insights.topMakes.map(([m, n]) => (
                       <span key={m} className="rounded-full bg-surface border border-border text-xs px-2.5 py-1">
@@ -195,40 +210,26 @@ function AdminPage() {
                   </div>
                 </div>
                 <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
-                  <div className="font-medium text-primary">Suggested weight tweak</div>
-                  Increase <span className="font-semibold">margin</span> weight to 40% — historical interest correlates strongly with margin &gt; {fmtChf(config.targetMarginChf)}.
+                  <div className="font-medium text-primary">Durchschnittlicher Deal Score (Interessant): {insights.avgScore}</div>
+                  Zielmarge: {fmtChf(Number(draft.target_margin_chf))}.
                 </div>
               </div>
             )}
           </Card>
         </TabsContent>
 
-        {/* Blacklist */}
         <TabsContent value="blacklist" className="mt-4 space-y-4">
           <Card>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <Field label="Max mileage (km)"><Input type="number" defaultValue={150000} /></Field>
-              <Field label="Min year"><Input type="number" defaultValue={2017} /></Field>
-              <Field label="Max price (EUR)"><Input type="number" defaultValue={120000} /></Field>
-              <Field label="Excluded fuel">
-                <div className="flex items-center gap-3 text-sm">
-                  <label className="inline-flex items-center gap-2"><input type="checkbox" /> Diesel</label>
-                  <label className="inline-flex items-center gap-2"><input type="checkbox" /> Petrol</label>
-                  <label className="inline-flex items-center gap-2"><input type="checkbox" /> Electric</label>
-                </div>
-              </Field>
-            </div>
-            <div className="mt-4">
-              <Label className="text-xs uppercase tracking-wider text-muted-foreground">Auto-skip keywords</Label>
-              <Input placeholder="e.g. unfall, motorschaden, export" className="mt-2" />
+            <div className="text-sm text-muted-foreground">
+              Filter-Regeln folgen in einer späteren Version. Vorerst werden alle eingehenden Inserate gelistet.
             </div>
           </Card>
         </TabsContent>
       </Tabs>
 
       <div className="flex justify-end sticky bottom-20 lg:bottom-4">
-        <Button onClick={save} className="bg-gradient-primary text-primary-foreground shadow-card">
-          <Save className="h-4 w-4" /> Save changes
+        <Button onClick={save} disabled={saveMut.isPending} className="bg-gradient-primary text-primary-foreground shadow-card">
+          <Save className="h-4 w-4" /> {saveMut.isPending ? "Speichere…" : "Änderungen speichern"}
         </Button>
       </div>
     </div>
@@ -244,30 +245,5 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <Label className="text-xs uppercase tracking-wider text-muted-foreground">{label}</Label>
       <div className="mt-1.5">{children}</div>
     </div>
-  );
-}
-function SourceRow({ name, address, last, rate }: { name: string; address: string; last: string; rate: number }) {
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-border last:border-0">
-      <div>
-        <div className="font-medium">{name}</div>
-        <div className="text-xs text-muted-foreground font-mono">{address}</div>
-      </div>
-      <div className="text-right">
-        <div className="text-sm tabular-nums">{rate}% parsed</div>
-        <div className="text-xs text-muted-foreground">last {last}</div>
-      </div>
-    </div>
-  );
-}
-function UserRow({ name, reviewed, pct, makes, avg }: { name: string; reviewed: number; pct: number; makes: string; avg: number }) {
-  return (
-    <tr className="border-b border-border last:border-0">
-      <td className="py-3 px-3 font-medium">{name}</td>
-      <td className="py-3 px-3 text-right tabular-nums">{reviewed}</td>
-      <td className="py-3 px-3 text-right tabular-nums">{pct}%</td>
-      <td className="py-3 px-3 text-muted-foreground">{makes}</td>
-      <td className="py-3 px-3 text-right tabular-nums">{avg}</td>
-    </tr>
   );
 }
