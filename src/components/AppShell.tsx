@@ -1,9 +1,8 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { Bell, LayoutGrid, Archive, Settings, Car, Sparkles } from "lucide-react";
 import { useMemo } from "react";
-import { vehicles } from "@/lib/seed";
-import { analyses } from "@/lib/seed";
-import { useRadarStore } from "@/lib/store";
+import { useQuery } from "@tanstack/react-query";
+import { fetchVehicles } from "@/lib/db";
 import { cn } from "@/lib/utils";
 
 const nav = [
@@ -14,24 +13,20 @@ const nav = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
-  const decisions = useRadarStore((s) => s.decisions);
-  const lastVisited = useRadarStore((s) => s.lastVisited);
+  const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: fetchVehicles });
 
   const { newCount, hotCount } = useMemo(() => {
-    const since = new Date(lastVisited).getTime();
     let n = 0, hot = 0;
     for (const v of vehicles) {
-      if (decisions[v.id]) continue;
-      const t = new Date(v.createdAt).getTime();
-      if (t > since) n++;
-      if ((analyses[v.id]?.dealScore ?? 0) > 80) hot++;
+      if (v.decision) continue;
+      n++;
+      if ((v.analysis?.deal_score ?? 0) > 80) hot++;
     }
     return { newCount: n, hotCount: hot };
-  }, [decisions, lastVisited]);
+  }, [vehicles]);
 
   return (
     <div className="flex min-h-screen bg-background text-foreground">
-      {/* Sidebar — desktop */}
       <aside className="hidden lg:flex w-64 shrink-0 flex-col border-r border-border bg-sidebar px-4 py-6">
         <Link to="/queue" className="flex items-center gap-2 px-2 mb-8">
           <div className="h-9 w-9 rounded-lg bg-gradient-primary flex items-center justify-center shadow-glow-success">
@@ -71,7 +66,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar */}
         <header className="sticky top-0 z-30 glass border-b border-border">
           <div className="flex h-14 items-center justify-between px-4 lg:px-8">
             <Link to="/queue" className="flex items-center gap-2 lg:hidden">
@@ -104,7 +98,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         <main className="flex-1 pb-20 lg:pb-0">{children}</main>
 
-        {/* Mobile bottom nav */}
         <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 glass border-t border-border">
           <div className="grid grid-cols-3">
             {nav.map((n) => {
