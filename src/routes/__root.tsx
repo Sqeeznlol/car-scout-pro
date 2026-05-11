@@ -109,6 +109,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 import { AppShell } from "@/components/AppShell";
+import { Toaster } from "@/components/ui/sonner";
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
@@ -118,6 +119,7 @@ function RootComponent() {
       <AppShell>
         <Outlet />
       </AppShell>
+      <Toaster position="top-center" richColors />
     </QueryClientProvider>
   );
 }
