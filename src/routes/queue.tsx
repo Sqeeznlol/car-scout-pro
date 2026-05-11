@@ -1,56 +1,88 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from "framer-motion";
-import { Check, X, Bookmark, MapPin, Gauge, Calendar, TrendingDown, Flame, Undo2, Fuel } from "lucide-react";
-import { vehicles, analyses } from "@/lib/seed";
-import { useRadarStore } from "@/lib/store";
-import { fmtChf, fmtEur, fmtKm, riskDotClass } from "@/lib/format";
+import { Check, X, Bookmark, MapPin, Gauge, Calendar, TrendingDown, Flame, Undo2, Fuel, RefreshCw, Inbox } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { fetchVehicles, recordDecision, undoDecision, type VehicleWithAnalysis, type DecisionValue } from "@/lib/db";
+import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { Vehicle, VehicleAnalysis, Decision } from "@/lib/types";
 
 export const Route = createFileRoute("/queue")({
   component: QueuePage,
 });
 
+async function triggerSync() {
+  const res = await fetch("/api/public/hooks/sync-gmail", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || "Sync failed");
+  return data as { checked: number; parsed: number; inserted: number; errors: string[] };
+}
+
 function QueuePage() {
-  const decisions = useRadarStore((s) => s.decisions);
-  const decide = useRadarStore((s) => s.decide);
-  const undo = useRadarStore((s) => s.undo);
-  const markVisited = useRadarStore((s) => s.markVisited);
+  const qc = useQueryClient();
+  const { data: vehicles = [], isLoading } = useQuery({
+    queryKey: ["vehicles"],
+    queryFn: fetchVehicles,
+  });
 
-  useEffect(() => { markVisited(); }, [markVisited]);
+  const decideMut = useMutation({
+    mutationFn: ({ id, d }: { id: string; d: DecisionValue }) => recordDecision(id, d),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
+  });
+  const undoMut = useMutation({
+    mutationFn: (id: string) => undoDecision(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
+  });
+  const syncMut = useMutation({
+    mutationFn: triggerSync,
+    onSuccess: (r) => {
+      toast.success(`${r.inserted} neue Inserate geladen`, { description: `${r.checked} Mails geprüft · ${r.parsed} Inserate erkannt` });
+      qc.invalidateQueries({ queryKey: ["vehicles"] });
+    },
+    onError: (e: Error) => toast.error("Sync fehlgeschlagen", { description: e.message }),
+  });
 
-  const queue = useMemo(() => {
-    return vehicles
-      .filter((v) => !decisions[v.id])
-      .map((v) => ({ v, a: analyses[v.id]! }))
-      .sort((x, y) => y.a.dealScore - x.a.dealScore);
-  }, [decisions]);
+  const queue = vehicles
+    .filter((v) => !v.decision)
+    .sort((a, b) => (b.analysis?.deal_score ?? 0) - (a.analysis?.deal_score ?? 0));
 
   const [lastDecided, setLastDecided] = useState<string | null>(null);
 
-  const handleDecide = (id: string, d: Decision) => {
-    decide(id, d);
+  const handleDecide = (id: string, d: DecisionValue) => {
+    decideMut.mutate({ id, d });
     setLastDecided(id);
   };
+
+  if (isLoading) {
+    return <div className="p-12 text-center text-muted-foreground">Lade Fahrzeuge…</div>;
+  }
 
   if (queue.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
         <div className="h-20 w-20 rounded-2xl bg-gradient-success/20 flex items-center justify-center mb-6 shadow-glow-success">
-          <Flame className="h-10 w-10 text-success" />
+          {vehicles.length === 0 ? <Inbox className="h-10 w-10 text-success" /> : <Flame className="h-10 w-10 text-success" />}
         </div>
-        <h2 className="text-2xl font-semibold tracking-tight">Queue cleared</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">
+          {vehicles.length === 0 ? "Noch keine Inserate" : "Queue abgearbeitet"}
+        </h2>
         <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-          No vehicles waiting for a decision. New listings from mobile.de will land here automatically.
+          {vehicles.length === 0
+            ? "Klicke unten auf „Gmail jetzt synchronisieren", um mobile.de-Mails aus deinem Postfach zu importieren."
+            : "Keine Fahrzeuge zur Entscheidung offen. Neue mobile.de-Mails erscheinen automatisch hier."}
         </p>
         <div className="mt-6 flex gap-2">
-          <Button asChild variant="outline"><Link to="/archive">View archive</Link></Button>
+          <Button onClick={() => syncMut.mutate()} disabled={syncMut.isPending} className="bg-gradient-primary text-primary-foreground">
+            <RefreshCw className={cn("h-4 w-4", syncMut.isPending && "animate-spin")} />
+            {syncMut.isPending ? "Synchronisiere…" : "Gmail jetzt synchronisieren"}
+          </Button>
+          {vehicles.length > 0 && <Button asChild variant="outline"><Link to="/archive">Archiv ansehen</Link></Button>}
           {lastDecided && (
-            <Button onClick={() => { undo(lastDecided); setLastDecided(null); }}>
-              <Undo2 className="h-4 w-4" /> Undo last
+            <Button variant="ghost" onClick={() => { undoMut.mutate(lastDecided); setLastDecided(null); }}>
+              <Undo2 className="h-4 w-4" /> Letzte rückgängig
             </Button>
           )}
         </div>
@@ -63,25 +95,30 @@ function QueuePage() {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Swipe Queue</h1>
-          <p className="text-sm text-muted-foreground">{queue.length} vehicle{queue.length === 1 ? "" : "s"} · sorted by deal score</p>
+          <p className="text-sm text-muted-foreground">{queue.length} Fahrzeug{queue.length === 1 ? "" : "e"} · sortiert nach Deal Score</p>
         </div>
-        {lastDecided && (
-          <Button size="sm" variant="ghost" onClick={() => { undo(lastDecided); setLastDecided(null); }}>
-            <Undo2 className="h-4 w-4" /> Undo
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
+            <RefreshCw className={cn("h-4 w-4", syncMut.isPending && "animate-spin")} />
+            Sync
           </Button>
-        )}
+          {lastDecided && (
+            <Button size="sm" variant="ghost" onClick={() => { undoMut.mutate(lastDecided); setLastDecided(null); }}>
+              <Undo2 className="h-4 w-4" /> Undo
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="relative" style={{ minHeight: 620 }}>
         <AnimatePresence initial={false}>
-          {queue.slice(0, 3).reverse().map(({ v, a }, idx, arr) => {
+          {queue.slice(0, 3).reverse().map((v, idx, arr) => {
             const isTop = idx === arr.length - 1;
             const depth = arr.length - 1 - idx;
             return (
               <SwipeCard
                 key={v.id}
                 vehicle={v}
-                analysis={a}
                 isTop={isTop}
                 depth={depth}
                 onDecide={(d) => handleDecide(v.id, d)}
@@ -94,11 +131,9 @@ function QueuePage() {
   );
 }
 
-function SwipeCard({
-  vehicle, analysis, isTop, depth, onDecide,
-}: {
-  vehicle: Vehicle; analysis: VehicleAnalysis; isTop: boolean; depth: number;
-  onDecide: (d: Decision) => void;
+function SwipeCard({ vehicle, isTop, depth, onDecide }: {
+  vehicle: VehicleWithAnalysis; isTop: boolean; depth: number;
+  onDecide: (d: DecisionValue) => void;
 }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -114,10 +149,12 @@ function SwipeCard({
     else if (offset.y < -120 || velocity.y < -600) onDecide("maybe");
   };
 
-  const priceDropped = vehicle.previousPriceEur && vehicle.previousPriceEur > vehicle.priceEur;
-  const totalChf = analysis.totalCostChf;
-  const marginPositive = analysis.expectedMarginChf > 0;
-  const belowMarket = analysis.priceVsMarketPercent < -10;
+  const a = vehicle.analysis;
+  const score = a?.deal_score ?? 0;
+  const margin = Number(a?.expected_margin_chf ?? 0);
+  const totalChf = Number(a?.total_cost_chf ?? 0);
+  const marketChf = Number(a?.market_value_chf ?? 0);
+  const marginPositive = margin > 0;
 
   return (
     <motion.div
@@ -143,7 +180,6 @@ function SwipeCard({
       exit={{ x: x.get() > 0 ? 600 : x.get() < 0 ? -600 : 0, y: y.get() < 0 ? -600 : 0, opacity: 0, transition: { duration: 0.25 } }}
       transition={{ type: "spring", stiffness: 320, damping: 30 }}
     >
-      {/* swipe overlays */}
       {isTop && (
         <>
           <motion.div style={{ opacity: yesOpacity }} className="absolute inset-0 z-20 pointer-events-none bg-success/10 border-4 border-success/60 rounded-2xl flex items-start justify-end p-6">
@@ -158,57 +194,44 @@ function SwipeCard({
         </>
       )}
 
-      {/* image */}
       <div className="relative aspect-[16/10] bg-muted">
-        <img src={vehicle.image} alt={vehicle.title} className="w-full h-full object-cover" draggable={false} />
+        {vehicle.image_url ? (
+          <img src={vehicle.image_url} alt={vehicle.title} className="w-full h-full object-cover" draggable={false} />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">Kein Bild</div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/30" />
         <div className="absolute top-3 left-3 flex items-center gap-2">
-          <ScoreBadge score={analysis.dealScore} />
-          {belowMarket && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-success/90 text-success-foreground text-xs font-semibold px-2 py-1">
-              <TrendingDown className="h-3 w-3" /> Below market
-            </span>
-          )}
-          {analysis.dealScore >= 85 && (
+          <ScoreBadge score={score} />
+          {score >= 85 && (
             <span className="inline-flex items-center gap-1 rounded-full bg-gradient-primary text-primary-foreground text-xs font-semibold px-2 py-1">
               <Flame className="h-3 w-3" /> Hot
             </span>
           )}
         </div>
-        <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-black/50 backdrop-blur px-2.5 py-1 text-xs text-white/90">
-          <span className={cn("h-2 w-2 rounded-full", riskDotClass(analysis.riskLevel))} />
-          {analysis.riskLevel} risk
-        </div>
         <div className="absolute bottom-3 left-3 right-3 text-white">
-          <div className="text-xs uppercase tracking-wider text-white/70">{vehicle.make}</div>
-          <div className="text-xl font-semibold leading-tight">{vehicle.title}</div>
+          {vehicle.make && <div className="text-xs uppercase tracking-wider text-white/70">{vehicle.make}</div>}
+          <div className="text-xl font-semibold leading-tight line-clamp-2">{vehicle.title}</div>
         </div>
       </div>
 
-      {/* body */}
       <div className="p-4 lg:p-5 space-y-4">
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <Spec icon={<Calendar className="h-3.5 w-3.5" />} label={String(vehicle.year)} sub="First reg." />
-          <Spec icon={<Gauge className="h-3.5 w-3.5" />} label={fmtKm(vehicle.mileage)} sub="Mileage" />
-          <Spec icon={<Fuel className="h-3.5 w-3.5" />} label={vehicle.fuelType} sub={vehicle.transmission} />
-          <Spec icon={<MapPin className="h-3.5 w-3.5" />} label={`${analysis.distanceKm} km`} sub={`${vehicle.locationCity} → Kloten`} />
+          <Spec icon={<Calendar className="h-3.5 w-3.5" />} label={vehicle.year ? String(vehicle.year) : "—"} sub="EZ" />
+          <Spec icon={<Gauge className="h-3.5 w-3.5" />} label={vehicle.mileage_km ? fmtKm(vehicle.mileage_km) : "—"} sub="Kilometer" />
+          <Spec icon={<Fuel className="h-3.5 w-3.5" />} label={vehicle.fuel ?? "—"} sub={vehicle.transmission ?? ""} />
+          <Spec icon={<MapPin className="h-3.5 w-3.5" />} label={vehicle.location ?? "—"} sub="Standort" />
         </div>
 
         <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-surface p-3">
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">List price</div>
-            <div className="text-lg font-semibold tabular-nums">{fmtEur(vehicle.priceEur)}</div>
-            {priceDropped && (
-              <div className="text-[11px] text-success flex items-center gap-1 mt-0.5">
-                <TrendingDown className="h-3 w-3" />
-                {fmtEur(vehicle.previousPriceEur! - vehicle.priceEur)} drop
-              </div>
-            )}
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Listenpreis DE</div>
+            <div className="text-lg font-semibold tabular-nums">{vehicle.price_eur ? fmtEur(Number(vehicle.price_eur)) : "—"}</div>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Total CH cost</div>
-            <div className="text-lg font-semibold tabular-nums">{fmtChf(totalChf)}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">incl. transport, tax, MFK</div>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Total CH-Kosten</div>
+            <div className="text-lg font-semibold tabular-nums">{totalChf ? fmtChf(totalChf) : "—"}</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">inkl. Transport, MwSt., MFK</div>
           </div>
         </div>
 
@@ -218,47 +241,34 @@ function SwipeCard({
         )}>
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Expected margin</div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Erwartete Marge</div>
               <div className={cn("text-2xl font-bold tabular-nums", marginPositive ? "text-success" : "text-danger")}>
-                {marginPositive ? "+" : ""}{fmtChf(analysis.expectedMarginChf)}
+                {marginPositive ? "+" : ""}{fmtChf(margin)}
               </div>
             </div>
             <div className="text-right">
-              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Sell @</div>
-              <div className="text-sm font-semibold tabular-nums">{fmtChf(analysis.estimatedSellPriceCh)}</div>
-              <div className="text-[11px] text-muted-foreground">{analysis.priceVsMarketPercent.toFixed(1)}% vs market</div>
+              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Verkauf @</div>
+              <div className="text-sm font-semibold tabular-nums">{marketChf ? fmtChf(marketChf) : "—"}</div>
             </div>
           </div>
         </div>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span>Listed {vehicle.daysListed}d ago · {vehicle.sourcePlatform}</span>
+          <span>{vehicle.source} · {vehicle.received_at ? new Date(vehicle.received_at).toLocaleDateString("de-CH") : "—"}</span>
           <Link to="/vehicle/$id" params={{ id: vehicle.id }} className="text-primary hover:underline font-medium">
-            Full details →
+            Vollansicht →
           </Link>
         </div>
 
-        {/* action buttons */}
         <div className="grid grid-cols-3 gap-2 pt-1">
-          <Button
-            variant="outline"
-            className="h-12 border-danger/40 hover:bg-danger/10 hover:text-danger"
-            onClick={() => onDecide("skip")}
-          >
+          <Button variant="outline" className="h-12 border-danger/40 hover:bg-danger/10 hover:text-danger" onClick={() => onDecide("skip")}>
             <X className="h-5 w-5" /> Skip
           </Button>
-          <Button
-            variant="outline"
-            className="h-12 border-warning/40 hover:bg-warning/10 hover:text-warning"
-            onClick={() => onDecide("maybe")}
-          >
+          <Button variant="outline" className="h-12 border-warning/40 hover:bg-warning/10 hover:text-warning" onClick={() => onDecide("maybe")}>
             <Bookmark className="h-5 w-5" /> Maybe
           </Button>
-          <Button
-            className="h-12 bg-gradient-success text-success-foreground hover:opacity-90 font-semibold"
-            onClick={() => onDecide("interesting")}
-          >
-            <Check className="h-5 w-5" /> Interested
+          <Button className="h-12 bg-gradient-success text-success-foreground hover:opacity-90 font-semibold" onClick={() => onDecide("interesting")}>
+            <Check className="h-5 w-5" /> Interessant
           </Button>
         </div>
       </div>
