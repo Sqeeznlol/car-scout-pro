@@ -71,7 +71,7 @@ function QueuePage() {
         </h2>
         <p className="mt-2 text-sm text-muted-foreground max-w-sm">
           {vehicles.length === 0
-            ? "Klicke unten auf „Gmail jetzt synchronisieren", um mobile.de-Mails aus deinem Postfach zu importieren."
+            ? 'Klicke unten auf „Gmail jetzt synchronisieren“, um mobile.de-Mails aus deinem Postfach zu importieren.'
             : "Keine Fahrzeuge zur Entscheidung offen. Neue mobile.de-Mails erscheinen automatisch hier."}
         </p>
         <div className="mt-6 flex gap-2">
