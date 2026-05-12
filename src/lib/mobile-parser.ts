@@ -89,8 +89,8 @@ function parseNumber(s: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-// Mobile.de uses /fahrzeuge/details.html?id=NNNN or /auto-inserat/... formats
-const LINK_RE = /https?:\/\/(?:suchen\.|home\.|www\.)?mobile\.de\/[^\s"'<>]+/gi;
+// Match any *.mobile.de URL (incl. click.news.mobile.de tracking links)
+const LINK_RE = /https?:\/\/[a-z0-9.-]*mobile\.de\/[^\s"'<>)]+/gi;
 const PRICE_RE = /€\s*([\d.]{3,})|EUR\s*([\d.]{3,})|([\d]{1,3}(?:[.\s]\d{3})+)\s*€/g;
 const MILEAGE_RE = /([\d]{1,3}(?:[.\s]\d{3})*)\s*km/gi;
 const YEAR_RE = /\b(EZ|Erstzulassung)[:\s.]*([0-9]{1,2}\/)?([12][0-9]{3})\b/gi;
