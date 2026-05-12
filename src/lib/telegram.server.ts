@@ -42,6 +42,7 @@ interface VehicleLite {
   seller_type: string | null;
   listing_url: string | null;
   distance_km: number | null;
+  image_url?: string | null;
 }
 
 interface AnalysisLite {
@@ -81,59 +82,80 @@ export function buildTelegramMessage(
   f: TelegramFilter,
 ): string {
   const score = a.deal_score ?? 0;
-  const scoreEmoji = score >= 80 ? "🔥" : score >= 65 ? "⭐" : "📋";
   const margin = a.expected_margin_chf ?? 0;
-  const marginEmoji = margin >= 4000 ? "💰" : "💵";
-
-  const lines: string[] = [];
-  if (f.makes.length > 0) lines.push(`✅ Marke: ${esc(v.make ?? "")}`);
-  if (f.max_mileage != null && v.mileage_km != null)
-    lines.push(`✅ ${esc(fmtKm(v.mileage_km))} \\(Max: ${esc(fmtKm(f.max_mileage))}\\)`);
-  if (f.max_price_eur != null && v.price_eur != null)
-    lines.push(`✅ ${esc(fmtEur(v.price_eur))} \\(Max: ${esc(fmtEur(f.max_price_eur))}\\)`);
-  if (f.min_margin_chf != null)
-    lines.push(`✅ Marge ${esc(fmtChf(margin))} \\(Min: ${esc(fmtChf(f.min_margin_chf))}\\)`);
-  if (f.min_deal_score != null)
-    lines.push(`✅ Score ${esc(score)}/100 \\(Min: ${esc(f.min_deal_score)}\\)`);
-  if (f.fuel_types.length > 0) lines.push(`✅ Treibstoff: ${esc(v.fuel ?? "")}`);
-
-  const dist = v.distance_km != null ? `${Math.round(v.distance_km)} km` : "—";
   const totalCost = a.total_cost_chf ?? 0;
+  const dist = v.distance_km != null ? `${Math.round(v.distance_km)} km` : "—";
 
-  return (
-    `${scoreEmoji} *DEIN WUNSCHAUTO IST DA\\!*\n\n` +
-    `🚗 *${esc(v.make ?? "")} ${esc(v.model ?? "")}* ${esc(v.year ?? "")}\n` +
-    `📏 ${esc(fmtKm(v.mileage_km ?? 0))} · ${esc(v.fuel ?? "")} · ${esc(v.transmission ?? "")}\n\n` +
-    `💶 Preis: *${esc(fmtEur(v.price_eur ?? 0))}*\n` +
-    `📦 Einstandspreis CH: *${esc(fmtChf(totalCost))}*\n` +
-    `${marginEmoji} Erwartete Marge: *${esc(fmtChf(margin))}*\n` +
-    `⭐ Deal Score: *${esc(score)}/100*\n\n` +
-    `📍 ${esc(v.location ?? "")} → Kloten: ${esc(dist)}\n` +
-    `🏷️ ${v.seller_type === "dealer" ? "Händler" : "Privat"}: ${esc(v.seller_name ?? "")}\n\n` +
-    `*Deine Kriterien erfüllt:*\n${lines.join("\n")}\n\n` +
-    (v.listing_url ? `[👉 Inserat öffnen](${esc(v.listing_url)})` : "")
-  );
+  const criteria: string[] = [];
+  if (f.makes.length > 0) criteria.push(`Marke: ${esc(v.make ?? "")}`);
+  if (f.max_mileage != null && v.mileage_km != null)
+    criteria.push(`Laufleistung: ${esc(fmtKm(v.mileage_km))} \\(max ${esc(fmtKm(f.max_mileage))}\\)`);
+  if (f.max_price_eur != null && v.price_eur != null)
+    criteria.push(`Preis: ${esc(fmtEur(v.price_eur))} \\(max ${esc(fmtEur(f.max_price_eur))}\\)`);
+  if (f.min_margin_chf != null)
+    criteria.push(`Marge: ${esc(fmtChf(margin))} \\(min ${esc(fmtChf(f.min_margin_chf))}\\)`);
+  if (f.min_deal_score != null)
+    criteria.push(`Score: ${esc(score)}/100 \\(min ${esc(f.min_deal_score)}\\)`);
+  if (f.fuel_types.length > 0) criteria.push(`Treibstoff: ${esc(v.fuel ?? "")}`);
+
+  const title = `*${esc(v.make ?? "")} ${esc(v.model ?? "")}* · ${esc(v.year ?? "")}`;
+  const sub = [v.mileage_km != null ? fmtKm(v.mileage_km) : null, v.fuel, v.transmission]
+    .filter(Boolean).join(" · ");
+
+  const lines = [
+    title,
+    sub ? `_${esc(sub)}_` : "",
+    "",
+    `Preis              ${esc(fmtEur(v.price_eur ?? 0))}`,
+    `Einstand CH        ${esc(fmtChf(totalCost))}`,
+    `Marge              *${esc(fmtChf(margin))}*`,
+    `Deal Score         *${esc(score)}/100*`,
+    "",
+    `Standort           ${esc(v.location ?? "—")} → Kloten ${esc(dist)}`,
+    `Verkäufer          ${esc(v.seller_type === "dealer" ? "Händler" : "Privat")} · ${esc(v.seller_name ?? "—")}`,
+    "",
+    `*Kriterien*`,
+    ...criteria.map((c) => `• ${c}`),
+  ];
+  if (v.listing_url) {
+    lines.push("", `[Inserat öffnen](${esc(v.listing_url)})`);
+  }
+  return lines.filter((l) => l !== null).join("\n");
 }
 
 export async function sendTelegramMessage(
   botToken: string,
   chatId: string,
   text: string,
+  photoUrl?: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    const res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    const useImage = photoUrl && /^https?:\/\//i.test(photoUrl);
+    const url = useImage
+      ? `https://api.telegram.org/bot${botToken}/sendPhoto`
+      : `https://api.telegram.org/bot${botToken}/sendMessage`;
+    const body = useImage
+      ? { chat_id: chatId, photo: photoUrl, caption: text, parse_mode: "MarkdownV2" }
+      : { chat_id: chatId, text, parse_mode: "MarkdownV2", disable_web_page_preview: false };
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text,
-        parse_mode: "MarkdownV2",
-        disable_web_page_preview: false,
-      }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
-      const body = await res.text();
-      return { ok: false, error: `HTTP ${res.status}: ${body.slice(0, 200)}` };
+      const t = await res.text();
+      // fallback to text-only if photo fails (e.g. invalid image url)
+      if (useImage) {
+        const r2 = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: chatId, text, parse_mode: "MarkdownV2" }),
+        });
+        if (r2.ok) return { ok: true };
+        const t2 = await r2.text();
+        return { ok: false, error: `HTTP ${r2.status}: ${t2.slice(0, 200)}` };
+      }
+      return { ok: false, error: `HTTP ${res.status}: ${t.slice(0, 200)}` };
     }
     return { ok: true };
   } catch (e) {
