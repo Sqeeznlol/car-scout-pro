@@ -75,11 +75,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Mobile Radar — Swiss Import Desk" },
       { name: "description", content: "Swipe through mobile.de listings: instant Swiss import cost, margin & deal score." },
       { name: "author", content: "Mobile Radar" },
-      { property: "og:title", content: "Mobile Radar" },
-      { property: "og:description", content: "Swipe-driven car sourcing for Swiss dealers importing from Germany." },
+      { property: "og:title", content: "Mobile Radar — Swiss Import Desk" },
+      { property: "og:description", content: "Swipe through mobile.de listings: instant Swiss import cost, margin & deal score." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Mobile Radar — Swiss Import Desk" },
+      { name: "twitter:description", content: "Swipe through mobile.de listings: instant Swiss import cost, margin & deal score." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a5f54b48-107f-4a71-a41e-7ddd0689381f/id-preview-ddd623a3--da9ca28b-42c6-4ef3-8bcf-fd68e43c789f.lovable.app-1778601626165.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a5f54b48-107f-4a71-a41e-7ddd0689381f/id-preview-ddd623a3--da9ca28b-42c6-4ef3-8bcf-fd68e43c789f.lovable.app-1778601626165.png" },
     ],
     links: [
       {
