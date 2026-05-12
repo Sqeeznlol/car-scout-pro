@@ -44,7 +44,12 @@ export const sendTestTelegram = createServerFn({ method: "POST" })
     };
     const analysis = { total_cost_chf: 34200, expected_margin_chf: 4800, deal_score: 82 };
     const msg = buildTelegramMessage(sample, analysis, f);
-    const r = await sendTelegramMessage(f.telegram_bot_token, f.telegram_chat_id, msg);
+    const r = await sendTelegramMessage(
+      f.telegram_bot_token,
+      f.telegram_chat_id,
+      msg,
+      "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=900&q=80",
+    );
     return r;
   });
 
