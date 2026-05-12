@@ -5,6 +5,7 @@ import {
   sendTelegramMessage,
   type TelegramFilter,
 } from "./telegram.server";
+import { supabaseAdmin } from "@/integrations/supabase/client.server";
 
 const TestInput = z.object({
   filter: z.object({
@@ -27,28 +28,40 @@ export const sendTestTelegram = createServerFn({ method: "POST" })
   .inputValidator((data) => TestInput.parse(data))
   .handler(async ({ data }) => {
     const f = data.filter as TelegramFilter;
-    const sample = {
-      id: "demo",
-      make: "BMW",
-      model: "320d",
-      year: 2021,
-      mileage_km: 87000,
-      price_eur: 27500,
-      fuel: "Diesel",
-      transmission: "Automatik",
-      location: "München",
-      seller_name: "BMW Autohaus München",
-      seller_type: "dealer",
-      listing_url: "https://www.mobile.de/",
-      distance_km: 330,
+
+    // Echtes Inserat aus DB holen (neuestes mit Bild + Link)
+    const { data: vehicle } = await supabaseAdmin
+      .from("vehicles")
+      .select("id,make,model,year,mileage_km,price_eur,fuel,transmission,location,seller_name,seller_type,listing_url,distance_km,image_url")
+      .not("listing_url", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!vehicle) {
+      return { ok: false, error: "Kein Inserat in der Datenbank gefunden. Synchronisiere zuerst eine E-Mail." };
+    }
+
+    const { data: analysisRow } = await supabaseAdmin
+      .from("vehicle_analyses")
+      .select("total_cost_chf,expected_margin_chf,deal_score")
+      .eq("vehicle_id", vehicle.id)
+      .order("computed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const analysis = {
+      total_cost_chf: analysisRow?.total_cost_chf ?? null,
+      expected_margin_chf: analysisRow?.expected_margin_chf ?? null,
+      deal_score: analysisRow?.deal_score ?? null,
     };
-    const analysis = { total_cost_chf: 34200, expected_margin_chf: 4800, deal_score: 82 };
-    const msg = buildTelegramMessage(sample, analysis, f);
+
+    const msg = buildTelegramMessage(vehicle, analysis, f);
     const r = await sendTelegramMessage(
       f.telegram_bot_token,
       f.telegram_chat_id,
       msg,
-      "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=900&q=80",
+      vehicle.image_url ?? null,
     );
     return r;
   });
