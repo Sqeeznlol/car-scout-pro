@@ -169,10 +169,13 @@ function splitIntoListings(_text: string, html: string): Array<{ block: string; 
     const titleStart = i === 0 ? 0 : anchors[i - 1] + 16;
     const titleEnd = anchors[i];
     const specsStart = anchors[i] + 16;
-    const specsEnd = i + 1 < anchors.length ? anchors[i + 1] : Math.min(stripped.length, anchors[i] + 400);
+    const rawSpecsEnd = i + 1 < anchors.length ? anchors[i + 1] : Math.min(stripped.length, anchors[i] + 400);
+    let specsPart = stripped.slice(specsStart, rawSpecsEnd);
+    // Cut specs before the next listing's price (€), to avoid bleeding next title
+    const nextPriceIdx = specsPart.search(/\d{1,3}(?:[.\s]\d{3})+\s*€/);
+    if (nextPriceIdx > 0) specsPart = specsPart.slice(0, nextPriceIdx);
     const titlePart = stripped.slice(titleStart, titleEnd).trim();
-    const specsPart = stripped.slice(specsStart, specsEnd).trim();
-    let block = `${titlePart} ||| ${specsPart}`;
+    let block = `${titlePart} ||| ${specsPart.trim()}`;
     const cut = /(Neue Fahrzeuge zu deiner Suche:|Kunden-Nr\.:[^|]+?\d+)/i.exec(block);
     if (cut) block = block.slice(cut.index + cut[0].length).trim();
     const href = hrefs[i]?.url ?? null;
