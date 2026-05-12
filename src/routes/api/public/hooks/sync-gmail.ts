@@ -4,6 +4,7 @@ import { parseGmailMessage, type ParsedListing } from "@/lib/mobile-parser";
 import { computeAnalysis, type ConfigInput } from "@/lib/analysis";
 import { computeDistanceToKloten } from "@/lib/distance.server";
 import { notifyMatchingFilters } from "@/lib/telegram.server";
+import { estimateChMarketValue } from "@/lib/ch-market.server";
 
 const GMAIL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
