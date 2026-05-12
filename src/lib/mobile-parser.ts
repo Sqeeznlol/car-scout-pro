@@ -220,14 +220,17 @@ function pickYear(block: string): number | null {
 }
 
 function pickTitle(block: string, make: string | null): string {
-  // Use the first sensible line that contains make
-  const lines = block.split(/[\r\n.;]/).map((s) => s.trim()).filter(Boolean);
-  if (make) {
-    const found = lines.find((l) => l.toLowerCase().includes(make.toLowerCase()) && l.length < 140 && l.length > 6);
-    if (found) return found;
+  // Title lives before the "|||" separator, before the price (€)
+  const head = block.split("|||")[0] ?? block;
+  // Cut at price marker
+  const beforePrice = head.split(/[\d.\s]+€/)[0]?.trim() ?? head;
+  // Take last segment after common arrows / separators
+  const parts = beforePrice.split(/[⟩>›»]/).map((s) => s.trim()).filter(Boolean);
+  const candidate = parts[parts.length - 1] || beforePrice;
+  if (make && !candidate.toLowerCase().includes(make.toLowerCase())) {
+    return `${make} ${candidate}`.slice(0, 200);
   }
-  const first = lines.find((l) => l.length > 8 && l.length < 140);
-  return first ?? block.slice(0, 80);
+  return candidate.slice(0, 200) || head.slice(0, 80);
 }
 
 export function parseGmailMessage(message: {
