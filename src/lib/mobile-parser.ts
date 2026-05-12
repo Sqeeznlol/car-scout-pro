@@ -291,6 +291,15 @@ export function parseGmailMessage(message: {
     POWER_RE.lastIndex = 0;
     const powerMatch = POWER_RE.exec(specsPart);
     const power_kw = powerMatch ? parseInt(powerMatch[1], 10) : null;
+    const power_ps = powerMatch?.[2] ? parseInt(powerMatch[2], 10) : null;
+    const regMatch = REG_DATE_RE.exec(specsPart);
+    const registration_month = regMatch ? parseInt(regMatch[1], 10) : null;
+    const co2Match = CO2_RE.exec(specsPart);
+    const co2_gkm = co2Match ? parseInt(co2Match[1], 10) : null;
+    const emissionMatch = EMISSION_RE.exec(specsPart);
+    const emission_class = emissionMatch ? emissionMatch[1] : null;
+    const consMatch = CONSUMPTION_RE.exec(specsPart);
+    const consumption = consMatch ? consMatch[1].trim() : null;
     // Skip blocks that look like footer/header noise
     if (!price && !mileage && !year) continue;
     // Synthesize per-listing id from message id + URL
@@ -302,11 +311,16 @@ export function parseGmailMessage(message: {
       make,
       model: null,
       year,
+      registration_month,
       mileage_km: mileage,
       price_eur: price,
       fuel,
       transmission,
       power_kw,
+      power_ps,
+      consumption,
+      co2_gkm,
+      emission_class,
       location,
       seller_name: null,
       seller_type: null,
