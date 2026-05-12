@@ -1,18 +1,21 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Bell, LayoutGrid, Archive, Settings, Car, Sparkles } from "lucide-react";
+import { Bell, LayoutGrid, Archive, Settings, Car, Sparkles, LogOut } from "lucide-react";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchVehicles } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { useRole, setRole } from "@/components/AuthGate";
 
-const nav = [
+const baseNav = [
   { to: "/queue", label: "Queue", icon: LayoutGrid },
   { to: "/archive", label: "Archive", icon: Archive },
-  { to: "/admin", label: "Admin", icon: Settings },
 ];
+const adminNavItem = { to: "/admin", label: "Admin", icon: Settings };
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
+  const role = useRole();
+  const nav = role === "admin" ? [...baseNav, adminNavItem] : baseNav;
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: fetchVehicles });
 
   const { newCount, hotCount } = useMemo(() => {
@@ -57,11 +60,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="mt-auto rounded-lg border border-border bg-card p-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-chart-2" />
-            <span>{hotCount} hot deal{hotCount === 1 ? "" : "s"} in queue</span>
+        <div className="mt-auto space-y-2">
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-chart-2" />
+              <span>{hotCount} hot deal{hotCount === 1 ? "" : "s"} in queue</span>
+            </div>
           </div>
+          <button
+            onClick={() => setRole(null)}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:bg-sidebar-accent/50 transition"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            {role === "admin" ? "Admin abmelden" : "Abmelden"}
+          </button>
         </div>
       </aside>
 
@@ -99,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 pb-20 lg:pb-0">{children}</main>
 
         <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 glass border-t border-border">
-          <div className="grid grid-cols-3">
+          <div className={cn("grid", nav.length === 2 ? "grid-cols-2" : "grid-cols-3")}>
             {nav.map((n) => {
               const active = pathname.startsWith(n.to);
               return (
