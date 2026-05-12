@@ -145,50 +145,60 @@ function detectLocation(text: string): string | null {
   return null;
 }
 
-// Splits a long email body into per-listing chunks. mobile.de search-subscription
-// emails typically have one block per ad separated by horizontal rules / repeated
-// header tokens. We use the listing URL as the anchor.
-function splitIntoListings(_text: string, html: string): Array<{ block: string; url: string | null; image: string | null }> {
-  // Strategy: each mobile.de listing in the email contains a "Details anzeigen"
-  // CTA. Use those occurrences in the stripped text to slice per-listing blocks.
-  // For each block, find the nearest preceding href + image in the raw HTML.
-  const stripped = stripHtml(html);
-  const anchors: number[] = [];
-  const re = /Details anzeigen|Zum Inserat|Zum Angebot|Zur Anzeige/gi;
+interface ListingChunk {
+  block: string;
+  url: string | null;
+  image: string | null;
+}
+
+// Splits a long email body into per-listing chunks. Each mobile.de email
+// contains exactly one `<a href=URL>Details anzeigen</a>` per listing — that
+// anchor is the authoritative source for both the listing URL and the
+// surrounding block boundary.
+function splitIntoListings(_text: string, html: string): ListingChunk[] {
+  const ANCHOR_RE = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>(?:[^<]|<(?!\/a>))*?Details anzeigen/gi;
+  const anchors: Array<{ url: string; idx: number; end: number }> = [];
   let m: RegExpExecArray | null;
-  while ((m = re.exec(stripped)) !== null) anchors.push(m.index);
+  while ((m = ANCHOR_RE.exec(html)) !== null) {
+    anchors.push({ url: m[1], idx: m.index ?? 0, end: ANCHOR_RE.lastIndex });
+  }
   if (anchors.length === 0) return [];
 
-  // Pre-compute href positions (mobile.de URLs only) and image positions
-  const hrefs = Array.from(html.matchAll(/href=["'](https?:\/\/[^"']+)["']/gi))
-    .map((h) => ({ idx: h.index ?? 0, url: h[1] }))
-    .filter((h) => /mobile\.de/i.test(h.url));
-  const images = Array.from(html.matchAll(IMG_RE))
+  // Listing photos are the classistatic.de images. They appear shortly before
+  // the corresponding "Details anzeigen" link.
+  const listingImgs = Array.from(html.matchAll(IMG_RE))
     .map((i) => ({ idx: i.index ?? 0, src: i[1] }))
-    .filter((i) => !/spacer|pixel|logo|footer|tracking|1x1|open\.gif/i.test(i.src));
+    .filter((i) => /classistatic|mo-prod/i.test(i.src));
 
-  // Approximate mapping: for the i-th anchor in stripped text, take the i-th href
-  // and i-th image. Email layouts repeat the pattern row-by-row.
-  const out: Array<{ block: string; url: string | null; image: string | null }> = [];
+  const out: ListingChunk[] = [];
   for (let i = 0; i < anchors.length; i++) {
-    const titleStart = i === 0 ? 0 : anchors[i - 1] + 16;
-    const titleEnd = anchors[i];
-    const specsStart = anchors[i] + 16;
-    const rawSpecsEnd = i + 1 < anchors.length ? anchors[i + 1] : Math.min(stripped.length, anchors[i] + 400);
-    let specsPart = stripped.slice(specsStart, rawSpecsEnd);
-    // Cut specs before the next listing's price (€), to avoid bleeding next title
-    const nextPriceIdx = specsPart.search(/\d{1,3}(?:[.\s]\d{3})+\s*€/);
-    if (nextPriceIdx > 0) specsPart = specsPart.slice(0, nextPriceIdx);
-    const titlePart = stripped.slice(titleStart, titleEnd).trim();
-    let block = `${titlePart} ||| ${specsPart.trim()}`;
-    const cut = /(Neue Fahrzeuge zu deiner Suche:|Kunden-Nr\.:[^|]+?\d+)/i.exec(block);
-    if (cut) block = block.slice(cut.index + cut[0].length).trim();
-    const href = hrefs[i]?.url ?? null;
-    const image = images[i]?.src ?? null;
-    out.push({ block, url: href, image });
+    const prevEnd = i === 0 ? 0 : anchors[i - 1].end;
+    const nextStart = i + 1 < anchors.length ? anchors[i + 1].idx : Math.min(html.length, anchors[i].end + 1500);
+    const titleHtml = html.slice(prevEnd, anchors[i].idx);
+    const specsHtml = html.slice(anchors[i].end, nextStart);
+    const titlePart = stripHtml(titleHtml);
+    const specsPart = stripHtml(specsHtml);
+    const block = `${titlePart} ||| ${specsPart}`;
+    // Closest listing image preceding (or just after) the anchor
+    const img =
+      [...listingImgs].reverse().find((im) => im.idx < anchors[i].idx) ??
+      listingImgs.find((im) => im.idx > anchors[i].idx) ??
+      null;
+    // Remove this image from future candidates so each listing gets a unique one
+    if (img) {
+      const idx = listingImgs.indexOf(img);
+      if (idx >= 0) listingImgs.splice(idx, 1);
+    }
+    out.push({ block, url: anchors[i].url, image: img?.src ?? null });
   }
   return out;
 }
+
+const REG_DATE_RE = /\b(0?[1-9]|1[0-2])\/((?:19|20)\d{2})\b/;
+const CO2_RE = /(\d{1,3})\s*g\s*CO[₂2]\/km/i;
+const EMISSION_RE = /CO[₂2]-Klasse\s+([A-G])/i;
+const CONSUMPTION_RE = /(\d{1,2}[,.]\d\s*l\/100\s*km(?:\s*\([^)]+\))?)/i;
+
 
 function pickPrice(block: string): number | null {
   PRICE_RE.lastIndex = 0;
