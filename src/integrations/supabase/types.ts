@@ -191,7 +191,10 @@ export type Database = {
       }
       vehicles: {
         Row: {
+          co2_gkm: number | null
+          consumption: string | null
           created_at: string
+          emission_class: string | null
           fuel: string | null
           id: string
           image_url: string | null
@@ -201,9 +204,11 @@ export type Database = {
           mileage_km: number | null
           model: string | null
           power_kw: number | null
+          power_ps: number | null
           price_eur: number | null
           raw_text: string | null
           received_at: string | null
+          registration_month: number | null
           seller_name: string | null
           seller_type: string | null
           source: string
@@ -214,7 +219,10 @@ export type Database = {
           year: number | null
         }
         Insert: {
+          co2_gkm?: number | null
+          consumption?: string | null
           created_at?: string
+          emission_class?: string | null
           fuel?: string | null
           id?: string
           image_url?: string | null
@@ -224,9 +232,11 @@ export type Database = {
           mileage_km?: number | null
           model?: string | null
           power_kw?: number | null
+          power_ps?: number | null
           price_eur?: number | null
           raw_text?: string | null
           received_at?: string | null
+          registration_month?: number | null
           seller_name?: string | null
           seller_type?: string | null
           source?: string
@@ -237,7 +247,10 @@ export type Database = {
           year?: number | null
         }
         Update: {
+          co2_gkm?: number | null
+          consumption?: string | null
           created_at?: string
+          emission_class?: string | null
           fuel?: string | null
           id?: string
           image_url?: string | null
@@ -247,9 +260,11 @@ export type Database = {
           mileage_km?: number | null
           model?: string | null
           power_kw?: number | null
+          power_ps?: number | null
           price_eur?: number | null
           raw_text?: string | null
           received_at?: string | null
+          registration_month?: number | null
           seller_name?: string | null
           seller_type?: string | null
           source?: string

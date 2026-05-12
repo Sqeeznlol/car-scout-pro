@@ -92,11 +92,19 @@ function VehiclePage() {
           </div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border">
-          <Stat icon={<Calendar />} label="EZ" value={v.year ? String(v.year) : "—"} />
+          <Stat icon={<Calendar />} label="Erstzulassung" value={v.registration_month && v.year ? `${String(v.registration_month).padStart(2, "0")}/${v.year}` : v.year ? String(v.year) : "—"} />
           <Stat icon={<Gauge />} label="Kilometer" value={v.mileage_km ? fmtKm(v.mileage_km) : "—"} />
-          <Stat icon={<Fuel />} label="Kraftstoff / Getriebe" value={`${v.fuel ?? "—"} · ${v.transmission ?? "—"}`} />
-          <Stat icon={<MapPin />} label="Standort" value={v.location ?? "—"} />
+          <Stat icon={<Fuel />} label="Kraftstoff" value={v.fuel ?? "—"} />
+          <Stat icon={<Gauge />} label="Leistung" value={v.power_kw ? `${v.power_kw} kW${v.power_ps ? ` (${v.power_ps} PS)` : ""}` : "—"} />
         </div>
+        {(v.consumption || v.co2_gkm || v.emission_class || v.transmission || v.location) && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border-t border-border">
+            {v.transmission && <Stat icon={<Gauge />} label="Getriebe" value={v.transmission} />}
+            {v.consumption && <Stat icon={<Fuel />} label="Verbrauch" value={v.consumption} />}
+            {v.co2_gkm != null && <Stat icon={<Fuel />} label="CO₂" value={`${v.co2_gkm} g/km${v.emission_class ? ` · Klasse ${v.emission_class}` : ""}`} />}
+            {v.location && <Stat icon={<MapPin />} label="Standort" value={v.location} />}
+          </div>
+        )}
       </div>
 
       {a && (
