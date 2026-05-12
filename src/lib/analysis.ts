@@ -23,6 +23,7 @@ export interface VehicleInput {
   location: string | null;
   fuel: string | null;
   seller_type?: string | null;
+  distance_km?: number | null;
 }
 
 // Approximate distance from common German cities to Zurich
