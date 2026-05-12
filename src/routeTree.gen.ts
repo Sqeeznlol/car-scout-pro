@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as QueueRouteImport } from './routes/queue'
+import { Route as MeineSucheRouteImport } from './routes/meine-suche'
 import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
@@ -19,6 +20,11 @@ import { Route as ApiPublicHooksSyncGmailRouteImport } from './routes/api/public
 const QueueRoute = QueueRouteImport.update({
   id: '/queue',
   path: '/queue',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeineSucheRoute = MeineSucheRouteImport.update({
+  id: '/meine-suche',
+  path: '/meine-suche',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArchiveRoute = ArchiveRouteImport.update({
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/archive': typeof ArchiveRoute
+  '/meine-suche': typeof MeineSucheRoute
   '/queue': typeof QueueRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/archive': typeof ArchiveRoute
+  '/meine-suche': typeof MeineSucheRoute
   '/queue': typeof QueueRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
@@ -68,6 +76,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
   '/archive': typeof ArchiveRoute
+  '/meine-suche': typeof MeineSucheRoute
   '/queue': typeof QueueRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
@@ -78,6 +87,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/archive'
+    | '/meine-suche'
     | '/queue'
     | '/vehicle/$id'
     | '/api/public/hooks/sync-gmail'
@@ -86,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/archive'
+    | '/meine-suche'
     | '/queue'
     | '/vehicle/$id'
     | '/api/public/hooks/sync-gmail'
@@ -94,6 +105,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/archive'
+    | '/meine-suche'
     | '/queue'
     | '/vehicle/$id'
     | '/api/public/hooks/sync-gmail'
@@ -103,6 +115,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
   ArchiveRoute: typeof ArchiveRoute
+  MeineSucheRoute: typeof MeineSucheRoute
   QueueRoute: typeof QueueRoute
   VehicleIdRoute: typeof VehicleIdRoute
   ApiPublicHooksSyncGmailRoute: typeof ApiPublicHooksSyncGmailRoute
@@ -115,6 +128,13 @@ declare module '@tanstack/react-router' {
       path: '/queue'
       fullPath: '/queue'
       preLoaderRoute: typeof QueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meine-suche': {
+      id: '/meine-suche'
+      path: '/meine-suche'
+      fullPath: '/meine-suche'
+      preLoaderRoute: typeof MeineSucheRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/archive': {
@@ -159,6 +179,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
   ArchiveRoute: ArchiveRoute,
+  MeineSucheRoute: MeineSucheRoute,
   QueueRoute: QueueRoute,
   VehicleIdRoute: VehicleIdRoute,
   ApiPublicHooksSyncGmailRoute: ApiPublicHooksSyncGmailRoute,
@@ -166,3 +187,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
