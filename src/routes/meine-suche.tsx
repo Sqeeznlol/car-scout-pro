@@ -230,8 +230,8 @@ function MeineSuche() {
       </Card>
 
       {/* Vorschau */}
-      <Card title="📨 Nachrichtenvorschau">
-        <pre className="whitespace-pre-wrap text-xs bg-background border border-border rounded-md p-3 font-mono leading-relaxed">{preview}</pre>
+      <Card title="Nachrichtenvorschau">
+        <MessagePreview f={f} />
       </Card>
 
       {/* Actions */}
