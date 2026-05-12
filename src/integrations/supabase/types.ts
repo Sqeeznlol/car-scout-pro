@@ -194,12 +194,17 @@ export type Database = {
           co2_gkm: number | null
           consumption: string | null
           created_at: string
+          distance_computed_at: string | null
+          distance_km: number | null
+          distance_minutes: number | null
           emission_class: string | null
           fuel: string | null
           id: string
           image_url: string | null
+          latitude: number | null
           listing_url: string | null
           location: string | null
+          longitude: number | null
           make: string | null
           mileage_km: number | null
           model: string | null
@@ -209,8 +214,11 @@ export type Database = {
           raw_text: string | null
           received_at: string | null
           registration_month: number | null
+          seller_address: string | null
           seller_name: string | null
+          seller_phone: string | null
           seller_type: string | null
+          seller_website: string | null
           source: string
           source_message_id: string | null
           title: string
@@ -222,12 +230,17 @@ export type Database = {
           co2_gkm?: number | null
           consumption?: string | null
           created_at?: string
+          distance_computed_at?: string | null
+          distance_km?: number | null
+          distance_minutes?: number | null
           emission_class?: string | null
           fuel?: string | null
           id?: string
           image_url?: string | null
+          latitude?: number | null
           listing_url?: string | null
           location?: string | null
+          longitude?: number | null
           make?: string | null
           mileage_km?: number | null
           model?: string | null
@@ -237,8 +250,11 @@ export type Database = {
           raw_text?: string | null
           received_at?: string | null
           registration_month?: number | null
+          seller_address?: string | null
           seller_name?: string | null
+          seller_phone?: string | null
           seller_type?: string | null
+          seller_website?: string | null
           source?: string
           source_message_id?: string | null
           title: string
@@ -250,12 +266,17 @@ export type Database = {
           co2_gkm?: number | null
           consumption?: string | null
           created_at?: string
+          distance_computed_at?: string | null
+          distance_km?: number | null
+          distance_minutes?: number | null
           emission_class?: string | null
           fuel?: string | null
           id?: string
           image_url?: string | null
+          latitude?: number | null
           listing_url?: string | null
           location?: string | null
+          longitude?: number | null
           make?: string | null
           mileage_km?: number | null
           model?: string | null
@@ -265,8 +286,11 @@ export type Database = {
           raw_text?: string | null
           received_at?: string | null
           registration_month?: number | null
+          seller_address?: string | null
           seller_name?: string | null
+          seller_phone?: string | null
           seller_type?: string | null
+          seller_website?: string | null
           source?: string
           source_message_id?: string | null
           title?: string

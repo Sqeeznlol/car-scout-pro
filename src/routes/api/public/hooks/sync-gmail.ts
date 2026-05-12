@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { parseGmailMessage, type ParsedListing } from "@/lib/mobile-parser";
 import { computeAnalysis, type ConfigInput } from "@/lib/analysis";
+import { computeDistanceToKloten } from "@/lib/distance.server";
 
 const GMAIL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
@@ -82,6 +83,7 @@ async function runSync(limit: number) {
       for (const L of listings) {
         if (!L.price_eur) continue;
         // upsert vehicle by source_message_id
+        const dist = await computeDistanceToKloten(L.seller_address, L.location);
         const { data: inserted_row, error: insErr } = await supabaseAdmin
           .from("vehicles")
           .upsert(
@@ -106,6 +108,14 @@ async function runSync(limit: number) {
               location: L.location,
               seller_name: L.seller_name,
               seller_type: L.seller_type,
+              seller_phone: L.seller_phone,
+              seller_address: L.seller_address,
+              seller_website: L.seller_website,
+              latitude: dist?.latitude ?? null,
+              longitude: dist?.longitude ?? null,
+              distance_km: dist?.distance_km ?? null,
+              distance_minutes: dist?.distance_minutes ?? null,
+              distance_computed_at: dist ? new Date().toISOString() : null,
               image_url: L.image_url,
               raw_text: L.raw_text,
               received_at: L.received_at,
@@ -127,6 +137,7 @@ async function runSync(limit: number) {
             location: L.location,
             fuel: L.fuel,
             seller_type: L.seller_type,
+            distance_km: dist?.distance_km ?? null,
           },
           config,
         );

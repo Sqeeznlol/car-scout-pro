@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, MapPin, Calendar, Gauge, Fuel, Check, X, Bookmark } from "lucide-react";
+import { ArrowLeft, ExternalLink, MapPin, Calendar, Gauge, Fuel, Check, X, Bookmark, Phone, Globe, Building2, Navigation } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchVehicle, recordDecision, type DecisionValue } from "@/lib/db";
 import { fmtChf, fmtEur, fmtKm, scoreColor } from "@/lib/format";
@@ -97,15 +97,77 @@ function VehiclePage() {
           <Stat icon={<Fuel />} label="Kraftstoff" value={v.fuel ?? "—"} />
           <Stat icon={<Gauge />} label="Leistung" value={v.power_kw ? `${v.power_kw} kW${v.power_ps ? ` (${v.power_ps} PS)` : ""}` : "—"} />
         </div>
-        {(v.consumption || v.co2_gkm || v.emission_class || v.transmission || v.location) && (
+        {(v.consumption || v.co2_gkm || v.emission_class || v.transmission || v.location || v.distance_km) && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border border-t border-border">
             {v.transmission && <Stat icon={<Gauge />} label="Getriebe" value={v.transmission} />}
             {v.consumption && <Stat icon={<Fuel />} label="Verbrauch" value={v.consumption} />}
             {v.co2_gkm != null && <Stat icon={<Fuel />} label="CO₂" value={`${v.co2_gkm} g/km${v.emission_class ? ` · Klasse ${v.emission_class}` : ""}`} />}
             {v.location && <Stat icon={<MapPin />} label="Standort" value={v.location} />}
+            {v.distance_km != null && (
+              <Stat
+                icon={<Navigation />}
+                label="Fahrdistanz nach Kloten"
+                value={`${Math.round(v.distance_km)} km${v.distance_minutes ? ` · ${Math.floor(v.distance_minutes / 60)}h ${v.distance_minutes % 60}min` : ""}`}
+              />
+            )}
           </div>
         )}
       </div>
+
+      {(v.seller_name || v.seller_phone || v.seller_address || v.seller_website || v.seller_type) && (
+        <Section title="Händler / Verkäufer">
+          <div className="rounded-xl border border-border bg-card p-5 space-y-3">
+            {v.seller_name && (
+              <div className="flex items-start gap-3">
+                <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div>
+                  <div className="font-semibold">{v.seller_name}</div>
+                  {v.seller_type && <div className="text-xs text-muted-foreground">{v.seller_type === "Dealer" ? "Händler / Gewerblich" : "Privat"}</div>}
+                </div>
+              </div>
+            )}
+            {v.seller_address && (
+              <div className="flex items-start gap-3">
+                <MapPin className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+                <div className="flex-1">
+                  <div className="text-sm">{v.seller_address}</div>
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=Flughafen+Kloten,+Schweiz&origin=${encodeURIComponent(v.seller_address)}&travelmode=driving`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-1"
+                  >
+                    Route in Google Maps öffnen <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            )}
+            {v.seller_phone && (
+              <div className="flex items-center gap-3">
+                <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+                <a href={`tel:${v.seller_phone.replace(/\s/g, "")}`} className="text-sm text-primary hover:underline tabular-nums">{v.seller_phone}</a>
+              </div>
+            )}
+            {v.seller_website && (
+              <div className="flex items-center gap-3">
+                <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                <a href={v.seller_website} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate">{v.seller_website}</a>
+              </div>
+            )}
+            {v.distance_km != null && (
+              <div className="flex items-center gap-3 pt-2 border-t border-border">
+                <Navigation className="h-4 w-4 text-muted-foreground shrink-0" />
+                <div className="text-sm">
+                  <span className="font-semibold tabular-nums">{Math.round(v.distance_km)} km</span>
+                  {v.distance_minutes != null && (
+                    <span className="text-muted-foreground"> · ca. {Math.floor(v.distance_minutes / 60)}h {v.distance_minutes % 60}min Fahrt nach Kloten</span>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </Section>
+      )}
 
       {a && (
         <Section title="Import-Kostenaufstellung">

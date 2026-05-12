@@ -220,7 +220,11 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
           <Spec icon={<Calendar className="h-3.5 w-3.5" />} label={vehicle.year ? String(vehicle.year) : "—"} sub="EZ" />
           <Spec icon={<Gauge className="h-3.5 w-3.5" />} label={vehicle.mileage_km ? fmtKm(vehicle.mileage_km) : "—"} sub="Kilometer" />
           <Spec icon={<Fuel className="h-3.5 w-3.5" />} label={vehicle.fuel ?? "—"} sub={vehicle.transmission ?? ""} />
-          <Spec icon={<MapPin className="h-3.5 w-3.5" />} label={vehicle.location ?? "—"} sub="Standort" />
+          <Spec
+            icon={<MapPin className="h-3.5 w-3.5" />}
+            label={vehicle.location ?? "—"}
+            sub={vehicle.distance_km != null ? `${Math.round(vehicle.distance_km)} km nach Kloten` : "Standort"}
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-surface p-3">

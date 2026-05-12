@@ -23,6 +23,9 @@ export interface ParsedListing {
   seller_name: string | null;
   seller_type: string | null;
   image_url: string | null;
+  seller_phone: string | null;
+  seller_address: string | null;
+  seller_website: string | null;
   raw_text: string;
   received_at: string | null;
 }
@@ -298,6 +301,25 @@ export function parseGmailMessage(message: {
     const emission_class = emissionMatch ? emissionMatch[1] : null;
     const consMatch = CONSUMPTION_RE.exec(specsPart);
     const consumption = consMatch ? consMatch[1].trim() : null;
+
+    // Dealer / seller info — found in specsPart, often after specs block
+    const phoneMatch = /(?:Tel\.?|Telefon|Phone)[:\s]*(\+?[\d\s().\/-]{6,25}\d)/i.exec(specsPart)
+      ?? /(\+49[\s\d().\/-]{8,20}\d)/.exec(specsPart);
+    const seller_phone = phoneMatch ? phoneMatch[1].replace(/\s+/g, " ").trim() : null;
+    // Address: street + house number, then 5-digit zip + city
+    const addrMatch = /([A-ZÄÖÜ][A-Za-zÄÖÜäöüß.\-\s]{2,40}\s+\d{1,4}[a-zA-Z]?)[,\s]+(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-\s]{2,40})/.exec(specsPart);
+    const seller_address = addrMatch ? `${addrMatch[1].trim()}, ${addrMatch[2]} ${addrMatch[3].trim()}` : null;
+    // Seller name: "Händler" / "Gewerblich" or look for company-like name before address
+    let seller_name: string | null = null;
+    let seller_type: string | null = null;
+    if (/Händler|Gewerblich|Autohaus|GmbH|KG|AG|e\.K\./i.test(specsPart)) seller_type = "Dealer";
+    else if (/Privat/i.test(specsPart)) seller_type = "Private";
+    const nameMatch = /([A-ZÄÖÜ][A-Za-zÄÖÜäöüß&.\-\s]{2,60}?(?:GmbH|KG|AG|OHG|e\.K\.|Autohaus|Auto[- ]Center|Automobile))/.exec(specsPart);
+    if (nameMatch) seller_name = nameMatch[1].replace(/\s+/g, " ").trim();
+    // Seller website
+    const siteMatch = /(https?:\/\/(?:www\.)?[a-z0-9.-]+\.[a-z]{2,}(?:\/[^\s"'<>)]*)?)/i.exec(specsPart.replace(/https?:\/\/[a-z0-9.-]*mobile\.de\/[^\s"'<>)]+/gi, ""));
+    const seller_website = siteMatch ? siteMatch[1] : null;
+
     // Skip blocks that look like footer/header noise
     if (!price && !mileage && !year) continue;
     // Synthesize per-listing id from message id + URL
@@ -319,9 +341,12 @@ export function parseGmailMessage(message: {
       consumption,
       co2_gkm,
       emission_class,
-      location,
-      seller_name: null,
-      seller_type: null,
+      location: location ?? (seller_address ? seller_address.split(",").pop()?.trim() ?? null : null),
+      seller_name,
+      seller_type,
+      seller_phone,
+      seller_address,
+      seller_website,
       image_url: b.image,
       raw_text: b.block.slice(0, 2000),
       received_at: internal,
