@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { parseGmailMessage, type ParsedListing } from "@/lib/mobile-parser";
 import { computeAnalysis, type ConfigInput } from "@/lib/analysis";
+import { computeDistanceToKloten } from "@/lib/distance.server";
 
 const GMAIL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
