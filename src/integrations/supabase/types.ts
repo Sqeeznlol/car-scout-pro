@@ -121,6 +121,57 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_filters: {
+        Row: {
+          created_at: string
+          fuel_types: string[]
+          id: string
+          is_active: boolean
+          makes: string[]
+          max_mileage: number | null
+          max_price_eur: number | null
+          min_deal_score: number | null
+          min_margin_chf: number | null
+          models: string[]
+          name: string
+          telegram_bot_token: string
+          telegram_chat_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fuel_types?: string[]
+          id?: string
+          is_active?: boolean
+          makes?: string[]
+          max_mileage?: number | null
+          max_price_eur?: number | null
+          min_deal_score?: number | null
+          min_margin_chf?: number | null
+          models?: string[]
+          name?: string
+          telegram_bot_token?: string
+          telegram_chat_id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fuel_types?: string[]
+          id?: string
+          is_active?: boolean
+          makes?: string[]
+          max_mileage?: number | null
+          max_price_eur?: number | null
+          min_deal_score?: number | null
+          min_margin_chf?: number | null
+          models?: string[]
+          name?: string
+          telegram_bot_token?: string
+          telegram_chat_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       vehicle_analyses: {
         Row: {
           automobilsteuer_chf: number | null
@@ -221,6 +272,8 @@ export type Database = {
           seller_website: string | null
           source: string
           source_message_id: string | null
+          telegram_sent: boolean
+          telegram_sent_at: string | null
           title: string
           transmission: string | null
           variant: string | null
@@ -257,6 +310,8 @@ export type Database = {
           seller_website?: string | null
           source?: string
           source_message_id?: string | null
+          telegram_sent?: boolean
+          telegram_sent_at?: string | null
           title: string
           transmission?: string | null
           variant?: string | null
@@ -293,6 +348,8 @@ export type Database = {
           seller_website?: string | null
           source?: string
           source_message_id?: string | null
+          telegram_sent?: boolean
+          telegram_sent_at?: string | null
           title?: string
           transmission?: string | null
           variant?: string | null

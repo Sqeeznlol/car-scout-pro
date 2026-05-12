@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { parseGmailMessage, type ParsedListing } from "@/lib/mobile-parser";
 import { computeAnalysis, type ConfigInput } from "@/lib/analysis";
 import { computeDistanceToKloten } from "@/lib/distance.server";
+import { notifyMatchingFilters } from "@/lib/telegram.server";
 
 const GMAIL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
@@ -144,6 +145,33 @@ async function runSync(limit: number) {
         await supabaseAdmin
           .from("vehicle_analyses")
           .upsert({ vehicle_id: inserted_row.id, ...analysis, computed_at: new Date().toISOString() });
+        // Telegram-Suchabo: prüfen ob Fahrzeug zu einem Filter passt
+        try {
+          await notifyMatchingFilters(
+            {
+              id: inserted_row.id,
+              make: L.make,
+              model: L.model,
+              year: L.year,
+              mileage_km: L.mileage_km,
+              price_eur: L.price_eur,
+              fuel: L.fuel,
+              transmission: L.transmission,
+              location: L.location,
+              seller_name: L.seller_name,
+              seller_type: L.seller_type,
+              listing_url: L.listing_url,
+              distance_km: dist?.distance_km ?? null,
+            },
+            {
+              total_cost_chf: analysis.total_cost_chf,
+              expected_margin_chf: analysis.expected_margin_chf,
+              deal_score: analysis.deal_score,
+            },
+          );
+        } catch (e) {
+          errors.push(`telegram: ${e instanceof Error ? e.message : String(e)}`);
+        }
       }
     } catch (e) {
       errors.push(e instanceof Error ? e.message : String(e));
