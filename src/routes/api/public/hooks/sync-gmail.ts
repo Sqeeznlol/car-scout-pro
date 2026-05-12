@@ -4,6 +4,7 @@ import { parseGmailMessage, type ParsedListing } from "@/lib/mobile-parser";
 import { computeAnalysis, type ConfigInput } from "@/lib/analysis";
 import { computeDistanceToKloten } from "@/lib/distance.server";
 import { notifyMatchingFilters } from "@/lib/telegram.server";
+import { estimateChMarketValue } from "@/lib/ch-market.server";
 
 const GMAIL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
@@ -142,6 +143,28 @@ async function runSync(limit: number) {
           },
           config,
         );
+        // CH-Marktwert via AutoScout24.ch (Median ähnlicher Inserate) — überschreibt Heuristik
+        try {
+          const ch = await estimateChMarketValue({
+            make: L.make, model: L.model, year: L.year, mileage_km: L.mileage_km,
+          });
+          if (ch && ch.market_value_chf > 0) {
+            analysis.market_value_chf = ch.market_value_chf;
+            analysis.expected_margin_chf = ch.market_value_chf - analysis.total_cost_chf;
+            // margin_score neu berechnen
+            const t = Number(config.target_margin_chf) || 3500;
+            analysis.margin_score = Math.max(0, Math.min(100, Math.round((analysis.expected_margin_chf / t) * 70 + 30)));
+            const tw = config.weight_margin + config.weight_liquidity + config.weight_risk + config.weight_learning || 100;
+            analysis.deal_score = Math.round(
+              (analysis.margin_score * config.weight_margin +
+                analysis.liquidity_score * config.weight_liquidity +
+                analysis.risk_score * config.weight_risk +
+                analysis.learning_score * config.weight_learning) / tw,
+            );
+          }
+        } catch (e) {
+          errors.push(`ch-market: ${e instanceof Error ? e.message : String(e)}`);
+        }
         await supabaseAdmin
           .from("vehicle_analyses")
           .upsert({ vehicle_id: inserted_row.id, ...analysis, computed_at: new Date().toISOString() });
