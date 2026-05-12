@@ -109,6 +109,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 import { AppShell } from "@/components/AppShell";
+import { AuthGate } from "@/components/AuthGate";
 import { Toaster } from "@/components/ui/sonner";
 
 function RootComponent() {
@@ -116,9 +117,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppShell>
-        <Outlet />
-      </AppShell>
+      <AuthGate>
+        <AppShell>
+          <Outlet />
+        </AppShell>
+      </AuthGate>
       <Toaster position="top-center" richColors />
     </QueryClientProvider>
   );
