@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, MapPin, Calendar, Gauge, Fuel, Check, X, Bookmark } from "lucide-react";
+import { ArrowLeft, ExternalLink, MapPin, Calendar, Gauge, Fuel, Check, X, Bookmark, Phone, Globe, Building2, Navigation } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchVehicle, recordDecision, type DecisionValue } from "@/lib/db";
 import { fmtChf, fmtEur, fmtKm, scoreColor } from "@/lib/format";
