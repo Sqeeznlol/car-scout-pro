@@ -111,7 +111,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 pb-20 lg:pb-0">{children}</main>
 
         <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 glass border-t border-border">
-          <div className="grid grid-cols-3">
+          <div className={cn("grid", nav.length === 2 ? "grid-cols-2" : "grid-cols-3")}>
             {nav.map((n) => {
               const active = pathname.startsWith(n.to);
               return (
