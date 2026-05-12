@@ -109,7 +109,7 @@ function MeineSuche() {
     else toast.error("Fehler: " + r.error);
   };
 
-  const preview = useMemo(() => buildPreview(f), [f]);
+  
 
   if (loading) return <div className="p-8 text-muted-foreground">Lade…</div>;
 
