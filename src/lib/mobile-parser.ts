@@ -143,43 +143,40 @@ function detectLocation(text: string): string | null {
 // Splits a long email body into per-listing chunks. mobile.de search-subscription
 // emails typically have one block per ad separated by horizontal rules / repeated
 // header tokens. We use the listing URL as the anchor.
-function splitIntoListings(text: string, html: string): Array<{ block: string; url: string | null; image: string | null }> {
-  const out: Array<{ block: string; url: string | null; image: string | null }> = [];
-  const linkMatches = Array.from(html.matchAll(LINK_RE));
-  if (linkMatches.length === 0) {
-    // Fallback: try plain text URLs
-    const textLinks = Array.from(text.matchAll(LINK_RE));
-    if (textLinks.length === 0) return [];
-    for (let i = 0; i < textLinks.length; i++) {
-      const start = textLinks[i].index ?? 0;
-      const end = i + 1 < textLinks.length ? (textLinks[i + 1].index ?? text.length) : text.length;
-      out.push({ block: text.slice(Math.max(0, start - 400), end), url: textLinks[i][0], image: null });
-    }
-    return out;
-  }
-  // For each listing URL in HTML, find the surrounding context and the nearest image
+function splitIntoListings(_text: string, html: string): Array<{ block: string; url: string | null; image: string | null }> {
+  // Strategy: each mobile.de listing in the email contains a "Details anzeigen"
+  // CTA. Use those occurrences in the stripped text to slice per-listing blocks.
+  // For each block, find the nearest preceding href + image in the raw HTML.
   const stripped = stripHtml(html);
-  const imageMatches = Array.from(html.matchAll(IMG_RE)).map((m) => ({ idx: m.index ?? 0, src: m[1] }));
+  const anchors: number[] = [];
+  const re = /Details anzeigen|Zum Inserat|Zum Angebot|Zur Anzeige/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(stripped)) !== null) anchors.push(m.index);
+  if (anchors.length === 0) return [];
 
-  for (let i = 0; i < linkMatches.length; i++) {
-    const url = linkMatches[i][0];
-    const idx = linkMatches[i].index ?? 0;
-    const nextIdx = i + 1 < linkMatches.length ? (linkMatches[i + 1].index ?? html.length) : html.length;
-    // Snippet of HTML around link, then strip
-    const htmlBlock = html.slice(Math.max(0, idx - 600), nextIdx);
-    const block = stripHtml(htmlBlock);
-    // Find image with index in [idx-1500, idx+200]
-    const nearby = imageMatches.find((im) => im.idx >= idx - 1500 && im.idx <= idx + 200 && !/spacer|pixel|logo|footer/i.test(im.src));
-    out.push({ block: block || stripped, url, image: nearby?.src ?? null });
+  // Pre-compute href positions (mobile.de URLs only) and image positions
+  const hrefs = Array.from(html.matchAll(/href=["'](https?:\/\/[^"']+)["']/gi))
+    .map((h) => ({ idx: h.index ?? 0, url: h[1] }))
+    .filter((h) => /mobile\.de/i.test(h.url));
+  const images = Array.from(html.matchAll(IMG_RE))
+    .map((i) => ({ idx: i.index ?? 0, src: i[1] }))
+    .filter((i) => !/spacer|pixel|logo|footer|tracking|1x1|open\.gif/i.test(i.src));
+
+  // Approximate mapping: for the i-th anchor in stripped text, take the i-th href
+  // and i-th image. Email layouts repeat the pattern row-by-row.
+  const out: Array<{ block: string; url: string | null; image: string | null }> = [];
+  for (let i = 0; i < anchors.length; i++) {
+    const start = i === 0 ? 0 : anchors[i - 1] + 16;
+    const end = anchors[i];
+    let block = stripped.slice(Math.max(0, start - 50), end + 250).trim();
+    // Trim leading boilerplate before the actual listing title
+    const cut = /(Neue Fahrzeuge zu deiner Suche:|Kunden-Nr\.:[^A-Za-zÄÖÜ]+\d+)/i.exec(block);
+    if (cut) block = block.slice(cut.index + cut[0].length).trim();
+    const href = hrefs[i]?.url ?? null;
+    const image = images[i]?.src ?? null;
+    out.push({ block, url: href, image });
   }
-  // De-dup by URL
-  const seen = new Set<string>();
-  return out.filter((o) => {
-    if (!o.url) return false;
-    if (seen.has(o.url)) return false;
-    seen.add(o.url);
-    return true;
-  });
+  return out;
 }
 
 function pickPrice(block: string): number | null {
