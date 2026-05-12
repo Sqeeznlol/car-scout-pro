@@ -8,7 +8,8 @@ import { useRole, setRole } from "@/components/AuthGate";
 
 const baseNav = [
   { to: "/queue", label: "Queue", icon: LayoutGrid },
-  { to: "/archive", label: "Archive", icon: Archive },
+  { to: "/archive", label: "Archiv", icon: Archive },
+  { to: "/meine-suche", label: "Meine Suche", icon: Bell },
 ];
 const adminNavItem = { to: "/admin", label: "Admin", icon: Settings };
 
@@ -111,7 +112,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 pb-20 lg:pb-0">{children}</main>
 
         <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 glass border-t border-border">
-          <div className={cn("grid", nav.length === 2 ? "grid-cols-2" : "grid-cols-3")}>
+          <div className={cn("grid", `grid-cols-${nav.length}`)}>
             {nav.map((n) => {
               const active = pathname.startsWith(n.to);
               return (
