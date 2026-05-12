@@ -308,7 +308,12 @@ function MessagePreview({ f }: { f: Filter }) {
 
   return (
     <div className="rounded-lg border border-border bg-background overflow-hidden max-w-md">
-      <img src={sample.image} alt={`${sample.make} ${sample.model}`} className="w-full aspect-[16/10] object-cover" />
+      <div className="relative">
+        <img src={sample.image} alt={`${sample.make} ${sample.model}`} className="w-full aspect-[16/10] object-cover" />
+        <span className="absolute top-2 left-2 rounded bg-background/90 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground border border-border">
+          Beispiel · echtes Inseratbild folgt
+        </span>
+      </div>
       <div className="p-4 space-y-3">
         <div>
           <div className="font-semibold text-base">{sample.make} {sample.model} · {sample.year}</div>
