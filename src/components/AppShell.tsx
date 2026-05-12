@@ -60,11 +60,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="mt-auto rounded-lg border border-border bg-card p-3">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Sparkles className="h-3.5 w-3.5 text-chart-2" />
-            <span>{hotCount} hot deal{hotCount === 1 ? "" : "s"} in queue</span>
+        <div className="mt-auto space-y-2">
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Sparkles className="h-3.5 w-3.5 text-chart-2" />
+              <span>{hotCount} hot deal{hotCount === 1 ? "" : "s"} in queue</span>
+            </div>
           </div>
+          <button
+            onClick={() => setRole(null)}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-xs text-muted-foreground hover:bg-sidebar-accent/50 transition"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            {role === "admin" ? "Admin abmelden" : "Abmelden"}
+          </button>
         </div>
       </aside>
 
