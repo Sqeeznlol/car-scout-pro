@@ -223,11 +223,18 @@ function pickYear(block: string): number | null {
 }
 
 function pickTitle(block: string, make: string | null): string {
-  // Title lives before the "|||" separator, before the price (€)
   const head = block.split("|||")[0] ?? block;
   // Cut at price marker
-  const beforePrice = head.split(/[\d.\s]+€/)[0]?.trim() ?? head;
-  // Take last segment after common arrows / separators
+  let beforePrice = head.split(/\d{1,3}(?:[.\s]\d{3})+\s*€/)[0]?.trim() ?? head;
+  // Strip spec-like prefixes that bled in from the previous listing
+  beforePrice = beforePrice
+    .replace(/^.*?CO[₂2]-Klasse\s+[A-Z](?:\s*\([^)]*\))?,?/i, "")
+    .replace(/^.*?\d{1,3}\s*g\s*CO[₂2]\/km[^,]*,?/i, "")
+    .replace(/^.*?\d+,\d+\s*l\/100\s*km[^,]*,?/i, "")
+    .replace(/^.*?\d{2,3}\s*kW\s*\(\d+\s*PS\)[^,]*,?/i, "")
+    .replace(/^.*?(?:Benzin|Diesel|Hybrid|Elektro)\b,?/i, "")
+    .replace(/^[\s,]+/, "")
+    .trim();
   const parts = beforePrice.split(/[⟩>›»]/).map((s) => s.trim()).filter(Boolean);
   const candidate = parts[parts.length - 1] || beforePrice;
   if (make && !candidate.toLowerCase().includes(make.toLowerCase())) {
