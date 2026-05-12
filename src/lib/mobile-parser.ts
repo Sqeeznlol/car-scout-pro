@@ -9,11 +9,16 @@ export interface ParsedListing {
   make: string | null;
   model: string | null;
   year: number | null;
+  registration_month: number | null;
   mileage_km: number | null;
   price_eur: number | null;
   fuel: string | null;
   transmission: string | null;
   power_kw: number | null;
+  power_ps: number | null;
+  consumption: string | null;
+  co2_gkm: number | null;
+  emission_class: string | null;
   location: string | null;
   seller_name: string | null;
   seller_type: string | null;
