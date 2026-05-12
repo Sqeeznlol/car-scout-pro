@@ -166,11 +166,14 @@ function splitIntoListings(_text: string, html: string): Array<{ block: string; 
   // and i-th image. Email layouts repeat the pattern row-by-row.
   const out: Array<{ block: string; url: string | null; image: string | null }> = [];
   for (let i = 0; i < anchors.length; i++) {
-    const start = i === 0 ? 0 : anchors[i - 1] + 16;
-    const end = anchors[i];
-    let block = stripped.slice(Math.max(0, start - 50), end + 250).trim();
-    // Trim leading boilerplate before the actual listing title
-    const cut = /(Neue Fahrzeuge zu deiner Suche:|Kunden-Nr\.:[^A-Za-zÄÖÜ]+\d+)/i.exec(block);
+    const titleStart = i === 0 ? 0 : anchors[i - 1] + 16;
+    const titleEnd = anchors[i];
+    const specsStart = anchors[i] + 16;
+    const specsEnd = i + 1 < anchors.length ? anchors[i + 1] : Math.min(stripped.length, anchors[i] + 400);
+    const titlePart = stripped.slice(titleStart, titleEnd).trim();
+    const specsPart = stripped.slice(specsStart, specsEnd).trim();
+    let block = `${titlePart} ||| ${specsPart}`;
+    const cut = /(Neue Fahrzeuge zu deiner Suche:|Kunden-Nr\.:[^|]+?\d+)/i.exec(block);
     if (cut) block = block.slice(cut.index + cut[0].length).trim();
     const href = hrefs[i]?.url ?? null;
     const image = images[i]?.src ?? null;
