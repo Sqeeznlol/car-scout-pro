@@ -69,7 +69,7 @@ export interface Analysis {
 }
 
 export function computeAnalysis(v: VehicleInput, c: ConfigInput): Analysis {
-  const distance = distanceFromLocation(v.location);
+  const distance = v.distance_km ?? distanceFromLocation(v.location);
   const price_chf = Math.round(v.price_eur * c.eur_chf_rate);
   const transport_chf = Math.round(distance * c.chf_per_km);
   const customs_chf = c.customs_flat;
