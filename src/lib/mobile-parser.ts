@@ -241,20 +241,18 @@ function pickTitle(block: string, make: string | null): string {
   const head = block.split("|||")[0] ?? block;
   // Cut at price marker
   let beforePrice = head.split(/\d{1,3}(?:[.\s]\d{3})+\s*€/)[0]?.trim() ?? head;
-  // Strip spec-like prefixes that bled in from the previous listing
-  beforePrice = beforePrice
-    .replace(/^.*?CO[₂2]-Klasse\s+[A-Z](?:\s*\([^)]*\))?,?/i, "")
-    .replace(/^.*?\d{1,3}\s*g\s*CO[₂2]\/km[^,]*,?/i, "")
-    .replace(/^.*?\d+,\d+\s*l\/100\s*km[^,]*,?/i, "")
-    .replace(/^.*?\d{2,3}\s*kW\s*\(\d+\s*PS\)[^,]*,?/i, "")
-    .replace(/^.*?(?:Benzin|Diesel|Hybrid|Elektro)\b,?/i, "")
-    .replace(/^[\s,]+/, "")
-    .trim();
+  // If the make appears, take everything from the LAST occurrence of make onward
+  if (make) {
+    const re = new RegExp(`\\b${make.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\b`, "gi");
+    let lastIdx = -1;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(beforePrice)) !== null) lastIdx = m.index;
+    if (lastIdx >= 0) beforePrice = beforePrice.slice(lastIdx);
+  }
+  // Strip remaining leading specs/punctuation
+  beforePrice = beforePrice.replace(/^[\s,)(\]\[]+/, "").trim();
   const parts = beforePrice.split(/[⟩>›»]/).map((s) => s.trim()).filter(Boolean);
   const candidate = parts[parts.length - 1] || beforePrice;
-  if (make && !candidate.toLowerCase().includes(make.toLowerCase())) {
-    return `${make} ${candidate}`.slice(0, 200);
-  }
   return candidate.slice(0, 200) || head.slice(0, 80);
 }
 
