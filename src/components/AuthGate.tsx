@@ -7,30 +7,28 @@ import { cn } from "@/lib/utils";
 
 const USER_PW = "Timscam";
 const ADMIN_PW = "Alys_1203";
-const STORAGE_KEY = "mr_role";
+const USER_KEY = "mr_user";
+const ADMIN_KEY = "mr_admin";
 
 export type Role = "user" | "admin" | null;
 
-export function getRole(): Role {
-  if (typeof window === "undefined") return null;
-  const r = window.localStorage.getItem(STORAGE_KEY);
-  return r === "admin" || r === "user" ? r : null;
+function read(key: string): boolean {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem(key) === "1";
 }
-
-export function setRole(role: Role) {
+function write(key: string, val: boolean) {
   if (typeof window === "undefined") return;
-  if (role) window.localStorage.setItem(STORAGE_KEY, role);
-  else window.localStorage.removeItem(STORAGE_KEY);
+  if (val) window.localStorage.setItem(key, "1");
+  else window.localStorage.removeItem(key);
   window.dispatchEvent(new Event("mr_role_change"));
 }
 
+/** Returns the active role for the CURRENT path. Admin only on /admin routes. */
 export function useRole(): Role {
-  const [role, setRoleState] = useState<Role>(null);
-  const [ready, setReady] = useState(false);
+  const { pathname } = useLocation();
+  const [tick, setTick] = useState(0);
   useEffect(() => {
-    setRoleState(getRole());
-    setReady(true);
-    const h = () => setRoleState(getRole());
+    const h = () => setTick((t) => t + 1);
     window.addEventListener("mr_role_change", h);
     window.addEventListener("storage", h);
     return () => {
@@ -38,32 +36,48 @@ export function useRole(): Role {
       window.removeEventListener("storage", h);
     };
   }, []);
-  return ready ? role : null;
+  // re-read on every render (cheap)
+  void tick;
+  if (typeof window === "undefined") return null;
+  if (pathname.startsWith("/admin")) return read(ADMIN_KEY) ? "admin" : null;
+  return read(USER_KEY) ? "user" : null;
+}
+
+/** Logout. null clears the scope for the current path. */
+export function setRole(role: Role) {
+  if (typeof window === "undefined") return;
+  if (role === null) {
+    // clear based on current path
+    const onAdmin = window.location.pathname.startsWith("/admin");
+    if (onAdmin) write(ADMIN_KEY, false);
+    else write(USER_KEY, false);
+  } else if (role === "admin") {
+    write(ADMIN_KEY, true);
+  } else {
+    write(USER_KEY, true);
+  }
 }
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
-  const [role, setRoleState] = useState<Role>(null);
+  const [, force] = useState(0);
   const [pw, setPw] = useState("");
   const [err, setErr] = useState("");
   const { pathname } = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    setRoleState(getRole());
     setMounted(true);
-    const h = () => setRoleState(getRole());
+    const h = () => force((t) => t + 1);
     window.addEventListener("mr_role_change", h);
     return () => window.removeEventListener("mr_role_change", h);
   }, []);
 
-  const isAdminRoute = pathname.startsWith("/admin");
-
-  // SSR: render nothing until mounted to avoid hydration mismatch
   if (!mounted) return null;
 
-  // Admin route requires admin role
-  if (isAdminRoute && role !== "admin") {
+  const isAdminRoute = pathname.startsWith("/admin");
+
+  if (isAdminRoute && !read(ADMIN_KEY)) {
     return (
       <LoginScreen
         variant="admin"
@@ -72,7 +86,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         err={err}
         onSubmit={() => {
           if (pw === ADMIN_PW) {
-            setRole("admin");
+            write(ADMIN_KEY, true);
             setPw("");
             setErr("");
           } else {
@@ -84,8 +98,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Non-admin routes require at least user role
-  if (!isAdminRoute && role === null) {
+  if (!isAdminRoute && !read(USER_KEY)) {
     return (
       <LoginScreen
         variant="user"
@@ -94,11 +107,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         err={err}
         onSubmit={() => {
           if (pw === USER_PW) {
-            setRole("user");
-            setPw("");
-            setErr("");
-          } else if (pw === ADMIN_PW) {
-            setRole("admin");
+            write(USER_KEY, true);
             setPw("");
             setErr("");
           } else {
