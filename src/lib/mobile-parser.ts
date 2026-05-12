@@ -53,15 +53,31 @@ function collectParts(part: GmailPart, acc: { html: string[]; text: string[] }) 
   if (part.parts) for (const p of part.parts) collectParts(p, acc);
 }
 
-function stripHtml(html: string): string {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<\/?[^>]+>/g, " ")
+function decodeEntities(s: string): string {
+  return s
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
     .replace(/&euro;/g, "€")
-    .replace(/&#?[a-zA-Z0-9]+;/g, " ")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&#(\d+);/g, (_, n) => {
+      try { return String.fromCodePoint(parseInt(n, 10)); } catch { return " "; }
+    })
+    .replace(/&#x([0-9a-f]+);/gi, (_, n) => {
+      try { return String.fromCodePoint(parseInt(n, 16)); } catch { return " "; }
+    })
+    .replace(/&[a-zA-Z]+;/g, " ");
+}
+
+function stripHtml(html: string): string {
+  return decodeEntities(
+    html
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<\/?[^>]+>/g, " ")
+  )
     .replace(/\s+/g, " ")
     .trim();
 }
@@ -73,8 +89,8 @@ function parseNumber(s: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-// Mobile.de uses /fahrzeuge/details.html?id=NNNN or /auto-inserat/... formats
-const LINK_RE = /https?:\/\/(?:suchen\.|home\.|www\.)?mobile\.de\/[^\s"'<>]+/gi;
+// Match any *.mobile.de URL (incl. click.news.mobile.de tracking links)
+const LINK_RE = /https?:\/\/[a-z0-9.-]*mobile\.de\/[^\s"'<>)]+/gi;
 const PRICE_RE = /€\s*([\d.]{3,})|EUR\s*([\d.]{3,})|([\d]{1,3}(?:[.\s]\d{3})+)\s*€/g;
 const MILEAGE_RE = /([\d]{1,3}(?:[.\s]\d{3})*)\s*km/gi;
 const YEAR_RE = /\b(EZ|Erstzulassung)[:\s.]*([0-9]{1,2}\/)?([12][0-9]{3})\b/gi;
@@ -127,43 +143,46 @@ function detectLocation(text: string): string | null {
 // Splits a long email body into per-listing chunks. mobile.de search-subscription
 // emails typically have one block per ad separated by horizontal rules / repeated
 // header tokens. We use the listing URL as the anchor.
-function splitIntoListings(text: string, html: string): Array<{ block: string; url: string | null; image: string | null }> {
-  const out: Array<{ block: string; url: string | null; image: string | null }> = [];
-  const linkMatches = Array.from(html.matchAll(LINK_RE));
-  if (linkMatches.length === 0) {
-    // Fallback: try plain text URLs
-    const textLinks = Array.from(text.matchAll(LINK_RE));
-    if (textLinks.length === 0) return [];
-    for (let i = 0; i < textLinks.length; i++) {
-      const start = textLinks[i].index ?? 0;
-      const end = i + 1 < textLinks.length ? (textLinks[i + 1].index ?? text.length) : text.length;
-      out.push({ block: text.slice(Math.max(0, start - 400), end), url: textLinks[i][0], image: null });
-    }
-    return out;
-  }
-  // For each listing URL in HTML, find the surrounding context and the nearest image
+function splitIntoListings(_text: string, html: string): Array<{ block: string; url: string | null; image: string | null }> {
+  // Strategy: each mobile.de listing in the email contains a "Details anzeigen"
+  // CTA. Use those occurrences in the stripped text to slice per-listing blocks.
+  // For each block, find the nearest preceding href + image in the raw HTML.
   const stripped = stripHtml(html);
-  const imageMatches = Array.from(html.matchAll(IMG_RE)).map((m) => ({ idx: m.index ?? 0, src: m[1] }));
+  const anchors: number[] = [];
+  const re = /Details anzeigen|Zum Inserat|Zum Angebot|Zur Anzeige/gi;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(stripped)) !== null) anchors.push(m.index);
+  if (anchors.length === 0) return [];
 
-  for (let i = 0; i < linkMatches.length; i++) {
-    const url = linkMatches[i][0];
-    const idx = linkMatches[i].index ?? 0;
-    const nextIdx = i + 1 < linkMatches.length ? (linkMatches[i + 1].index ?? html.length) : html.length;
-    // Snippet of HTML around link, then strip
-    const htmlBlock = html.slice(Math.max(0, idx - 600), nextIdx);
-    const block = stripHtml(htmlBlock);
-    // Find image with index in [idx-1500, idx+200]
-    const nearby = imageMatches.find((im) => im.idx >= idx - 1500 && im.idx <= idx + 200 && !/spacer|pixel|logo|footer/i.test(im.src));
-    out.push({ block: block || stripped, url, image: nearby?.src ?? null });
+  // Pre-compute href positions (mobile.de URLs only) and image positions
+  const hrefs = Array.from(html.matchAll(/href=["'](https?:\/\/[^"']+)["']/gi))
+    .map((h) => ({ idx: h.index ?? 0, url: h[1] }))
+    .filter((h) => /mobile\.de/i.test(h.url));
+  const images = Array.from(html.matchAll(IMG_RE))
+    .map((i) => ({ idx: i.index ?? 0, src: i[1] }))
+    .filter((i) => !/spacer|pixel|logo|footer|tracking|1x1|open\.gif/i.test(i.src));
+
+  // Approximate mapping: for the i-th anchor in stripped text, take the i-th href
+  // and i-th image. Email layouts repeat the pattern row-by-row.
+  const out: Array<{ block: string; url: string | null; image: string | null }> = [];
+  for (let i = 0; i < anchors.length; i++) {
+    const titleStart = i === 0 ? 0 : anchors[i - 1] + 16;
+    const titleEnd = anchors[i];
+    const specsStart = anchors[i] + 16;
+    const rawSpecsEnd = i + 1 < anchors.length ? anchors[i + 1] : Math.min(stripped.length, anchors[i] + 400);
+    let specsPart = stripped.slice(specsStart, rawSpecsEnd);
+    // Cut specs before the next listing's price (€), to avoid bleeding next title
+    const nextPriceIdx = specsPart.search(/\d{1,3}(?:[.\s]\d{3})+\s*€/);
+    if (nextPriceIdx > 0) specsPart = specsPart.slice(0, nextPriceIdx);
+    const titlePart = stripped.slice(titleStart, titleEnd).trim();
+    let block = `${titlePart} ||| ${specsPart.trim()}`;
+    const cut = /(Neue Fahrzeuge zu deiner Suche:|Kunden-Nr\.:[^|]+?\d+)/i.exec(block);
+    if (cut) block = block.slice(cut.index + cut[0].length).trim();
+    const href = hrefs[i]?.url ?? null;
+    const image = images[i]?.src ?? null;
+    out.push({ block, url: href, image });
   }
-  // De-dup by URL
-  const seen = new Set<string>();
-  return out.filter((o) => {
-    if (!o.url) return false;
-    if (seen.has(o.url)) return false;
-    seen.add(o.url);
-    return true;
-  });
+  return out;
 }
 
 function pickPrice(block: string): number | null {
@@ -204,14 +223,24 @@ function pickYear(block: string): number | null {
 }
 
 function pickTitle(block: string, make: string | null): string {
-  // Use the first sensible line that contains make
-  const lines = block.split(/[\r\n.;]/).map((s) => s.trim()).filter(Boolean);
-  if (make) {
-    const found = lines.find((l) => l.toLowerCase().includes(make.toLowerCase()) && l.length < 140 && l.length > 6);
-    if (found) return found;
+  const head = block.split("|||")[0] ?? block;
+  // Cut at price marker
+  let beforePrice = head.split(/\d{1,3}(?:[.\s]\d{3})+\s*€/)[0]?.trim() ?? head;
+  // Strip spec-like prefixes that bled in from the previous listing
+  beforePrice = beforePrice
+    .replace(/^.*?CO[₂2]-Klasse\s+[A-Z](?:\s*\([^)]*\))?,?/i, "")
+    .replace(/^.*?\d{1,3}\s*g\s*CO[₂2]\/km[^,]*,?/i, "")
+    .replace(/^.*?\d+,\d+\s*l\/100\s*km[^,]*,?/i, "")
+    .replace(/^.*?\d{2,3}\s*kW\s*\(\d+\s*PS\)[^,]*,?/i, "")
+    .replace(/^.*?(?:Benzin|Diesel|Hybrid|Elektro)\b,?/i, "")
+    .replace(/^[\s,]+/, "")
+    .trim();
+  const parts = beforePrice.split(/[⟩>›»]/).map((s) => s.trim()).filter(Boolean);
+  const candidate = parts[parts.length - 1] || beforePrice;
+  if (make && !candidate.toLowerCase().includes(make.toLowerCase())) {
+    return `${make} ${candidate}`.slice(0, 200);
   }
-  const first = lines.find((l) => l.length > 8 && l.length < 140);
-  return first ?? block.slice(0, 80);
+  return candidate.slice(0, 200) || head.slice(0, 80);
 }
 
 export function parseGmailMessage(message: {
@@ -233,15 +262,19 @@ export function parseGmailMessage(message: {
 
   const listings: ParsedListing[] = [];
   for (const b of blocks) {
-    const title = pickTitle(b.block, detectMake(b.block));
-    const make = detectMake(title) ?? detectMake(b.block);
-    const price = pickPrice(b.block);
-    const mileage = pickMileage(b.block);
-    const year = pickYear(b.block);
-    const fuel = detectFuel(b.block);
-    const transmission = detectTransmission(b.block);
-    const location = detectLocation(b.block);
-    const powerMatch = POWER_RE.exec(b.block);
+    const [titlePart = "", specsPart = ""] = b.block.split("|||").map((s) => s.trim());
+    const title = pickTitle(b.block, detectMake(titlePart));
+    const make = detectMake(title) ?? detectMake(titlePart);
+    // Price lives in titlePart (before the "Details anzeigen" CTA)
+    const price = pickPrice(titlePart) ?? pickPrice(b.block);
+    // Specs (km, year, kW, fuel) live in specsPart (after the CTA)
+    const mileage = pickMileage(specsPart);
+    const year = pickYear(specsPart);
+    const fuel = detectFuel(specsPart);
+    const transmission = detectTransmission(specsPart);
+    const location = detectLocation(specsPart) ?? detectLocation(titlePart);
+    POWER_RE.lastIndex = 0;
+    const powerMatch = POWER_RE.exec(specsPart);
     const power_kw = powerMatch ? parseInt(powerMatch[1], 10) : null;
     // Skip blocks that look like footer/header noise
     if (!price && !mileage && !year) continue;
