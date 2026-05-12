@@ -262,15 +262,19 @@ export function parseGmailMessage(message: {
 
   const listings: ParsedListing[] = [];
   for (const b of blocks) {
-    const title = pickTitle(b.block, detectMake(b.block));
-    const make = detectMake(title) ?? detectMake(b.block);
-    const price = pickPrice(b.block);
-    const mileage = pickMileage(b.block);
-    const year = pickYear(b.block);
-    const fuel = detectFuel(b.block);
-    const transmission = detectTransmission(b.block);
-    const location = detectLocation(b.block);
-    const powerMatch = POWER_RE.exec(b.block);
+    const [titlePart = "", specsPart = ""] = b.block.split("|||").map((s) => s.trim());
+    const title = pickTitle(b.block, detectMake(titlePart));
+    const make = detectMake(title) ?? detectMake(titlePart);
+    // Price lives in titlePart (before the "Details anzeigen" CTA)
+    const price = pickPrice(titlePart) ?? pickPrice(b.block);
+    // Specs (km, year, kW, fuel) live in specsPart (after the CTA)
+    const mileage = pickMileage(specsPart);
+    const year = pickYear(specsPart);
+    const fuel = detectFuel(specsPart);
+    const transmission = detectTransmission(specsPart);
+    const location = detectLocation(specsPart) ?? detectLocation(titlePart);
+    POWER_RE.lastIndex = 0;
+    const powerMatch = POWER_RE.exec(specsPart);
     const power_kw = powerMatch ? parseInt(powerMatch[1], 10) : null;
     // Skip blocks that look like footer/header noise
     if (!price && !mileage && !year) continue;
