@@ -1,15 +1,16 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Bell, LayoutGrid, Archive, Settings, Car, Sparkles } from "lucide-react";
+import { Bell, LayoutGrid, Archive, Settings, Car, Sparkles, LogOut } from "lucide-react";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchVehicles } from "@/lib/db";
 import { cn } from "@/lib/utils";
+import { useRole, setRole } from "@/components/AuthGate";
 
-const nav = [
+const baseNav = [
   { to: "/queue", label: "Queue", icon: LayoutGrid },
   { to: "/archive", label: "Archive", icon: Archive },
-  { to: "/admin", label: "Admin", icon: Settings },
 ];
+const adminNavItem = { to: "/admin", label: "Admin", icon: Settings };
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
