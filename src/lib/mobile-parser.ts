@@ -23,6 +23,9 @@ export interface ParsedListing {
   seller_name: string | null;
   seller_type: string | null;
   image_url: string | null;
+  seller_phone: string | null;
+  seller_address: string | null;
+  seller_website: string | null;
   raw_text: string;
   received_at: string | null;
 }
