@@ -7,7 +7,8 @@ import { toast } from "sonner";
 import { Bell, Eye, EyeOff, RefreshCw, Send, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_TOKEN = "8591751475:AAG_TZ3hYdHymqELGo4EsTcQKC8s8CJNy7c";
+const DEFAULT_TOKEN = "8591751475:AAFzXRVhkKaLcBrnSBlj0nj_7pQj-KcdLjM";
+const DEFAULT_CHAT_ID = "5162665016";
 
 const COMMON_MAKES = ["BMW", "Mercedes-Benz", "Audi", "VW", "Porsche", "Skoda", "Toyota", "Ford", "Opel", "Renault"];
 const FUELS = ["Diesel", "Benzin", "Hybrid", "Elektro", "Gas"];
@@ -38,7 +39,7 @@ const DEFAULT_FILTER: Filter = {
   min_deal_score: 65,
   fuel_types: ["Diesel", "Benzin", "Hybrid"],
   telegram_bot_token: DEFAULT_TOKEN,
-  telegram_chat_id: "",
+  telegram_chat_id: DEFAULT_CHAT_ID,
 };
 
 export const Route = createFileRoute("/meine-suche")({ component: MeineSuche });
