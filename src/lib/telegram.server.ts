@@ -178,7 +178,7 @@ export async function notifyMatchingFilters(
   for (const f of list) {
     if (!vehicleMatchesFilter(vehicle, analysis, f)) continue;
     const msg = buildTelegramMessage(vehicle, analysis, f);
-    const r = await sendTelegramMessage(f.telegram_bot_token, f.telegram_chat_id, msg);
+    const r = await sendTelegramMessage(f.telegram_bot_token, f.telegram_chat_id, msg, vehicle.image_url ?? null);
     if (r.ok) anySent = true;
     else console.error("[telegram]", f.id, r.error);
   }
