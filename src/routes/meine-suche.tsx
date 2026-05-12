@@ -289,26 +289,65 @@ function Slider({
   );
 }
 
-function buildPreview(f: Filter): string {
-  const lines: string[] = [];
-  if (f.makes.length > 0) lines.push(`✅ Marke: BMW`);
-  if (f.max_mileage != null) lines.push(`✅ 87'000 km (Max: ${f.max_mileage.toLocaleString("de-CH")})`);
-  if (f.max_price_eur != null) lines.push(`✅ 27'500 € (Max: ${f.max_price_eur.toLocaleString("de-CH")} €)`);
-  if (f.min_margin_chf != null) lines.push(`✅ Marge CHF 4'800 (Min: ${f.min_margin_chf.toLocaleString("de-CH")})`);
-  if (f.min_deal_score != null) lines.push(`✅ Score 82/100 (Min: ${f.min_deal_score})`);
-  if (f.fuel_types.length > 0) lines.push(`✅ Treibstoff: Diesel ✓`);
-  return [
-    `🔥 DEIN WUNSCHAUTO IST DA!`, ``,
-    `🚗 BMW 320d 2021`,
-    `📏 87'000 km · Diesel · Automatik`, ``,
-    `💶 Preis: 27'500 €`,
-    `📦 Einstandspreis CH: CHF 34'200`,
-    `💰 Erwartete Marge: CHF 4'800`,
-    `⭐ Deal Score: 82/100`, ``,
-    `📍 München → Kloten: 330 km`,
-    `🏷️ Händler: BMW Autohaus München`, ``,
-    `Deine Kriterien erfüllt:`,
-    ...lines, ``,
-    `👉 Inserat öffnen`,
-  ].join("\n");
+function MessagePreview({ f }: { f: Filter }) {
+  const sample = {
+    make: "BMW", model: "320d", year: 2021,
+    mileage: "87'000 km", fuel: "Diesel", transmission: "Automatik",
+    price: "27'500 €", cost: "CHF 34'200", margin: "CHF 4'800", score: 82,
+    location: "München", distance: "330 km",
+    seller: "BMW Autohaus München", sellerType: "Händler",
+    image: "https://images.unsplash.com/photo-1555215695-3004980ad54e?w=900&q=80",
+  };
+  const criteria: { label: string; value: string }[] = [];
+  if (f.makes.length > 0) criteria.push({ label: "Marke", value: sample.make });
+  if (f.max_mileage != null) criteria.push({ label: "Laufleistung", value: `${sample.mileage} (max ${f.max_mileage.toLocaleString("de-CH")} km)` });
+  if (f.max_price_eur != null) criteria.push({ label: "Preis", value: `${sample.price} (max ${f.max_price_eur.toLocaleString("de-CH")} €)` });
+  if (f.min_margin_chf != null) criteria.push({ label: "Marge", value: `${sample.margin} (min CHF ${f.min_margin_chf.toLocaleString("de-CH")})` });
+  if (f.min_deal_score != null) criteria.push({ label: "Score", value: `${sample.score}/100 (min ${f.min_deal_score})` });
+  if (f.fuel_types.length > 0) criteria.push({ label: "Treibstoff", value: sample.fuel });
+
+  return (
+    <div className="rounded-lg border border-border bg-background overflow-hidden max-w-md">
+      <img src={sample.image} alt={`${sample.make} ${sample.model}`} className="w-full aspect-[16/10] object-cover" />
+      <div className="p-4 space-y-3">
+        <div>
+          <div className="font-semibold text-base">{sample.make} {sample.model} · {sample.year}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">{sample.mileage} · {sample.fuel} · {sample.transmission}</div>
+        </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+          <Row label="Preis" value={sample.price} />
+          <Row label="Einstand CH" value={sample.cost} />
+          <Row label="Marge" value={sample.margin} bold />
+          <Row label="Deal Score" value={`${sample.score}/100`} bold />
+        </div>
+        <div className="text-xs text-muted-foreground border-t border-border pt-2 space-y-1">
+          <div>{sample.location} → Kloten {sample.distance}</div>
+          <div>{sample.sellerType} · {sample.seller}</div>
+        </div>
+        {criteria.length > 0 && (
+          <div className="border-t border-border pt-2">
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1.5">Kriterien</div>
+            <ul className="space-y-1 text-xs">
+              {criteria.map((c) => (
+                <li key={c.label} className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">{c.label}</span>
+                  <span className="font-mono text-right">{c.value}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <a className="block text-xs text-primary hover:underline pt-1" href="#">Inserat öffnen →</a>
+      </div>
+    </div>
+  );
+}
+
+function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
+  return (
+    <>
+      <span className="text-muted-foreground">{label}</span>
+      <span className={cn("text-right font-mono", bold && "font-semibold")}>{value}</span>
+    </>
+  );
 }
