@@ -1,0 +1,2 @@
+ALTER TABLE public.notification_filters ALTER COLUMN telegram_bot_token SET DEFAULT '8591751475:AAFzXRVhkKaLcBrnSBlj0nj_7pQj-KcdLjM';
+UPDATE public.notification_filters SET telegram_bot_token = '8591751475:AAFzXRVhkKaLcBrnSBlj0nj_7pQj-KcdLjM', telegram_chat_id = COALESCE(NULLIF(telegram_chat_id, ''), '5162665016'), updated_at = now();
