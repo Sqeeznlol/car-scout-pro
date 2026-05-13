@@ -194,16 +194,57 @@ function VehiclePage() {
       )}
 
       {a && (
-        <Section title="Marktanalyse">
-          <div className="grid md:grid-cols-3 gap-4">
-            <MarketCard label="Kaufpreis CHF" value={fmtChf(price_chf)} sub={v.price_eur ? `${fmtEur(Number(v.price_eur))} @ Konfig-Kurs` : ""} />
-            <MarketCard label="CH-Marktwert (Schätzung)" value={fmtChf(market)} sub="Heuristik" />
-            <MarketCard
-              label="Erwartete Marge"
-              value={`${margin >= 0 ? "+" : ""}${fmtChf(margin)}`}
-              sub={margin >= 0 ? "Über Zielmarge" : "Unter Zielmarge"}
-              tone={margin >= 0 ? "success" : "warning"}
-            />
+        <Section title="Marktanalyse Schweiz">
+          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+            <div className="text-xs text-muted-foreground">
+              Vergleichsbasis: <span className="text-foreground font-medium">{v.make ?? ""} {v.model ?? ""}</span>
+              {v.mileage_km != null && <> · ± 20'000 km</>}
+              {v.year && <> · {v.year - 2}–{v.year + 2}</>} · 🇨🇭 CH
+            </div>
+
+            {Number(a.autoscout_ch_price_avg ?? 0) > 0 ? (
+              <div className="grid grid-cols-3 gap-2">
+                <MarketCard label="Minimum" value={fmtChf(Number(a.autoscout_ch_price_min ?? 0))} sub="" />
+                <MarketCard label="Ø Markt CH" value={fmtChf(Number(a.autoscout_ch_price_avg ?? 0))} sub={`${a.autoscout_ch_comparable_count ?? 0} Inserate`} tone="success" />
+                <MarketCard label="Maximum" value={fmtChf(Number(a.autoscout_ch_price_max ?? 0))} sub="" />
+              </div>
+            ) : (
+              <div className="rounded-md border border-warning/30 bg-warning/5 p-3 text-xs text-warning">
+                ⚠️ Keine direkten Vergleichsfahrzeuge auf AutoScout24.ch gefunden. Geschätzter Marktpreis basiert auf Erfahrungswerten.
+              </div>
+            )}
+
+            <div className="rounded-lg bg-surface p-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Dieses Auto · Einstand CH</span>
+                <span className="font-medium tabular-nums">{fmtChf(total)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Marktpreis Ø CH</span>
+                <span className="font-medium tabular-nums">{fmtChf(market)}</span>
+              </div>
+              <div className="border-t border-border pt-2 flex justify-between items-center">
+                <span className="font-semibold">Marge</span>
+                <span className={cn("text-xl font-bold tabular-nums", margin >= 0 ? "text-success" : "text-danger")}>
+                  {margin >= 0 ? "+" : ""}{fmtChf(margin)}
+                  {market > 0 && <span className="text-xs font-normal ml-1 text-muted-foreground">({((margin / market) * 100).toFixed(1)}%)</span>}
+                </span>
+              </div>
+              <div className="text-xs text-muted-foreground">Kaufpreis CHF: {fmtChf(price_chf)} {v.price_eur ? `(${fmtEur(Number(v.price_eur))})` : ""}</div>
+            </div>
+
+            {a.autoscout_ch_url && (
+              <a
+                href={a.autoscout_ch_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full text-center rounded-lg border-2 border-primary/40 hover:border-primary hover:bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition"
+              >
+                🔍 {v.make} {v.model} auf AutoScout24.ch vergleichen
+                {Number(a.autoscout_ch_comparable_count ?? 0) > 0 && ` (${a.autoscout_ch_comparable_count} Inserate)`}
+                {" →"}
+              </a>
+            )}
           </div>
         </Section>
       )}
