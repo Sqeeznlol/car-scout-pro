@@ -20,6 +20,7 @@ function VehiclePage() {
     queryKey: ["vehicle", id],
     queryFn: () => fetchVehicle(id),
   });
+  const { data: config } = useQuery({ queryKey: ["config"], queryFn: fetchConfig });
   const decideMut = useMutation({
     mutationFn: (d: DecisionValue) => recordDecision(id, d),
     onSuccess: () => {
@@ -27,6 +28,19 @@ function VehiclePage() {
       qc.invalidateQueries({ queryKey: ["vehicles"] });
     },
   });
+  const mwstMut = useMutation({
+    mutationFn: async (val: boolean | null) => {
+      const { error } = await supabase.from("vehicles").update({ seller_has_mwst: val }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicle", id] }),
+  });
+
+  type MwStStatus = "unknown" | "with" | "without";
+  const initialStatus: MwStStatus =
+    data?.seller_has_mwst === true ? "with" : data?.seller_has_mwst === false ? "without" : "unknown";
+  const [mwstStatus, setMwstStatus] = useState<MwStStatus>(initialStatus);
+  useEffect(() => { setMwstStatus(initialStatus); }, [initialStatus]);
 
   if (isLoading) return <div className="p-12 text-center text-muted-foreground">Lade…</div>;
   if (!data) {
@@ -43,19 +57,37 @@ function VehiclePage() {
   const current = v.decision?.decision;
   const score = a?.deal_score ?? 0;
   const price_chf = Number(a?.price_chf ?? 0);
-  const total = Number(a?.total_cost_chf ?? 0);
   const market = Number(a?.market_value_chf ?? 0);
-  const margin = Number(a?.expected_margin_chf ?? 0);
+  const co2Threshold = Number(config?.co2_threshold_gkm ?? 130);
 
-  const costRows = a ? [
-    { label: "Kaufpreis CHF", chf: Number(a.price_chf), sub: v.price_eur ? fmtEur(Number(v.price_eur)) : "" },
-    { label: "Transport", chf: Number(a.transport_chf), sub: v.location ? `${v.location} → Schweiz` : "" },
-    { label: "Automobilsteuer (4%)", chf: Number(a.automobilsteuer_chf), sub: "" },
-    { label: "MwSt. (8.1%)", chf: Number(a.vat_chf), sub: "" },
-    { label: "Verzollung", chf: Number(a.customs_chf), sub: "Flat" },
-    { label: "MFK", chf: Number(a.mfk_chf), sub: "Schweizer Zulassung" },
-    { label: "Aufbereitung", chf: Number(a.preparation_chf), sub: "Reinigung, Schilder, Admin" },
-  ] : [];
+  const handleMwstChange = (s: MwStStatus) => {
+    setMwstStatus(s);
+    mwstMut.mutate(s === "with" ? true : s === "without" ? false : null);
+  };
+
+  // Dual-scenario numbers (fallback to canonical fields if extras missing)
+  const transport_chf = Number(a?.transport_chf ?? 0);
+  const mfk_aufbereitung_chf = Number(a?.mfk_chf ?? 0) + Number(a?.preparation_chf ?? 0);
+  const wm = a ? {
+    de_mwst_erstattung: Number(a.de_mwst_erstattung_chf ?? 0),
+    netto: Number(a.netto_kaufpreis_chf ?? 0),
+    automobilsteuer: Math.round(Number(a.netto_kaufpreis_chf ?? 0) * 0.04),
+    zoll: Number(a.zoll_chf ?? a.customs_chf ?? 0),
+    ch_mwst: Math.round((Number(a.netto_kaufpreis_chf ?? 0) + Number(a.zoll_chf ?? a.customs_chf ?? 0)) * 0.077),
+    total: Number(a.total_with_mwst_chf ?? 0),
+    margin: Number(a.margin_with_mwst_chf ?? 0),
+    max_buy_eur: Number(a.max_buy_with_mwst_eur ?? 0),
+  } : null;
+  const wom = a ? {
+    automobilsteuer: Number(a.automobilsteuer_chf ?? 0),
+    zoll: Number(a.customs_chf ?? 0),
+    ch_mwst: Number(a.vat_chf ?? 0),
+    total: Number(a.total_without_mwst_chf ?? a.total_cost_chf ?? 0),
+    margin: Number(a.margin_without_mwst_chf ?? a.expected_margin_chf ?? 0),
+    max_buy_eur: Number(a.max_buy_without_mwst_eur ?? 0),
+  } : null;
+  const mwst_saving = Number(a?.mwst_saving_chf ?? 0);
+  const distanceKm = v.distance_km != null ? Math.round(v.distance_km) : 0;
 
   const factors = a ? [
     { label: "Marge", score: a.margin_score },
