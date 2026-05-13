@@ -161,7 +161,7 @@ async function runSync(limit: number) {
           continue;
         }
         inserted++;
-        const analysis = computeAnalysis(
+        let analysis = computeAnalysis(
           {
             price_eur: L.price_eur,
             mileage_km: L.mileage_km,
@@ -203,16 +203,19 @@ async function runSync(limit: number) {
               autoscout_ch_scraped_at: new Date().toISOString(),
             };
             if (ch.avg > 0) {
-              analysis.market_value_chf = ch.avg;
-              analysis.expected_margin_chf = ch.avg - analysis.total_cost_chf;
-              const t = Number(config.target_margin_chf) || 3500;
-              analysis.margin_score = Math.max(0, Math.min(100, Math.round((analysis.expected_margin_chf / t) * 70 + 30)));
-              const tw = config.weight_margin + config.weight_liquidity + config.weight_risk + config.weight_learning || 100;
-              analysis.deal_score = Math.round(
-                (analysis.margin_score * config.weight_margin +
-                  analysis.liquidity_score * config.weight_liquidity +
-                  analysis.risk_score * config.weight_risk +
-                  analysis.learning_score * config.weight_learning) / tw,
+              analysis = recomputeWithMarket(
+                {
+                  price_eur: L.price_eur,
+                  mileage_km: L.mileage_km,
+                  year: L.year,
+                  location: L.location,
+                  fuel: L.fuel,
+                  seller_type: L.seller_type,
+                  distance_km: dist?.distance_km ?? null,
+                },
+                config,
+                analysis,
+                ch.avg,
               );
             }
           }
