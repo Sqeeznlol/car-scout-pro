@@ -36,7 +36,7 @@ const DEFAULT_FILTER: Filter = {
   max_mileage: 120000,
   max_price_eur: 40000,
   min_margin_chf: 2500,
-  min_deal_score: 65,
+  min_deal_score: null,
   fuel_types: ["Diesel", "Benzin"],
   telegram_bot_token: DEFAULT_TOKEN,
   telegram_chat_id: DEFAULT_CHAT_ID,
