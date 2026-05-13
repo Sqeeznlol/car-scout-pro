@@ -71,7 +71,6 @@ export function vehicleMatchesFilter(
   if (f.max_mileage != null && (v.mileage_km ?? Infinity) > f.max_mileage) return false;
   if (f.max_price_eur != null && (v.price_eur ?? Infinity) > f.max_price_eur) return false;
   if (f.min_margin_chf != null && (a.expected_margin_chf ?? -Infinity) < f.min_margin_chf) return false;
-  if (f.min_deal_score != null && (a.deal_score ?? -Infinity) < f.min_deal_score) return false;
   if (f.fuel_types.length > 0) {
     const fuel = (v.fuel ?? "").toLowerCase();
     if (!f.fuel_types.some((t) => fuel.includes(t.toLowerCase()))) return false;
