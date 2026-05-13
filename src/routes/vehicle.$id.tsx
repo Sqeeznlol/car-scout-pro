@@ -5,8 +5,7 @@ import { useState, useEffect } from "react";
 import { fetchVehicle, recordDecision, fetchConfig, type DecisionValue } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateImportCosts, type ConfigInput } from "@/lib/analysis";
-import { fmtChf, fmtEur, fmtKm, scoreColor } from "@/lib/format";
-import { ScoreBadge } from "@/components/ScoreBadge";
+import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
