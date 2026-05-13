@@ -181,22 +181,34 @@ export type Database = {
           autoscout_ch_price_min: number | null
           autoscout_ch_scraped_at: string | null
           autoscout_ch_url: string | null
+          ch_mwst_chf: number | null
           computed_at: string
           customs_chf: number | null
+          de_mwst_erstattung_chf: number | null
           deal_score: number | null
           expected_margin_chf: number | null
           learning_score: number | null
           liquidity_score: number | null
           margin_score: number | null
+          margin_with_mwst_chf: number | null
+          margin_without_mwst_chf: number | null
           market_value_chf: number | null
+          max_buy_with_mwst_eur: number | null
+          max_buy_without_mwst_eur: number | null
           mfk_chf: number | null
+          mwst_saving_chf: number | null
+          netto_kaufpreis_chf: number | null
           preparation_chf: number | null
           price_chf: number | null
           risk_score: number | null
+          seller_has_mwst: boolean | null
           total_cost_chf: number | null
+          total_with_mwst_chf: number | null
+          total_without_mwst_chf: number | null
           transport_chf: number | null
           vat_chf: number | null
           vehicle_id: string
+          zoll_chf: number | null
         }
         Insert: {
           automobilsteuer_chf?: number | null
@@ -206,22 +218,34 @@ export type Database = {
           autoscout_ch_price_min?: number | null
           autoscout_ch_scraped_at?: string | null
           autoscout_ch_url?: string | null
+          ch_mwst_chf?: number | null
           computed_at?: string
           customs_chf?: number | null
+          de_mwst_erstattung_chf?: number | null
           deal_score?: number | null
           expected_margin_chf?: number | null
           learning_score?: number | null
           liquidity_score?: number | null
           margin_score?: number | null
+          margin_with_mwst_chf?: number | null
+          margin_without_mwst_chf?: number | null
           market_value_chf?: number | null
+          max_buy_with_mwst_eur?: number | null
+          max_buy_without_mwst_eur?: number | null
           mfk_chf?: number | null
+          mwst_saving_chf?: number | null
+          netto_kaufpreis_chf?: number | null
           preparation_chf?: number | null
           price_chf?: number | null
           risk_score?: number | null
+          seller_has_mwst?: boolean | null
           total_cost_chf?: number | null
+          total_with_mwst_chf?: number | null
+          total_without_mwst_chf?: number | null
           transport_chf?: number | null
           vat_chf?: number | null
           vehicle_id: string
+          zoll_chf?: number | null
         }
         Update: {
           automobilsteuer_chf?: number | null
@@ -231,22 +255,34 @@ export type Database = {
           autoscout_ch_price_min?: number | null
           autoscout_ch_scraped_at?: string | null
           autoscout_ch_url?: string | null
+          ch_mwst_chf?: number | null
           computed_at?: string
           customs_chf?: number | null
+          de_mwst_erstattung_chf?: number | null
           deal_score?: number | null
           expected_margin_chf?: number | null
           learning_score?: number | null
           liquidity_score?: number | null
           margin_score?: number | null
+          margin_with_mwst_chf?: number | null
+          margin_without_mwst_chf?: number | null
           market_value_chf?: number | null
+          max_buy_with_mwst_eur?: number | null
+          max_buy_without_mwst_eur?: number | null
           mfk_chf?: number | null
+          mwst_saving_chf?: number | null
+          netto_kaufpreis_chf?: number | null
           preparation_chf?: number | null
           price_chf?: number | null
           risk_score?: number | null
+          seller_has_mwst?: boolean | null
           total_cost_chf?: number | null
+          total_with_mwst_chf?: number | null
+          total_without_mwst_chf?: number | null
           transport_chf?: number | null
           vat_chf?: number | null
           vehicle_id?: string
+          zoll_chf?: number | null
         }
         Relationships: [
           {
@@ -284,6 +320,7 @@ export type Database = {
           received_at: string | null
           registration_month: number | null
           seller_address: string | null
+          seller_has_mwst: boolean | null
           seller_name: string | null
           seller_phone: string | null
           seller_type: string | null
@@ -323,6 +360,7 @@ export type Database = {
           received_at?: string | null
           registration_month?: number | null
           seller_address?: string | null
+          seller_has_mwst?: boolean | null
           seller_name?: string | null
           seller_phone?: string | null
           seller_type?: string | null
@@ -362,6 +400,7 @@ export type Database = {
           received_at?: string | null
           registration_month?: number | null
           seller_address?: string | null
+          seller_has_mwst?: boolean | null
           seller_name?: string | null
           seller_phone?: string | null
           seller_type?: string | null

@@ -151,10 +151,14 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
 
   const a = vehicle.analysis;
   const score = a?.deal_score ?? 0;
-  const margin = Number(a?.expected_margin_chf ?? 0);
   const totalChf = Number(a?.total_cost_chf ?? 0);
   const marketChf = Number(a?.market_value_chf ?? 0);
-  const marginPositive = margin > 0;
+  const marginWith = Number(a?.margin_with_mwst_chf ?? 0);
+  const marginWithout = Number(a?.margin_without_mwst_chf ?? a?.expected_margin_chf ?? 0);
+  const totalWith = Number(a?.total_with_mwst_chf ?? 0);
+  const totalWithout = Number(a?.total_without_mwst_chf ?? totalChf);
+  const mwstSaving = Number(a?.mwst_saving_chf ?? 0);
+  const sellerMwst = vehicle.seller_has_mwst;
 
   return (
     <motion.div
@@ -239,23 +243,15 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
           </div>
         </div>
 
-        <div className={cn(
-          "rounded-xl p-3 border",
-          marginPositive ? "bg-success/10 border-success/30" : "bg-danger/10 border-danger/30",
-        )}>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Erwartete Marge</div>
-              <div className={cn("text-2xl font-bold tabular-nums", marginPositive ? "text-success" : "text-danger")}>
-                {marginPositive ? "+" : ""}{fmtChf(margin)}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Verkauf @</div>
-              <div className="text-sm font-semibold tabular-nums">{marketChf ? fmtChf(marketChf) : "—"}</div>
-            </div>
-          </div>
-        </div>
+        <CardMargeDisplay
+          sellerMwst={sellerMwst}
+          marginWith={marginWith}
+          marginWithout={marginWithout}
+          totalWith={totalWith}
+          totalWithout={totalWithout}
+          mwstSaving={mwstSaving}
+          marketChf={marketChf}
+        />
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{vehicle.source} · {vehicle.received_at ? new Date(vehicle.received_at).toLocaleDateString("de-CH") : "—"}</span>
@@ -292,6 +288,68 @@ function Spec({ icon, label, sub }: { icon: React.ReactNode; label: string; sub:
         <div className="text-sm font-medium truncate">{label}</div>
         <div className="text-[11px] text-muted-foreground truncate">{sub}</div>
       </div>
+    </div>
+  );
+}
+
+function CardMargeDisplay({ sellerMwst, marginWith, marginWithout, totalWith, totalWithout, mwstSaving, marketChf }: {
+  sellerMwst: boolean | null;
+  marginWith: number; marginWithout: number; totalWith: number; totalWithout: number; mwstSaving: number; marketChf: number;
+}) {
+  if (sellerMwst === true) {
+    return (
+      <div className="rounded-xl p-3 border bg-success/10 border-success/30">
+        <div className="text-[11px] uppercase tracking-wider text-success">✅ Marge (mit MwSt-Abzug)</div>
+        <div className="flex items-end justify-between mt-1">
+          <div className="text-2xl font-bold tabular-nums text-success">
+            {marginWith >= 0 ? "+" : ""}{fmtChf(marginWith)}
+          </div>
+          <div className="text-right text-[11px] text-muted-foreground">
+            <div>Einstand</div>
+            <div className="tabular-nums">{fmtChf(totalWith)}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  if (sellerMwst === false) {
+    return (
+      <div className="rounded-xl p-3 border bg-primary/10 border-primary/30">
+        <div className="text-[11px] uppercase tracking-wider text-primary">❌ Marge (ohne MwSt)</div>
+        <div className="flex items-end justify-between mt-1">
+          <div className={cn("text-2xl font-bold tabular-nums", marginWithout >= 0 ? "text-primary" : "text-danger")}>
+            {marginWithout >= 0 ? "+" : ""}{fmtChf(marginWithout)}
+          </div>
+          <div className="text-right text-[11px] text-muted-foreground">
+            <div>Einstand</div>
+            <div className="tabular-nums">{fmtChf(totalWithout)}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // Unknown — show both
+  return (
+    <div className="rounded-xl border border-border overflow-hidden">
+      <div className="grid grid-cols-2 divide-x divide-border">
+        <div className="p-3 bg-success/10">
+          <div className="text-[11px] uppercase tracking-wider text-success">✅ Mit MwSt</div>
+          <div className={cn("text-lg font-bold tabular-nums", marginWith >= 0 ? "text-success" : "text-danger")}>
+            {marginWith >= 0 ? "+" : ""}{fmtChf(marginWith)}
+          </div>
+        </div>
+        <div className="p-3 bg-primary/10">
+          <div className="text-[11px] uppercase tracking-wider text-primary">❌ Ohne MwSt</div>
+          <div className={cn("text-lg font-bold tabular-nums", marginWithout >= 0 ? "text-primary" : "text-danger")}>
+            {marginWithout >= 0 ? "+" : ""}{fmtChf(marginWithout)}
+          </div>
+        </div>
+      </div>
+      {mwstSaving > 0 && (
+        <div className="px-3 py-1.5 bg-warning/10 text-center text-[11px] text-warning border-t border-border">
+          💡 MwSt spart {fmtChf(mwstSaving)} · Verkauf @ {marketChf ? fmtChf(marketChf) : "—"}
+        </div>
+      )}
     </div>
   );
 }
