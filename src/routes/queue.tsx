@@ -211,9 +211,9 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     const { offset, velocity } = info;
-    if (offset.x > 120 || velocity.x > 600) onDecide("interesting");
-    else if (offset.x < -120 || velocity.x < -600) onDecide("skip");
-    else if (offset.y < -120 || velocity.y < -600) onDecide("maybe");
+    if (offset.x > 120 || velocity.x > 600) { haptic(18); onDecide("interesting"); }
+    else if (offset.x < -120 || velocity.x < -600) { haptic(8); onDecide("skip"); }
+    else if (offset.y < -120 || velocity.y < -600) { haptic(12); onDecide("maybe"); }
   };
 
   const a = vehicle.analysis;
