@@ -5,8 +5,7 @@ import { useState, useEffect } from "react";
 import { fetchVehicle, recordDecision, fetchConfig, type DecisionValue } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateImportCosts, type ConfigInput } from "@/lib/analysis";
-import { fmtChf, fmtEur, fmtKm, scoreColor } from "@/lib/format";
-import { ScoreBadge } from "@/components/ScoreBadge";
+import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -56,7 +55,7 @@ function VehiclePage() {
   const v = data;
   const a = v.analysis;
   const current = v.decision?.decision;
-  const score = a?.deal_score ?? 0;
+  
   const price_chf = Number(a?.price_chf ?? 0);
   const market = Number(a?.market_value_chf ?? 0);
   const co2Threshold = Number(config?.co2_threshold_gkm ?? 130);
@@ -120,12 +119,6 @@ function VehiclePage() {
   // Use live-computed kaufpreis CHF for display so it matches the table math
   const displayPriceChf = costs?.kaufpreis_chf ?? price_chf;
 
-  const factors = a ? [
-    { label: "Marge", score: a.margin_score },
-    { label: "Liquidität", score: a.liquidity_score },
-    { label: "Risiko", score: a.risk_score },
-    { label: "Learning", score: a.learning_score },
-  ] : [];
 
   return (
     <div className="mx-auto max-w-5xl px-4 lg:px-8 py-4 lg:py-8 space-y-6">
@@ -148,12 +141,9 @@ function VehiclePage() {
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">Kein Bild</div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4 text-white">
-            <div>
-              <div className="text-xs uppercase tracking-wider text-white/70">{v.make ?? ""} {v.year ? `· ${v.year}` : ""}</div>
-              <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight">{v.title}</h1>
-            </div>
-            <ScoreBadge score={score} size="lg" />
+          <div className="absolute bottom-4 left-4 right-4 text-white">
+            <div className="text-xs uppercase tracking-wider text-white/70">{v.make ?? ""} {v.year ? `· ${v.year}` : ""}</div>
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight">{v.title}</h1>
           </div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border">
@@ -177,6 +167,40 @@ function VehiclePage() {
             )}
           </div>
         )}
+      </div>
+
+      {/* 4 Kennzahlen oben */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="col-span-2 rounded-2xl border border-success/30 bg-success/10 p-4 text-center">
+          <div className="text-sm text-success mb-1">💰 ERWARTETE MARGE</div>
+          <div className={cn("text-4xl font-bold tabular-nums", margin >= 0 ? "text-success" : "text-danger")}>
+            {margin >= 0 ? "+" : ""}{fmtChf(margin)}
+          </div>
+          <div className="text-xs text-success/70 mt-1">nach allen Importkosten ({mwstStatus === "with" ? "mit MwSt-Ausweis" : mwstStatus === "without" ? "ohne MwSt-Ausweis" : "ohne MwSt-Ausweis"})</div>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-4 text-center">
+          <div className="text-xs text-muted-foreground mb-1">📦 EINSTANDSPREIS CH</div>
+          <div className="text-2xl font-bold tabular-nums">{fmtChf(total)}</div>
+        </div>
+        <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 text-center">
+          <div className="text-xs text-primary mb-1">📊 MARKTPREIS CH</div>
+          <div className="text-2xl font-bold text-primary tabular-nums">
+            {market > 0 ? fmtChf(market) : "—"}
+          </div>
+          <div className="text-xs text-primary/70 mt-1">
+            {Number(a?.autoscout_ch_comparable_count ?? 0)} Inserate AutoScout24.ch
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-4 text-center">
+          <div className="text-xs text-muted-foreground mb-1">🚗 KAUFPREIS DE</div>
+          <div className="text-2xl font-bold tabular-nums">{v.price_eur ? fmtEur(Number(v.price_eur)) : "—"}</div>
+          <div className="text-xs text-muted-foreground mt-1">{fmtChf(displayPriceChf)}</div>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-4 text-center">
+          <div className="text-xs text-muted-foreground mb-1">📍 TRANSPORT</div>
+          <div className="text-2xl font-bold tabular-nums">{distanceKm} km</div>
+          <div className="text-xs text-muted-foreground mt-1">{fmtChf(transport_chf)}</div>
+        </div>
       </div>
 
       {(v.seller_name || v.seller_phone || v.seller_address || v.seller_website || v.seller_type) && (
@@ -401,40 +425,6 @@ function VehiclePage() {
         </Section>
       )}
 
-      {a && (
-        <Section title="Deal Score">
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="relative h-24 w-24 shrink-0">
-                <svg viewBox="0 0 36 36" className="h-24 w-24 -rotate-90">
-                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-border" />
-                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="2.5"
-                    strokeDasharray={`${score} 100`} strokeLinecap="round" className={cn(scoreColor(score).text)} />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold tabular-nums">{score}</div>
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">Deal Score</div>
-                <div className="text-lg font-semibold">{scoreColor(score).label} Opportunity</div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {factors.map((f) => (
-                <div key={f.label}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">{f.label}</span>
-                    <span className="tabular-nums">{Math.round(Number(f.score ?? 0))}/100</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-surface overflow-hidden">
-                    <div className="h-full bg-gradient-primary" style={{ width: `${Math.min(Number(f.score ?? 0), 100)}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Section>
-      )}
 
       {v.raw_text && (
         <Section title="Original-Text aus E-Mail">

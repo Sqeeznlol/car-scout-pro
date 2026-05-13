@@ -71,7 +71,6 @@ export function vehicleMatchesFilter(
   if (f.max_mileage != null && (v.mileage_km ?? Infinity) > f.max_mileage) return false;
   if (f.max_price_eur != null && (v.price_eur ?? Infinity) > f.max_price_eur) return false;
   if (f.min_margin_chf != null && (a.expected_margin_chf ?? -Infinity) < f.min_margin_chf) return false;
-  if (f.min_deal_score != null && (a.deal_score ?? -Infinity) < f.min_deal_score) return false;
   if (f.fuel_types.length > 0) {
     const fuel = (v.fuel ?? "").toLowerCase();
     if (!f.fuel_types.some((t) => fuel.includes(t.toLowerCase()))) return false;
@@ -84,7 +83,6 @@ export function buildTelegramMessage(
   a: AnalysisLite,
   f: TelegramFilter,
 ): string {
-  const score = a.deal_score ?? 0;
   const margin = a.expected_margin_chf ?? 0;
   const totalCost = a.total_cost_chf ?? 0;
   const dist = v.distance_km != null ? `${Math.round(v.distance_km)} km` : "—";
@@ -97,8 +95,6 @@ export function buildTelegramMessage(
     criteria.push(`Preis: ${esc(fmtEur(v.price_eur))} \\(max ${esc(fmtEur(f.max_price_eur))}\\)`);
   if (f.min_margin_chf != null)
     criteria.push(`Marge: ${esc(fmtChf(margin))} \\(min ${esc(fmtChf(f.min_margin_chf))}\\)`);
-  if (f.min_deal_score != null)
-    criteria.push(`Score: ${esc(score)}/100 \\(min ${esc(f.min_deal_score)}\\)`);
   if (f.fuel_types.length > 0) criteria.push(`Treibstoff: ${esc(v.fuel ?? "")}`);
 
   const title = `*${esc(v.make ?? "")} ${esc(v.model ?? "")}* · ${esc(v.year ?? "")}`;
@@ -112,7 +108,6 @@ export function buildTelegramMessage(
     `Preis              ${esc(fmtEur(v.price_eur ?? 0))}`,
     `Einstand CH        ${esc(fmtChf(totalCost))}`,
     `Marge              *${esc(fmtChf(margin))}*`,
-    `Deal Score         *${esc(score)}/100*`,
     "",
     `Standort           ${esc(v.location ?? "—")} → Kloten ${esc(dist)}`,
     `Verkäufer          ${esc(v.seller_type === "dealer" ? "Händler" : "Privat")} · ${esc(v.seller_name ?? "—")}`,

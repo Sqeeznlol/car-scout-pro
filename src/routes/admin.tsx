@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchConfig, saveConfig, fetchVehicles, type DbConfig } from "@/lib/db";
 import { fmtChf } from "@/lib/format";
@@ -43,23 +42,21 @@ function AdminPage() {
     },
   });
 
-  const weightSum = useMemo(() => {
-    if (!draft) return 0;
-    return (draft.weight_margin + draft.weight_liquidity + draft.weight_risk + draft.weight_learning);
-  }, [draft]);
-
   const insights = useMemo(() => {
     const liked = vehicles.filter((v) => v.decision?.decision === "interesting");
     const makes: Record<string, number> = {};
-    let total = 0;
+    let totalMargin = 0;
     for (const v of liked) {
       if (v.make) makes[v.make] = (makes[v.make] || 0) + 1;
-      total += v.analysis?.deal_score ?? 0;
+      const m = v.seller_has_mwst === true
+        ? Number(v.analysis?.margin_with_mwst_chf ?? v.analysis?.expected_margin_chf ?? 0)
+        : Number(v.analysis?.margin_without_mwst_chf ?? v.analysis?.expected_margin_chf ?? 0);
+      totalMargin += m;
     }
     return {
       count: liked.length,
       topMakes: Object.entries(makes).sort((a, b) => b[1] - a[1]).slice(0, 5),
-      avgScore: liked.length ? Math.round(total / liked.length) : 0,
+      avgMargin: liked.length ? Math.round(totalMargin / liked.length) : 0,
       decisionCount: vehicles.filter((v) => v.decision).length,
     };
   }, [vehicles]);
@@ -67,7 +64,6 @@ function AdminPage() {
   if (!draft) return <div className="p-12 text-center text-muted-foreground">Lade Konfiguration…</div>;
 
   const save = () => {
-    if (weightSum !== 100) { toast.error(`Score-Gewichte müssen 100 ergeben (aktuell ${weightSum})`); return; }
     saveMut.mutate(draft);
   };
 
@@ -78,7 +74,7 @@ function AdminPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Admin</h1>
-          <p className="text-sm text-muted-foreground">Kostenmodell, Score-Gewichte und Gmail-Sync verwalten.</p>
+          <p className="text-sm text-muted-foreground">Kostenmodell und Gmail-Sync verwalten.</p>
         </div>
         <Button variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
           <RefreshCw className={cn("h-4 w-4", syncMut.isPending && "animate-spin")} />
@@ -87,9 +83,8 @@ function AdminPage() {
       </div>
 
       <Tabs defaultValue="costs">
-        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-5">
+        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-4">
           <TabsTrigger value="costs"><Sliders className="h-4 w-4" /> Kosten</TabsTrigger>
-          <TabsTrigger value="weights"><Sparkles className="h-4 w-4" /> Gewichte</TabsTrigger>
           <TabsTrigger value="email"><Mail className="h-4 w-4" /> E-Mail</TabsTrigger>
           <TabsTrigger value="insights"><Sparkles className="h-4 w-4" /> Insights</TabsTrigger>
           <TabsTrigger value="blacklist"><Ban className="h-4 w-4" /> Filter</TabsTrigger>
@@ -163,39 +158,6 @@ function AdminPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="weights" className="space-y-4 mt-4">
-          <Card>
-            <div className="space-y-5">
-              {([
-                ["weight_margin", "Marge"],
-                ["weight_liquidity", "Liquidität"],
-                ["weight_risk", "Risiko"],
-                ["weight_learning", "Learning"],
-              ] as const).map(([k, label]) => (
-                <div key={k}>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>{label}</Label>
-                    <span className="text-sm tabular-nums font-medium">{draft[k]}%</span>
-                  </div>
-                  <Slider
-                    value={[draft[k]]}
-                    max={60}
-                    step={1}
-                    onValueChange={([val]) => update(k, val)}
-                  />
-                </div>
-              ))}
-              <div className={cn(
-                "rounded-md p-3 text-sm flex items-center justify-between border",
-                weightSum === 100 ? "bg-success/10 border-success/30 text-success" : "bg-warning/10 border-warning/30 text-warning",
-              )}>
-                <span>Total</span>
-                <span className="font-semibold tabular-nums">{weightSum}% {weightSum === 100 ? "✓" : "(muss 100% sein)"}</span>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="email" className="mt-4">
           <Card>
             <div className="space-y-3">
@@ -210,7 +172,7 @@ function AdminPage() {
                 </Button>
               </div>
               <div className="text-sm text-muted-foreground">
-                Bei jedem Sync werden neue mobile.de-Mails geparst, Fahrzeuge angelegt und Kosten/Deal Score berechnet.
+                Bei jedem Sync werden neue mobile.de-Mails geparst, Fahrzeuge angelegt und Importkosten berechnet.
               </div>
             </div>
           </Card>
@@ -235,7 +197,7 @@ function AdminPage() {
                   </div>
                 </div>
                 <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
-                  <div className="font-medium text-primary">Durchschnittlicher Deal Score (Interessant): {insights.avgScore}</div>
+                  <div className="font-medium text-primary">Ø Marge bei „Interessant": {fmtChf(insights.avgMargin)}</div>
                   Zielmarge: {fmtChf(Number(draft.target_margin_chf))}.
                 </div>
               </div>

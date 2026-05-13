@@ -36,7 +36,7 @@ const DEFAULT_FILTER: Filter = {
   max_mileage: 120000,
   max_price_eur: 40000,
   min_margin_chf: 2500,
-  min_deal_score: 65,
+  min_deal_score: null,
   fuel_types: ["Diesel", "Benzin"],
   telegram_bot_token: DEFAULT_TOKEN,
   telegram_chat_id: DEFAULT_CHAT_ID,
@@ -183,9 +183,6 @@ function MeineSuche() {
           min={5000} max={150000} step={1000} fmt={(v) => `${v.toLocaleString("de-CH")} €`} hint={(v) => `Nur Autos unter ${v.toLocaleString("de-CH")} €`} />
         <Slider label="Mindest-Marge (CHF)" value={f.min_margin_chf ?? 0} onChange={(v) => setF((p) => ({ ...p, min_margin_chf: v }))}
           min={0} max={10000} step={500} fmt={(v) => `CHF ${v.toLocaleString("de-CH")}`} hint={(v) => `Nur Autos mit Marge über CHF ${v.toLocaleString("de-CH")}`} hintColor="text-success" />
-        <Slider label="Mindest Deal-Score" value={f.min_deal_score ?? 0} onChange={(v) => setF((p) => ({ ...p, min_deal_score: v }))}
-          min={0} max={100} step={5} fmt={(v) => `${v}`} hint={(v) => `Nur Autos mit Score ${v} oder höher`}
-          hintColor={f.min_deal_score && f.min_deal_score >= 80 ? "text-success" : f.min_deal_score && f.min_deal_score >= 65 ? "text-warning" : f.min_deal_score && f.min_deal_score >= 40 ? "text-amber-500" : "text-danger"} />
       </Card>
 
       {/* Treibstoff */}
@@ -303,7 +300,7 @@ function MessagePreview({ f }: { f: Filter }) {
   if (f.max_mileage != null) criteria.push({ label: "Laufleistung", value: `${sample.mileage} (max ${f.max_mileage.toLocaleString("de-CH")} km)` });
   if (f.max_price_eur != null) criteria.push({ label: "Preis", value: `${sample.price} (max ${f.max_price_eur.toLocaleString("de-CH")} €)` });
   if (f.min_margin_chf != null) criteria.push({ label: "Marge", value: `${sample.margin} (min CHF ${f.min_margin_chf.toLocaleString("de-CH")})` });
-  if (f.min_deal_score != null) criteria.push({ label: "Score", value: `${sample.score}/100 (min ${f.min_deal_score})` });
+  
   if (f.fuel_types.length > 0) criteria.push({ label: "Treibstoff", value: sample.fuel });
 
   return (
@@ -323,7 +320,6 @@ function MessagePreview({ f }: { f: Filter }) {
           <Row label="Preis" value={sample.price} />
           <Row label="Einstand CH" value={sample.cost} />
           <Row label="Marge" value={sample.margin} bold />
-          <Row label="Deal Score" value={`${sample.score}/100`} bold />
         </div>
         <div className="text-xs text-muted-foreground border-t border-border pt-2 space-y-1">
           <div>{sample.location} → Kloten {sample.distance}</div>

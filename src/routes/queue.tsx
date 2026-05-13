@@ -1,12 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from "framer-motion";
-import { Check, X, Bookmark, MapPin, Gauge, Calendar, TrendingDown, Flame, Undo2, Fuel, RefreshCw, Inbox } from "lucide-react";
+import { Check, X, Bookmark, MapPin, Gauge, Calendar, Undo2, Fuel, RefreshCw, Inbox, Flame } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { fetchVehicles, recordDecision, undoDecision, type VehicleWithAnalysis, type DecisionValue } from "@/lib/db";
 import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
-import { ScoreBadge } from "@/components/ScoreBadge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +18,24 @@ async function triggerSync() {
   const data = await res.json();
   if (!data.ok) throw new Error(data.error || "Sync failed");
   return data as { checked: number; parsed: number; inserted: number; errors: string[] };
+}
+
+type SortKey = "margin" | "newest" | "price" | "vsMarket";
+
+function effectiveMargin(v: VehicleWithAnalysis): number {
+  const a = v.analysis;
+  if (!a) return -Infinity;
+  if (v.seller_has_mwst === true) return Number(a.margin_with_mwst_chf ?? a.expected_margin_chf ?? 0);
+  return Number(a.margin_without_mwst_chf ?? a.expected_margin_chf ?? 0);
+}
+function vsMarketPct(v: VehicleWithAnalysis): number {
+  const a = v.analysis;
+  const market = Number(a?.autoscout_ch_price_avg ?? a?.market_value_chf ?? 0);
+  const total = v.seller_has_mwst === true
+    ? Number(a?.total_with_mwst_chf ?? a?.total_cost_chf ?? 0)
+    : Number(a?.total_without_mwst_chf ?? a?.total_cost_chf ?? 0);
+  if (!market || !total) return 0;
+  return Math.round(((total - market) / market) * 100);
 }
 
 function QueuePage() {
@@ -45,9 +62,23 @@ function QueuePage() {
     onError: (e: Error) => toast.error("Sync fehlgeschlagen", { description: e.message }),
   });
 
-  const queue = vehicles
-    .filter((v) => !v.decision)
-    .sort((a, b) => (b.analysis?.deal_score ?? 0) - (a.analysis?.deal_score ?? 0));
+  const [sortKey, setSortKey] = useState<SortKey>("margin");
+
+  const queue = useMemo(() => {
+    const open = vehicles.filter((v) => !v.decision);
+    const ts = (v: VehicleWithAnalysis) => new Date(v.received_at ?? v.created_at).getTime();
+    return open.sort((a, b) => {
+      if (sortKey === "margin") {
+        const d = effectiveMargin(b) - effectiveMargin(a);
+        if (d !== 0) return d;
+        return ts(b) - ts(a);
+      }
+      if (sortKey === "newest") return ts(b) - ts(a);
+      if (sortKey === "price") return Number(a.price_eur ?? Infinity) - Number(b.price_eur ?? Infinity);
+      if (sortKey === "vsMarket") return vsMarketPct(a) - vsMarketPct(b);
+      return 0;
+    });
+  }, [vehicles, sortKey]);
 
   const [lastDecided, setLastDecided] = useState<string | null>(null);
 
@@ -90,12 +121,19 @@ function QueuePage() {
     );
   }
 
+  const sortLabel: Record<SortKey, string> = {
+    margin: "höchste Marge",
+    newest: "neueste",
+    price: "tiefster Preis",
+    vsMarket: "günstigster vs. Markt",
+  };
+
   return (
     <div className="mx-auto max-w-2xl px-4 lg:px-8 py-4 lg:py-8">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div>
           <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Swipe Queue</h1>
-          <p className="text-sm text-muted-foreground">{queue.length} Fahrzeug{queue.length === 1 ? "" : "e"} · sortiert nach Deal Score</p>
+          <p className="text-sm text-muted-foreground">{queue.length} Fahrzeug{queue.length === 1 ? "" : "e"} · sortiert nach {sortLabel[sortKey]}</p>
         </div>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
@@ -110,7 +148,27 @@ function QueuePage() {
         </div>
       </div>
 
-      <div className="relative" style={{ minHeight: 620 }}>
+      <div className="flex flex-wrap gap-2 mb-4">
+        {([
+          ["margin", "💰 Höchste Marge"],
+          ["newest", "🕐 Neueste zuerst"],
+          ["price", "📉 Tiefster Preis"],
+          ["vsMarket", "🔍 Günstigster vs. Markt"],
+        ] as const).map(([k, label]) => (
+          <button
+            key={k}
+            onClick={() => setSortKey(k)}
+            className={cn(
+              "rounded-full px-3 py-1.5 text-xs border transition",
+              sortKey === k ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-accent",
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="relative" style={{ minHeight: 720 }}>
         <AnimatePresence initial={false}>
           {queue.slice(0, 3).reverse().map((v, idx, arr) => {
             const isTop = idx === arr.length - 1;
@@ -150,15 +208,24 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
   };
 
   const a = vehicle.analysis;
-  const score = a?.deal_score ?? 0;
-  const totalChf = Number(a?.total_cost_chf ?? 0);
-  const marketChf = Number(a?.market_value_chf ?? 0);
-  const marginWith = Number(a?.margin_with_mwst_chf ?? 0);
-  const marginWithout = Number(a?.margin_without_mwst_chf ?? a?.expected_margin_chf ?? 0);
-  const totalWith = Number(a?.total_with_mwst_chf ?? 0);
-  const totalWithout = Number(a?.total_without_mwst_chf ?? totalChf);
-  const mwstSaving = Number(a?.mwst_saving_chf ?? 0);
-  const sellerMwst = vehicle.seller_has_mwst;
+  const margin = effectiveMargin(vehicle);
+  const total = vehicle.seller_has_mwst === true
+    ? Number(a?.total_with_mwst_chf ?? a?.total_cost_chf ?? 0)
+    : Number(a?.total_without_mwst_chf ?? a?.total_cost_chf ?? 0);
+  const market = Number(a?.autoscout_ch_price_avg ?? a?.market_value_chf ?? 0);
+  const compCount = Number(a?.autoscout_ch_comparable_count ?? 0);
+  const vsMkt = vsMarketPct(vehicle);
+
+  const marginTone =
+    margin >= 3500 ? { border: "border-success/30", bg: "bg-success/10", text: "text-success" }
+    : margin >= 1500 ? { border: "border-warning/30", bg: "bg-warning/10", text: "text-warning" }
+    : { border: "border-danger/30", bg: "bg-danger/10", text: "text-danger" };
+
+  const vsMarketText =
+    !market ? "🟡 kein CH-Vergleich"
+    : vsMkt < 0 ? `🟢 ${Math.abs(vsMkt)}% unter Markt`
+    : vsMkt > 0 ? `🔴 ${vsMkt}% über Markt`
+    : "🟡 Marktpreis";
 
   return (
     <motion.div
@@ -187,13 +254,13 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
       {isTop && (
         <>
           <motion.div style={{ opacity: yesOpacity }} className="absolute inset-0 z-20 pointer-events-none bg-success/10 border-4 border-success/60 rounded-2xl flex items-start justify-end p-6">
-            <span className="px-4 py-2 rounded-full bg-success text-success-foreground font-bold text-lg rotate-12">INTERESTED</span>
+            <span className="px-4 py-2 rounded-full bg-success text-success-foreground font-bold text-lg rotate-12">DEAL</span>
           </motion.div>
           <motion.div style={{ opacity: skipOpacity }} className="absolute inset-0 z-20 pointer-events-none bg-danger/10 border-4 border-danger/60 rounded-2xl flex items-start justify-start p-6">
             <span className="px-4 py-2 rounded-full bg-danger text-danger-foreground font-bold text-lg -rotate-12">SKIP</span>
           </motion.div>
           <motion.div style={{ opacity: maybeOpacity }} className="absolute inset-0 z-20 pointer-events-none bg-warning/10 border-4 border-warning/60 rounded-2xl flex items-start justify-center p-6">
-            <span className="px-4 py-2 rounded-full bg-warning text-warning-foreground font-bold text-lg">MAYBE</span>
+            <span className="px-4 py-2 rounded-full bg-warning text-warning-foreground font-bold text-lg">SPÄTER</span>
           </motion.div>
         </>
       )}
@@ -205,14 +272,6 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
           <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">Kein Bild</div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/30" />
-        <div className="absolute top-3 left-3 flex items-center gap-2">
-          <ScoreBadge score={score} />
-          {score >= 85 && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-gradient-primary text-primary-foreground text-xs font-semibold px-2 py-1">
-              <Flame className="h-3 w-3" /> Hot
-            </span>
-          )}
-        </div>
         <div className="absolute bottom-3 left-3 right-3 text-white">
           {vehicle.make && <div className="text-xs uppercase tracking-wider text-white/70">{vehicle.make}</div>}
           <div className="text-xl font-semibold leading-tight line-clamp-2">{vehicle.title}</div>
@@ -231,27 +290,57 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3 rounded-xl border border-border bg-surface p-3">
-          <div>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Listenpreis DE</div>
-            <div className="text-lg font-semibold tabular-nums">{vehicle.price_eur ? fmtEur(Number(vehicle.price_eur)) : "—"}</div>
-          </div>
-          <div>
-            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Total CH-Kosten</div>
-            <div className="text-lg font-semibold tabular-nums">{totalChf ? fmtChf(totalChf) : "—"}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">inkl. Transport, MwSt., MFK</div>
+        <div className="rounded-xl border border-border bg-surface p-3">
+          <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Kaufpreis Deutschland</div>
+          <div className="text-lg font-semibold tabular-nums">
+            {vehicle.price_eur ? fmtEur(Number(vehicle.price_eur)) : "—"}
+            {a?.price_chf ? <span className="text-muted-foreground text-sm ml-2 font-normal">({fmtChf(Number(a.price_chf))})</span> : null}
           </div>
         </div>
 
-        <CardMargeDisplay
-          sellerMwst={sellerMwst}
-          marginWith={marginWith}
-          marginWithout={marginWithout}
-          totalWith={totalWith}
-          totalWithout={totalWithout}
-          mwstSaving={mwstSaving}
-          marketChf={marketChf}
-        />
+        {/* 4 Kennzahlen */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className={cn("rounded-xl border p-3", marginTone.border, marginTone.bg)}>
+            <div className={cn("text-[11px] mb-1 opacity-70", marginTone.text)}>💰 MARGE</div>
+            <div className={cn("text-xl font-bold tabular-nums", marginTone.text)}>
+              {margin === -Infinity ? "—" : `${margin >= 0 ? "+" : ""}${fmtChf(margin)}`}
+            </div>
+            <div className={cn("text-[11px] opacity-60 mt-0.5", marginTone.text)}>nach Import CH</div>
+          </div>
+          <div className="rounded-xl border border-primary/30 bg-primary/10 p-3">
+            <div className="text-[11px] text-primary mb-1">📊 MARKTPREIS CH</div>
+            <div className="text-xl font-bold text-primary tabular-nums">
+              {market > 0 ? fmtChf(market) : "— nicht gefunden"}
+            </div>
+            <div className="text-[11px] text-primary/70 mt-0.5">
+              {compCount > 0 ? `${compCount} Inserate CH` : "AutoScout24.ch"}
+            </div>
+          </div>
+          <div className="rounded-xl border border-border bg-surface p-3">
+            <div className="text-[11px] text-muted-foreground mb-1">📦 EINSTANDSPREIS</div>
+            <div className="text-xl font-bold tabular-nums">{total > 0 ? fmtChf(total) : "—"}</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">alle Kosten CH</div>
+          </div>
+          <div className="rounded-xl border border-border bg-surface p-3">
+            <div className="text-[11px] text-muted-foreground mb-1">🔍 VERGLEICH</div>
+            <div className="text-sm font-semibold mt-1">{vsMarketText}</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">
+              {compCount > 0 ? `${compCount} ähnliche in CH` : "kein CH-Vergleich"}
+            </div>
+          </div>
+        </div>
+
+        {a?.autoscout_ch_url && (
+          <a
+            href={a.autoscout_ch_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-between w-full px-3 py-2 rounded-lg border border-primary/30 hover:border-primary hover:bg-primary/5 transition text-xs text-primary"
+          >
+            <span>🔍 CH-Marktpreise auf AutoScout24.ch vergleichen</span>
+            <span>→</span>
+          </a>
+        )}
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{vehicle.source} · {vehicle.received_at ? new Date(vehicle.received_at).toLocaleDateString("de-CH") : "—"}</span>
@@ -260,17 +349,15 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
           </Link>
         </div>
 
-        <AutoScoutLink analysis={a} />
-
         <div className="grid grid-cols-3 gap-2 pt-1">
           <Button variant="outline" className="h-12 border-danger/40 hover:bg-danger/10 hover:text-danger" onClick={() => onDecide("skip")}>
             <X className="h-5 w-5" /> Skip
           </Button>
           <Button variant="outline" className="h-12 border-warning/40 hover:bg-warning/10 hover:text-warning" onClick={() => onDecide("maybe")}>
-            <Bookmark className="h-5 w-5" /> Maybe
+            <Bookmark className="h-5 w-5" /> Später
           </Button>
           <Button className="h-12 bg-gradient-success text-success-foreground hover:opacity-90 font-semibold" onClick={() => onDecide("interesting")}>
-            <Check className="h-5 w-5" /> Interessant
+            <Check className="h-5 w-5" /> Deal
           </Button>
         </div>
       </div>
@@ -291,91 +378,3 @@ function Spec({ icon, label, sub }: { icon: React.ReactNode; label: string; sub:
     </div>
   );
 }
-
-function CardMargeDisplay({ sellerMwst, marginWith, marginWithout, totalWith, totalWithout, mwstSaving, marketChf }: {
-  sellerMwst: boolean | null;
-  marginWith: number; marginWithout: number; totalWith: number; totalWithout: number; mwstSaving: number; marketChf: number;
-}) {
-  if (sellerMwst === true) {
-    return (
-      <div className="rounded-xl p-3 border bg-success/10 border-success/30">
-        <div className="text-[11px] uppercase tracking-wider text-success">✅ Marge (mit MwSt-Abzug)</div>
-        <div className="flex items-end justify-between mt-1">
-          <div className="text-2xl font-bold tabular-nums text-success">
-            {marginWith >= 0 ? "+" : ""}{fmtChf(marginWith)}
-          </div>
-          <div className="text-right text-[11px] text-muted-foreground">
-            <div>Einstand</div>
-            <div className="tabular-nums">{fmtChf(totalWith)}</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  if (sellerMwst === false) {
-    return (
-      <div className="rounded-xl p-3 border bg-primary/10 border-primary/30">
-        <div className="text-[11px] uppercase tracking-wider text-primary">❌ Marge (ohne MwSt)</div>
-        <div className="flex items-end justify-between mt-1">
-          <div className={cn("text-2xl font-bold tabular-nums", marginWithout >= 0 ? "text-primary" : "text-danger")}>
-            {marginWithout >= 0 ? "+" : ""}{fmtChf(marginWithout)}
-          </div>
-          <div className="text-right text-[11px] text-muted-foreground">
-            <div>Einstand</div>
-            <div className="tabular-nums">{fmtChf(totalWithout)}</div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  // Unknown — show both
-  return (
-    <div className="rounded-xl border border-border overflow-hidden">
-      <div className="grid grid-cols-2 divide-x divide-border">
-        <div className="p-3 bg-success/10">
-          <div className="text-[11px] uppercase tracking-wider text-success">✅ Mit MwSt</div>
-          <div className={cn("text-lg font-bold tabular-nums", marginWith >= 0 ? "text-success" : "text-danger")}>
-            {marginWith >= 0 ? "+" : ""}{fmtChf(marginWith)}
-          </div>
-        </div>
-        <div className="p-3 bg-primary/10">
-          <div className="text-[11px] uppercase tracking-wider text-primary">❌ Ohne MwSt</div>
-          <div className={cn("text-lg font-bold tabular-nums", marginWithout >= 0 ? "text-primary" : "text-danger")}>
-            {marginWithout >= 0 ? "+" : ""}{fmtChf(marginWithout)}
-          </div>
-        </div>
-      </div>
-      {mwstSaving > 0 && (
-        <div className="px-3 py-1.5 bg-warning/10 text-center text-[11px] text-warning border-t border-border">
-          💡 MwSt spart {fmtChf(mwstSaving)} · Verkauf @ {marketChf ? fmtChf(marketChf) : "—"}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function AutoScoutLink({ analysis }: { analysis: VehicleWithAnalysis["analysis"] }) {
-  if (!analysis?.autoscout_ch_url) return null;
-  const count = analysis.autoscout_ch_comparable_count ?? 0;
-  const avg = Number(analysis.autoscout_ch_price_avg ?? 0);
-  return (
-    <a
-      href={analysis.autoscout_ch_url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex items-center justify-between w-full px-3 py-2 rounded-lg border border-primary/30 hover:border-primary hover:bg-primary/5 transition-all group"
-    >
-      <div className="flex items-center gap-2 min-w-0">
-        <span className="text-primary text-sm shrink-0">🇨🇭</span>
-        <div className="min-w-0">
-          <div className="text-xs text-primary font-medium">AutoScout24.ch Marktpreise</div>
-          <div className="text-[11px] text-muted-foreground truncate">
-            {count > 0 ? `Ø ${fmtChf(avg)} · ${count} Inserate` : "Keine direkten CH-Inserate gefunden"}
-          </div>
-        </div>
-      </div>
-      <span className="text-muted-foreground group-hover:text-primary text-xs shrink-0 ml-2">→</span>
-    </a>
-  );
-}
-

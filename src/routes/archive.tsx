@@ -4,7 +4,7 @@ import { Search, ArrowUpDown, Check, X, Bookmark, Undo2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchVehicles, undoDecision, type DecisionValue } from "@/lib/db";
 import { fmtChf, fmtKm } from "@/lib/format";
-import { ScoreBadge } from "@/components/ScoreBadge";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -112,7 +112,6 @@ function ArchivePage() {
                   </div>
                 </div>
                 <div className="hidden sm:flex flex-col items-end gap-1.5">
-                  <ScoreBadge score={v.analysis?.deal_score ?? 0} size="sm" />
                   <button onClick={() => undoMut.mutate(v.id)} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
                     <Undo2 className="h-3 w-3" /> Rückgängig
                   </button>
