@@ -183,9 +183,6 @@ function MeineSuche() {
           min={5000} max={150000} step={1000} fmt={(v) => `${v.toLocaleString("de-CH")} €`} hint={(v) => `Nur Autos unter ${v.toLocaleString("de-CH")} €`} />
         <Slider label="Mindest-Marge (CHF)" value={f.min_margin_chf ?? 0} onChange={(v) => setF((p) => ({ ...p, min_margin_chf: v }))}
           min={0} max={10000} step={500} fmt={(v) => `CHF ${v.toLocaleString("de-CH")}`} hint={(v) => `Nur Autos mit Marge über CHF ${v.toLocaleString("de-CH")}`} hintColor="text-success" />
-        <Slider label="Mindest Deal-Score" value={f.min_deal_score ?? 0} onChange={(v) => setF((p) => ({ ...p, min_deal_score: v }))}
-          min={0} max={100} step={5} fmt={(v) => `${v}`} hint={(v) => `Nur Autos mit Score ${v} oder höher`}
-          hintColor={f.min_deal_score && f.min_deal_score >= 80 ? "text-success" : f.min_deal_score && f.min_deal_score >= 65 ? "text-warning" : f.min_deal_score && f.min_deal_score >= 40 ? "text-amber-500" : "text-danger"} />
       </Card>
 
       {/* Treibstoff */}
