@@ -8,6 +8,13 @@ import { fetchVehicles, recordDecision, undoDecision, type VehicleWithAnalysis, 
 import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SwipeHint } from "@/components/SwipeHint";
+
+function haptic(ms = 10) {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    try { navigator.vibrate(ms); } catch { /* noop */ }
+  }
+}
 
 export const Route = createFileRoute("/queue")({
   component: QueuePage,
@@ -83,6 +90,7 @@ function QueuePage() {
   const [lastDecided, setLastDecided] = useState<string | null>(null);
 
   const handleDecide = (id: string, d: DecisionValue) => {
+    haptic(d === "interesting" ? 18 : d === "skip" ? 8 : 12);
     decideMut.mutate({ id, d });
     setLastDecided(id);
   };
@@ -129,7 +137,8 @@ function QueuePage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4 lg:px-8 py-4 lg:py-8">
+    <div className="mx-auto max-w-2xl px-3 lg:px-8 py-3 lg:py-8 no-select">
+      <SwipeHint />
       <div className="flex items-center justify-between mb-3">
         <div>
           <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Swipe Queue</h1>
@@ -168,7 +177,7 @@ function QueuePage() {
         ))}
       </div>
 
-      <div className="relative" style={{ minHeight: 720 }}>
+      <div className="relative touch-pan-y" style={{ minHeight: "min(720px, calc(100vh - 220px))" }}>
         <AnimatePresence initial={false}>
           {queue.slice(0, 3).reverse().map((v, idx, arr) => {
             const isTop = idx === arr.length - 1;
@@ -202,9 +211,9 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
 
   const handleDragEnd = (_: unknown, info: PanInfo) => {
     const { offset, velocity } = info;
-    if (offset.x > 120 || velocity.x > 600) onDecide("interesting");
-    else if (offset.x < -120 || velocity.x < -600) onDecide("skip");
-    else if (offset.y < -120 || velocity.y < -600) onDecide("maybe");
+    if (offset.x > 120 || velocity.x > 600) { haptic(18); onDecide("interesting"); }
+    else if (offset.x < -120 || velocity.x < -600) { haptic(8); onDecide("skip"); }
+    else if (offset.y < -120 || velocity.y < -600) { haptic(12); onDecide("maybe"); }
   };
 
   const a = vehicle.analysis;
