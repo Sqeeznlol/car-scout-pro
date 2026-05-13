@@ -240,7 +240,8 @@ function MeineSuche() {
           </button>
           <button onClick={save} disabled={saving} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-3 text-sm font-medium hover:opacity-90 disabled:opacity-50">
             <Save className="h-4 w-4" /> {saving ? "Speichert…" : "Speichern"}
-        </button>
+          </button>
+        </div>
       </div>
     </div>
   );
