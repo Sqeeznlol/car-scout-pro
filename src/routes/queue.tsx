@@ -295,3 +295,29 @@ function Spec({ icon, label, sub }: { icon: React.ReactNode; label: string; sub:
     </div>
   );
 }
+
+function AutoScoutLink({ analysis }: { analysis: VehicleWithAnalysis["analysis"] }) {
+  if (!analysis?.autoscout_ch_url) return null;
+  const count = analysis.autoscout_ch_comparable_count ?? 0;
+  const avg = Number(analysis.autoscout_ch_price_avg ?? 0);
+  return (
+    <a
+      href={analysis.autoscout_ch_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center justify-between w-full px-3 py-2 rounded-lg border border-primary/30 hover:border-primary hover:bg-primary/5 transition-all group"
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="text-primary text-sm shrink-0">🇨🇭</span>
+        <div className="min-w-0">
+          <div className="text-xs text-primary font-medium">AutoScout24.ch Marktpreise</div>
+          <div className="text-[11px] text-muted-foreground truncate">
+            {count > 0 ? `Ø ${fmtChf(avg)} · ${count} Inserate` : "Keine direkten CH-Inserate gefunden"}
+          </div>
+        </div>
+      </div>
+      <span className="text-muted-foreground group-hover:text-primary text-xs shrink-0 ml-2">→</span>
+    </a>
+  );
+}
+
