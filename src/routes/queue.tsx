@@ -137,7 +137,8 @@ function QueuePage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-4 lg:px-8 py-4 lg:py-8">
+    <div className="mx-auto max-w-2xl px-3 lg:px-8 py-3 lg:py-8 no-select">
+      <SwipeHint />
       <div className="flex items-center justify-between mb-3">
         <div>
           <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Swipe Queue</h1>
