@@ -197,7 +197,7 @@ function AdminPage() {
                   </div>
                 </div>
                 <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
-                  <div className="font-medium text-primary">Durchschnittlicher Deal Score (Interessant): {insights.avgScore}</div>
+                  <div className="font-medium text-primary">Ø Marge bei „Interessant": {fmtChf(insights.avgMargin)}</div>
                   Zielmarge: {fmtChf(Number(draft.target_margin_chf))}.
                 </div>
               </div>
