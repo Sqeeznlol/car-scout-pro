@@ -88,6 +88,9 @@ function VehiclePage() {
   } : null;
   const mwst_saving = Number(a?.mwst_saving_chf ?? 0);
   const distanceKm = v.distance_km != null ? Math.round(v.distance_km) : 0;
+  const showWith = mwstStatus === "with";
+  const total = showWith ? wm?.total ?? 0 : wom?.total ?? 0;
+  const margin = showWith ? wm?.margin ?? 0 : wom?.margin ?? 0;
 
   const factors = a ? [
     { label: "Marge", score: a.margin_score },
