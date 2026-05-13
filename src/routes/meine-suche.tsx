@@ -320,7 +320,6 @@ function MessagePreview({ f }: { f: Filter }) {
           <Row label="Preis" value={sample.price} />
           <Row label="Einstand CH" value={sample.cost} />
           <Row label="Marge" value={sample.margin} bold />
-          <Row label="Deal Score" value={`${sample.score}/100`} bold />
         </div>
         <div className="text-xs text-muted-foreground border-t border-border pt-2 space-y-1">
           <div>{sample.location} → Kloten {sample.distance}</div>
