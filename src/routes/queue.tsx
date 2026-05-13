@@ -8,6 +8,13 @@ import { fetchVehicles, recordDecision, undoDecision, type VehicleWithAnalysis, 
 import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SwipeHint } from "@/components/SwipeHint";
+
+function haptic(ms = 10) {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    try { navigator.vibrate(ms); } catch { /* noop */ }
+  }
+}
 
 export const Route = createFileRoute("/queue")({
   component: QueuePage,
