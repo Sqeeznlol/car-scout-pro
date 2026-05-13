@@ -107,13 +107,13 @@ function ArchivePage() {
             return (
               <div key={v.id} className="flex items-center gap-3 lg:gap-4 p-3 lg:p-4 border-b border-border last:border-0 hover:bg-accent/30 transition">
                 {v.image_url ? (
-                  <img src={v.image_url} alt="" className="h-14 w-20 lg:h-16 lg:w-24 rounded-md object-cover bg-muted shrink-0" />
+                  <img src={v.image_url} alt="" className="h-20 w-28 lg:h-16 lg:w-24 rounded-md object-cover bg-muted shrink-0" />
                 ) : (
-                  <div className="h-14 w-20 lg:h-16 lg:w-24 rounded-md bg-muted shrink-0" />
+                  <div className="h-20 w-28 lg:h-16 lg:w-24 rounded-md bg-muted shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <Link to="/vehicle/$id" params={{ id: v.id }} className="font-medium hover:underline truncate block">{v.title}</Link>
-                  <div className="text-xs text-muted-foreground truncate">
+                  <Link to="/vehicle/$id" params={{ id: v.id }} className="font-medium hover:underline line-clamp-2 block text-sm leading-tight">{v.title}</Link>
+                  <div className="text-xs text-muted-foreground truncate mt-0.5">
                     {v.year ?? "—"} · {v.mileage_km ? fmtKm(v.mileage_km) : "—"} · {v.location ?? "—"}
                   </div>
                   <div className="mt-1.5 flex items-center gap-2 flex-wrap">
