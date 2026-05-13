@@ -172,7 +172,7 @@ function AdminPage() {
                 </Button>
               </div>
               <div className="text-sm text-muted-foreground">
-                Bei jedem Sync werden neue mobile.de-Mails geparst, Fahrzeuge angelegt und Kosten/Deal Score berechnet.
+                Bei jedem Sync werden neue mobile.de-Mails geparst, Fahrzeuge angelegt und Importkosten berechnet.
               </div>
             </div>
           </Card>
