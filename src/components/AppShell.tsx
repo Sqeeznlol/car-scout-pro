@@ -24,7 +24,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     for (const v of vehicles) {
       if (v.decision) continue;
       n++;
-      if ((v.analysis?.deal_score ?? 0) > 80) hot++;
+      const m = v.seller_has_mwst === true
+        ? Number(v.analysis?.margin_with_mwst_chf ?? v.analysis?.expected_margin_chf ?? 0)
+        : Number(v.analysis?.margin_without_mwst_chf ?? v.analysis?.expected_margin_chf ?? 0);
+      if (m >= 3500) hot++;
     }
     return { newCount: n, hotCount: hot };
   }, [vehicles]);
