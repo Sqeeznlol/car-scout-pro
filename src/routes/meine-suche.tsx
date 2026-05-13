@@ -300,7 +300,7 @@ function MessagePreview({ f }: { f: Filter }) {
   if (f.max_mileage != null) criteria.push({ label: "Laufleistung", value: `${sample.mileage} (max ${f.max_mileage.toLocaleString("de-CH")} km)` });
   if (f.max_price_eur != null) criteria.push({ label: "Preis", value: `${sample.price} (max ${f.max_price_eur.toLocaleString("de-CH")} €)` });
   if (f.min_margin_chf != null) criteria.push({ label: "Marge", value: `${sample.margin} (min CHF ${f.min_margin_chf.toLocaleString("de-CH")})` });
-  if (f.min_deal_score != null) criteria.push({ label: "Score", value: `${sample.score}/100 (min ${f.min_deal_score})` });
+  
   if (f.fuel_types.length > 0) criteria.push({ label: "Treibstoff", value: sample.fuel });
 
   return (
