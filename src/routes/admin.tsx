@@ -42,23 +42,21 @@ function AdminPage() {
     },
   });
 
-  const weightSum = useMemo(() => {
-    if (!draft) return 0;
-    return (draft.weight_margin + draft.weight_liquidity + draft.weight_risk + draft.weight_learning);
-  }, [draft]);
-
   const insights = useMemo(() => {
     const liked = vehicles.filter((v) => v.decision?.decision === "interesting");
     const makes: Record<string, number> = {};
-    let total = 0;
+    let totalMargin = 0;
     for (const v of liked) {
       if (v.make) makes[v.make] = (makes[v.make] || 0) + 1;
-      total += v.analysis?.deal_score ?? 0;
+      const m = v.seller_has_mwst === true
+        ? Number(v.analysis?.margin_with_mwst_chf ?? v.analysis?.expected_margin_chf ?? 0)
+        : Number(v.analysis?.margin_without_mwst_chf ?? v.analysis?.expected_margin_chf ?? 0);
+      totalMargin += m;
     }
     return {
       count: liked.length,
       topMakes: Object.entries(makes).sort((a, b) => b[1] - a[1]).slice(0, 5),
-      avgScore: liked.length ? Math.round(total / liked.length) : 0,
+      avgMargin: liked.length ? Math.round(totalMargin / liked.length) : 0,
       decisionCount: vehicles.filter((v) => v.decision).length,
     };
   }, [vehicles]);
@@ -66,7 +64,6 @@ function AdminPage() {
   if (!draft) return <div className="p-12 text-center text-muted-foreground">Lade Konfiguration…</div>;
 
   const save = () => {
-    if (weightSum !== 100) { toast.error(`Score-Gewichte müssen 100 ergeben (aktuell ${weightSum})`); return; }
     saveMut.mutate(draft);
   };
 
