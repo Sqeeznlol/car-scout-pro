@@ -1,7 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, ExternalLink, MapPin, Calendar, Gauge, Fuel, Check, X, Bookmark, Phone, Globe, Building2, Navigation } from "lucide-react";
+import { ArrowLeft, ExternalLink, MapPin, Calendar, Gauge, Fuel, Check, X, Bookmark, Phone, Globe, Building2, Navigation, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchVehicle, recordDecision, type DecisionValue } from "@/lib/db";
+import { useState, useEffect } from "react";
+import { fetchVehicle, recordDecision, fetchConfig, type DecisionValue } from "@/lib/db";
+import { supabase } from "@/integrations/supabase/client";
 import { fmtChf, fmtEur, fmtKm, scoreColor } from "@/lib/format";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { Button } from "@/components/ui/button";
