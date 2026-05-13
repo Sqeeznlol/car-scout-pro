@@ -209,23 +209,113 @@ function VehiclePage() {
       {a && (
         <Section title="Import-Kostenaufstellung">
           <div className="rounded-xl border border-border bg-card overflow-hidden">
-            <table className="w-full text-sm">
-              <tbody>
-                {costRows.map((r) => (
-                  <tr key={r.label} className="border-b border-border last:border-0">
-                    <td className="px-4 py-3">
-                      <div>{r.label}</div>
-                      {r.sub && <div className="text-xs text-muted-foreground">{r.sub}</div>}
-                    </td>
-                    <td className="px-4 py-3 text-right tabular-nums font-medium">{fmtChf(r.chf)}</td>
-                  </tr>
-                ))}
-                <tr className="bg-surface-elevated">
-                  <td className="px-4 py-3 font-semibold">Total in CHF</td>
-                  <td className="px-4 py-3 text-right tabular-nums text-xl font-bold">{fmtChf(total)}</td>
-                </tr>
-              </tbody>
-            </table>
+      {v.co2_gkm != null && v.co2_gkm > 0 && v.co2_gkm > co2Threshold && (
+        <div className="flex items-start gap-3 bg-danger/10 border border-danger/30 rounded-lg p-3">
+          <AlertTriangle className="h-5 w-5 text-danger mt-0.5 shrink-0" />
+          <div>
+            <div className="text-danger font-semibold text-sm">CO₂-Warnung</div>
+            <div className="text-danger/90 text-xs mt-0.5">
+              {v.co2_gkm} g/km — überschreitet den Schweizer Grenzwert von {co2Threshold} g/km.
+              Es können zusätzliche Schweizer CO₂-Lenkungsabgaben anfallen. Bitte separat kalkulieren.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {a && wm && wom && (
+        <Section title="Import-Kostenaufstellung">
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">🧾 MwSt-Status des Verkäufers</div>
+              <div className="flex gap-2">
+                <MwStBtn active={mwstStatus === "with"} tone="success" onClick={() => handleMwstChange("with")}
+                  label="✅ MwSt ausweisbar" sub="Händler / gewerblich" />
+                <MwStBtn active={mwstStatus === "without"} tone="info" onClick={() => handleMwstChange("without")}
+                  label="❌ Kein MwSt-Ausweis" sub="Privat / Differenz" />
+                <MwStBtn active={mwstStatus === "unknown"} tone="warning" onClick={() => handleMwstChange("unknown")}
+                  label="❓ Unbekannt" sub="Beide anzeigen" />
+              </div>
+            </div>
+
+            {mwstStatus === "unknown" ? (
+              <>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <CostTable
+                    title="✅ MIT MwSt-Ausweis"
+                    subtitle="Händlerkauf"
+                    accent="success"
+                    rows={[
+                      { label: "Kaufpreis DE (brutto)", value: fmtChf(Number(a.price_chf)) },
+                      { label: "− DE MwSt (19%)", value: `− ${fmtChf(wm.de_mwst_erstattung)}`, positive: true },
+                      { label: "= Nettobasis", value: fmtChf(wm.netto), divider: true },
+                      { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wm.automobilsteuer)}` },
+                      { label: "+ Zoll CH", value: `+ ${fmtChf(wm.zoll)}` },
+                      { label: "+ CH MwSt (7.7%)", value: `+ ${fmtChf(wm.ch_mwst)}` },
+                      { label: `+ Transport (${distanceKm}km × 1.50)`, value: `+ ${fmtChf(transport_chf)}` },
+                      { label: "+ MFK + Aufbereitung", value: `+ ${fmtChf(mfk_aufbereitung_chf)}` },
+                    ]}
+                    total={wm.total}
+                    sellPrice={market}
+                    margin={wm.margin}
+                    maxBuyEur={wm.max_buy_eur}
+                  />
+                  <CostTable
+                    title="❌ OHNE MwSt-Ausweis"
+                    subtitle="Privat / Differenz"
+                    accent="info"
+                    rows={[
+                      { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(Number(a.price_chf)) },
+                      { label: "⚠️ Kein MwSt-Abzug möglich", value: "", note: true },
+                      { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wom.automobilsteuer)}` },
+                      { label: "+ Zoll CH", value: `+ ${fmtChf(wom.zoll)}` },
+                      { label: "+ CH MwSt (7.7%)", value: `+ ${fmtChf(wom.ch_mwst)}` },
+                      { label: `+ Transport (${distanceKm}km × 1.50)`, value: `+ ${fmtChf(transport_chf)}` },
+                      { label: "+ MFK + Aufbereitung", value: `+ ${fmtChf(mfk_aufbereitung_chf)}` },
+                    ]}
+                    total={wom.total}
+                    sellPrice={market}
+                    margin={wom.margin}
+                    maxBuyEur={wom.max_buy_eur}
+                  />
+                </div>
+                <div className="flex items-center justify-center gap-2 bg-warning/10 border border-warning/30 rounded-lg p-3">
+                  <span className="text-warning">💡</span>
+                  <span className="text-warning text-sm">
+                    MwSt-Ersparnis wenn ausweisbar: <strong className="ml-1">{fmtChf(mwst_saving)}</strong>
+                  </span>
+                </div>
+              </>
+            ) : (
+              <div className="grid md:grid-cols-1 gap-3">
+                <CostTable
+                  title={showWith ? "✅ MIT MwSt-Ausweis" : "❌ OHNE MwSt-Ausweis"}
+                  subtitle={showWith ? "Händlerkauf" : "Privat / Differenz"}
+                  accent={showWith ? "success" : "info"}
+                  rows={showWith ? [
+                    { label: "Kaufpreis DE (brutto)", value: fmtChf(Number(a.price_chf)) },
+                    { label: "− DE MwSt (19%)", value: `− ${fmtChf(wm.de_mwst_erstattung)}`, positive: true },
+                    { label: "= Nettobasis", value: fmtChf(wm.netto), divider: true },
+                    { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wm.automobilsteuer)}` },
+                    { label: "+ Zoll CH", value: `+ ${fmtChf(wm.zoll)}` },
+                    { label: "+ CH MwSt (7.7%)", value: `+ ${fmtChf(wm.ch_mwst)}` },
+                    { label: `+ Transport (${distanceKm}km × 1.50)`, value: `+ ${fmtChf(transport_chf)}` },
+                    { label: "+ MFK + Aufbereitung", value: `+ ${fmtChf(mfk_aufbereitung_chf)}` },
+                  ] : [
+                    { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(Number(a.price_chf)) },
+                    { label: "⚠️ Kein MwSt-Abzug möglich", value: "", note: true },
+                    { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wom.automobilsteuer)}` },
+                    { label: "+ Zoll CH", value: `+ ${fmtChf(wom.zoll)}` },
+                    { label: "+ CH MwSt (7.7%)", value: `+ ${fmtChf(wom.ch_mwst)}` },
+                    { label: `+ Transport (${distanceKm}km × 1.50)`, value: `+ ${fmtChf(transport_chf)}` },
+                    { label: "+ MFK + Aufbereitung", value: `+ ${fmtChf(mfk_aufbereitung_chf)}` },
+                  ]}
+                  total={showWith ? wm.total : wom.total}
+                  sellPrice={market}
+                  margin={showWith ? wm.margin : wom.margin}
+                  maxBuyEur={showWith ? wm.max_buy_eur : wom.max_buy_eur}
+                />
+              </div>
+            )}
           </div>
         </Section>
       )}
