@@ -137,38 +137,38 @@ function QueuePage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-3 lg:px-8 py-3 lg:py-8 no-select">
+    <div className="mx-auto max-w-2xl px-3 lg:px-8 py-3 lg:py-8 no-select page-pb">
       <SwipeHint />
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Swipe Queue</h1>
-          <p className="text-sm text-muted-foreground">{queue.length} Fahrzeug{queue.length === 1 ? "" : "e"} · sortiert nach {sortLabel[sortKey]}</p>
+      <div className="flex items-center justify-between mb-3 gap-2">
+        <div className="min-w-0">
+          <h1 className="text-xl lg:text-2xl font-semibold tracking-tight truncate">Swipe Queue</h1>
+          <p className="text-xs lg:text-sm text-muted-foreground truncate">{queue.length} Fahrzeug{queue.length === 1 ? "" : "e"} · {sortLabel[sortKey]}</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Button size="sm" variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
             <RefreshCw className={cn("h-4 w-4", syncMut.isPending && "animate-spin")} />
-            Sync
+            <span className="hidden sm:inline">Sync</span>
           </Button>
           {lastDecided && (
             <Button size="sm" variant="ghost" onClick={() => { undoMut.mutate(lastDecided); setLastDecided(null); }}>
-              <Undo2 className="h-4 w-4" /> Undo
+              <Undo2 className="h-4 w-4" /> <span className="hidden sm:inline">Undo</span>
             </Button>
           )}
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar -mx-3 px-3 lg:mx-0 lg:px-0">
         {([
           ["margin", "💰 Höchste Marge"],
-          ["newest", "🕐 Neueste zuerst"],
+          ["newest", "🕐 Neueste"],
           ["price", "📉 Tiefster Preis"],
-          ["vsMarket", "🔍 Günstigster vs. Markt"],
+          ["vsMarket", "🔍 vs. Markt"],
         ] as const).map(([k, label]) => (
           <button
             key={k}
             onClick={() => setSortKey(k)}
             className={cn(
-              "rounded-full px-3 py-1.5 text-xs border transition",
+              "shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs border transition",
               sortKey === k ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border hover:bg-accent",
             )}
           >
@@ -177,7 +177,7 @@ function QueuePage() {
         ))}
       </div>
 
-      <div className="relative touch-pan-y" style={{ minHeight: "min(720px, calc(100vh - 220px))" }}>
+      <div className="relative touch-pan-y" style={{ minHeight: "min(720px, calc(100svh - 240px))" }}>
         <AnimatePresence initial={false}>
           {queue.slice(0, 3).reverse().map((v, idx, arr) => {
             const isTop = idx === arr.length - 1;

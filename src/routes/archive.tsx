@@ -50,7 +50,7 @@ function ArchivePage() {
   }, [vehicles]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 lg:px-8 py-4 lg:py-8 space-y-6">
+    <div className="mx-auto max-w-6xl px-4 lg:px-8 py-4 lg:py-8 space-y-6 page-pb">
       <div>
         <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Archiv</h1>
         <p className="text-sm text-muted-foreground">Jede Entscheidung an einem Ort. Filtern, suchen, nachsehen.</p>
@@ -67,8 +67,22 @@ function ArchivePage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Marke, Modell suchen…" className="pl-9" />
         </div>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar sm:hidden">
+          {(["all", "interesting", "maybe", "skip"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                "shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs border transition",
+                filter === f ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border",
+              )}
+            >
+              {f === "all" ? "Alle" : f === "interesting" ? "Interessant" : f === "maybe" ? "Vielleicht" : "Skip"}
+            </button>
+          ))}
+        </div>
         <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-          <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="hidden sm:flex w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Alle</SelectItem>
             <SelectItem value="interesting">Interessant</SelectItem>
@@ -93,13 +107,13 @@ function ArchivePage() {
             return (
               <div key={v.id} className="flex items-center gap-3 lg:gap-4 p-3 lg:p-4 border-b border-border last:border-0 hover:bg-accent/30 transition">
                 {v.image_url ? (
-                  <img src={v.image_url} alt="" className="h-14 w-20 lg:h-16 lg:w-24 rounded-md object-cover bg-muted shrink-0" />
+                  <img src={v.image_url} alt="" className="h-20 w-28 lg:h-16 lg:w-24 rounded-md object-cover bg-muted shrink-0" />
                 ) : (
-                  <div className="h-14 w-20 lg:h-16 lg:w-24 rounded-md bg-muted shrink-0" />
+                  <div className="h-20 w-28 lg:h-16 lg:w-24 rounded-md bg-muted shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <Link to="/vehicle/$id" params={{ id: v.id }} className="font-medium hover:underline truncate block">{v.title}</Link>
-                  <div className="text-xs text-muted-foreground truncate">
+                  <Link to="/vehicle/$id" params={{ id: v.id }} className="font-medium hover:underline line-clamp-2 block text-sm leading-tight">{v.title}</Link>
+                  <div className="text-xs text-muted-foreground truncate mt-0.5">
                     {v.year ?? "—"} · {v.mileage_km ? fmtKm(v.mileage_km) : "—"} · {v.location ?? "—"}
                   </div>
                   <div className="mt-1.5 flex items-center gap-2 flex-wrap">

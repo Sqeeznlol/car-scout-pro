@@ -114,7 +114,7 @@ function MeineSuche() {
   if (loading) return <div className="p-8 text-muted-foreground">Lade…</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-4 lg:p-8 space-y-6">
+    <div className="max-w-4xl mx-auto p-4 lg:p-8 space-y-6 page-pb">
       <div>
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <Bell className="h-6 w-6 text-primary" /> Meine Wunsch-Benachrichtigung
@@ -232,13 +232,16 @@ function MeineSuche() {
       </Card>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3 sticky bottom-20 lg:bottom-4">
-        <button onClick={handleTest} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-3 text-sm hover:bg-accent">
-          <Send className="h-4 w-4" /> Test-Nachricht senden
-        </button>
-        <button onClick={save} disabled={saving} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-3 text-sm font-medium hover:opacity-90 disabled:opacity-50">
-          <Save className="h-4 w-4" /> {saving ? "Speichert…" : "Speichern"}
-        </button>
+      <div className="h-2" />
+      <div className="fixed lg:sticky bottom-[72px] lg:bottom-4 left-0 right-0 z-20 px-4 lg:px-0 safe-bottom">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row gap-2 lg:gap-3 rounded-xl bg-background/85 backdrop-blur-md p-2 lg:p-0 border lg:border-0 border-border shadow-elevated lg:shadow-none">
+          <button onClick={handleTest} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md border border-border bg-card px-4 py-3 text-sm hover:bg-accent">
+            <Send className="h-4 w-4" /> Test senden
+          </button>
+          <button onClick={save} disabled={saving} className="flex-1 inline-flex items-center justify-center gap-2 rounded-md bg-primary text-primary-foreground px-4 py-3 text-sm font-medium hover:opacity-90 disabled:opacity-50">
+            <Save className="h-4 w-4" /> {saving ? "Speichert…" : "Speichern"}
+          </button>
+        </div>
       </div>
     </div>
   );
