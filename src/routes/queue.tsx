@@ -151,10 +151,14 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
 
   const a = vehicle.analysis;
   const score = a?.deal_score ?? 0;
-  const margin = Number(a?.expected_margin_chf ?? 0);
   const totalChf = Number(a?.total_cost_chf ?? 0);
   const marketChf = Number(a?.market_value_chf ?? 0);
-  const marginPositive = margin > 0;
+  const marginWith = Number(a?.margin_with_mwst_chf ?? 0);
+  const marginWithout = Number(a?.margin_without_mwst_chf ?? a?.expected_margin_chf ?? 0);
+  const totalWith = Number(a?.total_with_mwst_chf ?? 0);
+  const totalWithout = Number(a?.total_without_mwst_chf ?? totalChf);
+  const mwstSaving = Number(a?.mwst_saving_chf ?? 0);
+  const sellerMwst = vehicle.seller_has_mwst;
 
   return (
     <motion.div
