@@ -158,40 +158,6 @@ function AdminPage() {
           </div>
         </TabsContent>
 
-        <TabsContent value="weights" className="space-y-4 mt-4">
-          <Card>
-            <div className="space-y-5">
-              {([
-                ["weight_margin", "Marge"],
-                ["weight_liquidity", "Liquidität"],
-                ["weight_risk", "Risiko"],
-                ["weight_learning", "Learning"],
-              ] as const).map(([k, label]) => (
-                <div key={k}>
-                  <div className="flex items-center justify-between mb-2">
-                    <Label>{label}</Label>
-                    <span className="text-sm tabular-nums font-medium">{draft[k]}%</span>
-                  </div>
-                  <Slider
-                    value={[draft[k]]}
-                    max={60}
-                    step={1}
-                    onValueChange={([val]) => update(k, val)}
-                  />
-                </div>
-              ))}
-              <div className={cn(
-                "rounded-md p-3 text-sm flex items-center justify-between border",
-                weightSum === 100 ? "bg-success/10 border-success/30 text-success" : "bg-warning/10 border-warning/30 text-warning",
-              )}>
-                <span>Total</span>
-                <span className="font-semibold tabular-nums">{weightSum}% {weightSum === 100 ? "✓" : "(muss 100% sein)"}</span>
-              </div>
-            </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="email" className="mt-4">
           <Card>
             <div className="space-y-3">
               <div className="flex items-center justify-between py-3 border-b border-border">
