@@ -206,9 +206,6 @@ function VehiclePage() {
         </Section>
       )}
 
-      {a && (
-        <Section title="Import-Kostenaufstellung">
-          <div className="rounded-xl border border-border bg-card overflow-hidden">
       {v.co2_gkm != null && v.co2_gkm > 0 && v.co2_gkm > co2Threshold && (
         <div className="flex items-start gap-3 bg-danger/10 border border-danger/30 rounded-lg p-3">
           <AlertTriangle className="h-5 w-5 text-danger mt-0.5 shrink-0" />
