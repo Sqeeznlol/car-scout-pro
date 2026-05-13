@@ -147,12 +147,9 @@ function VehiclePage() {
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">Kein Bild</div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
-          <div className="absolute bottom-4 left-4 right-4 flex items-end justify-between gap-4 text-white">
-            <div>
-              <div className="text-xs uppercase tracking-wider text-white/70">{v.make ?? ""} {v.year ? `· ${v.year}` : ""}</div>
-              <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight">{v.title}</h1>
-            </div>
-            <ScoreBadge score={score} size="lg" />
+          <div className="absolute bottom-4 left-4 right-4 text-white">
+            <div className="text-xs uppercase tracking-wider text-white/70">{v.make ?? ""} {v.year ? `· ${v.year}` : ""}</div>
+            <h1 className="text-2xl lg:text-3xl font-semibold tracking-tight">{v.title}</h1>
           </div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-border">
