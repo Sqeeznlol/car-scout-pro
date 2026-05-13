@@ -4,7 +4,7 @@ import { Search, ArrowUpDown, Check, X, Bookmark, Undo2 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchVehicles, undoDecision, type DecisionValue } from "@/lib/db";
 import { fmtChf, fmtKm } from "@/lib/format";
-import { ScoreBadge } from "@/components/ScoreBadge";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
