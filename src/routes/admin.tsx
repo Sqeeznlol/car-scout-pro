@@ -97,6 +97,9 @@ function AdminPage() {
 
         <TabsContent value="costs" className="space-y-4 mt-4">
           <Card>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              Pauschalwerte — anpassbar
+            </h3>
             <div className="grid sm:grid-cols-2 gap-4">
               <Field label="EUR / CHF Kurs">
                 <Input type="number" step="0.01" value={String(draft.eur_chf_rate)}
@@ -106,23 +109,15 @@ function AdminPage() {
                 <Input type="number" step="0.05" value={String(draft.chf_per_km)}
                   onChange={(e) => update("chf_per_km", parseFloat(e.target.value) || 0)} />
               </Field>
-              <Field label="Zoll pauschal (CHF)">
+              <Field label="Zoll Pauschal (CHF)">
                 <Input type="number" value={String(draft.customs_flat)}
                   onChange={(e) => update("customs_flat", parseFloat(e.target.value) || 0)} />
               </Field>
-              <Field label="MwSt. (z.B. 0.081)">
-                <Input type="number" step="0.001" value={String(draft.vat_rate)}
-                  onChange={(e) => update("vat_rate", parseFloat(e.target.value) || 0)} />
-              </Field>
-              <Field label="Automobilsteuer (z.B. 0.04)">
-                <Input type="number" step="0.001" value={String(draft.automobilsteuer_rate)}
-                  onChange={(e) => update("automobilsteuer_rate", parseFloat(e.target.value) || 0)} />
-              </Field>
-              <Field label="MFK pauschal (CHF)">
+              <Field label="MFK Pauschal (CHF)">
                 <Input type="number" value={String(draft.mfk_flat)}
                   onChange={(e) => update("mfk_flat", parseFloat(e.target.value) || 0)} />
               </Field>
-              <Field label="Aufbereitung pauschal (CHF)">
+              <Field label="Aufbereitung Pauschal (CHF)">
                 <Input type="number" value={String(draft.preparation_flat)}
                   onChange={(e) => update("preparation_flat", parseFloat(e.target.value) || 0)} />
               </Field>
@@ -136,6 +131,36 @@ function AdminPage() {
               </Field>
             </div>
           </Card>
+
+          <Card>
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              Gesetzliche Steuersätze — fix, nicht änderbar
+            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Deutsche MwSt", value: "19.0%", note: "DE Gesetz" },
+                { label: "Automobilsteuer CH", value: "4.0%", note: "CH Gesetz" },
+                { label: "Schweizer MwSt", value: "7.7%", note: "CH Gesetz" },
+              ].map((item) => (
+                <div key={item.label} className="bg-surface border border-border rounded-lg p-3">
+                  <div className="text-xs text-muted-foreground mb-1">{item.label}</div>
+                  <div className="text-lg font-bold">{item.value}</div>
+                  <div className="text-xs text-muted-foreground">{item.note}</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+            <div className="flex gap-2">
+              <span className="text-primary">ℹ️</span>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div className="font-semibold text-foreground">Steuerliche Grundlage DE → CH</div>
+                <div>Bei Kauf von deutschen Händlern (mit Rechnung + MwSt-Ausweis) wird die DE MwSt von 19% beim Export zurückerstattet — das sind bei einem 30'000 € Auto ca. CHF 4'500 weniger Einstandspreis.</div>
+                <div>Bei Privatkauf oder Differenzbesteuerung (§25a UStG) ist kein MwSt-Abzug möglich.</div>
+              </div>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="weights" className="space-y-4 mt-4">
