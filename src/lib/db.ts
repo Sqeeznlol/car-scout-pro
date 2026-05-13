@@ -16,6 +16,7 @@ export async function fetchVehicles(): Promise<VehicleWithAnalysis[]> {
   const { data, error } = await supabase
     .from("vehicles")
     .select("*, analysis:vehicle_analyses(*), decision:decisions(*)")
+    .is("skip_reason", null)
     .order("received_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
