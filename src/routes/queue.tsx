@@ -243,23 +243,15 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
           </div>
         </div>
 
-        <div className={cn(
-          "rounded-xl p-3 border",
-          marginPositive ? "bg-success/10 border-success/30" : "bg-danger/10 border-danger/30",
-        )}>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Erwartete Marge</div>
-              <div className={cn("text-2xl font-bold tabular-nums", marginPositive ? "text-success" : "text-danger")}>
-                {marginPositive ? "+" : ""}{fmtChf(margin)}
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Verkauf @</div>
-              <div className="text-sm font-semibold tabular-nums">{marketChf ? fmtChf(marketChf) : "—"}</div>
-            </div>
-          </div>
-        </div>
+        <CardMargeDisplay
+          sellerMwst={sellerMwst}
+          marginWith={marginWith}
+          marginWithout={marginWithout}
+          totalWith={totalWith}
+          totalWithout={totalWithout}
+          mwstSaving={mwstSaving}
+          marketChf={marketChf}
+        />
 
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>{vehicle.source} · {vehicle.received_at ? new Date(vehicle.received_at).toLocaleDateString("de-CH") : "—"}</span>
