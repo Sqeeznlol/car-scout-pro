@@ -177,7 +177,7 @@ function QueuePage() {
         ))}
       </div>
 
-      <div className="relative" style={{ minHeight: 720 }}>
+      <div className="relative touch-pan-y" style={{ minHeight: "min(720px, calc(100vh - 220px))" }}>
         <AnimatePresence initial={false}>
           {queue.slice(0, 3).reverse().map((v, idx, arr) => {
             const isTop = idx === arr.length - 1;
