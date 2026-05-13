@@ -74,7 +74,7 @@ function AdminPage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Admin</h1>
-          <p className="text-sm text-muted-foreground">Kostenmodell, Score-Gewichte und Gmail-Sync verwalten.</p>
+          <p className="text-sm text-muted-foreground">Kostenmodell und Gmail-Sync verwalten.</p>
         </div>
         <Button variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
           <RefreshCw className={cn("h-4 w-4", syncMut.isPending && "animate-spin")} />
@@ -83,9 +83,8 @@ function AdminPage() {
       </div>
 
       <Tabs defaultValue="costs">
-        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-5">
+        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-4">
           <TabsTrigger value="costs"><Sliders className="h-4 w-4" /> Kosten</TabsTrigger>
-          <TabsTrigger value="weights"><Sparkles className="h-4 w-4" /> Gewichte</TabsTrigger>
           <TabsTrigger value="email"><Mail className="h-4 w-4" /> E-Mail</TabsTrigger>
           <TabsTrigger value="insights"><Sparkles className="h-4 w-4" /> Insights</TabsTrigger>
           <TabsTrigger value="blacklist"><Ban className="h-4 w-4" /> Filter</TabsTrigger>
