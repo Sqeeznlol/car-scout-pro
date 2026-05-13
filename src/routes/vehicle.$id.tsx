@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { fetchVehicle, recordDecision, fetchConfig, type DecisionValue } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
+import { calculateImportCosts, type ConfigInput } from "@/lib/analysis";
 import { fmtChf, fmtEur, fmtKm, scoreColor } from "@/lib/format";
 import { ScoreBadge } from "@/components/ScoreBadge";
 import { Button } from "@/components/ui/button";
@@ -65,32 +66,59 @@ function VehiclePage() {
     mwstMut.mutate(s === "with" ? true : s === "without" ? false : null);
   };
 
-  // Dual-scenario numbers (fallback to canonical fields if extras missing)
-  const transport_chf = Number(a?.transport_chf ?? 0);
-  const mfk_aufbereitung_chf = Number(a?.mfk_chf ?? 0) + Number(a?.preparation_chf ?? 0);
-  const wm = a ? {
-    de_mwst_erstattung: Number(a.de_mwst_erstattung_chf ?? 0),
-    netto: Number(a.netto_kaufpreis_chf ?? 0),
-    automobilsteuer: Math.round(Number(a.netto_kaufpreis_chf ?? 0) * 0.04),
-    zoll: Number(a.zoll_chf ?? a.customs_chf ?? 0),
-    ch_mwst: Math.round((Number(a.netto_kaufpreis_chf ?? 0) + Number(a.zoll_chf ?? a.customs_chf ?? 0)) * 0.077),
-    total: Number(a.total_with_mwst_chf ?? 0),
-    margin: Number(a.margin_with_mwst_chf ?? 0),
-    max_buy_eur: Number(a.max_buy_with_mwst_eur ?? 0),
+  // ── Live import-cost computation (don't trust stale stored fields) ──
+  const cfgInput: ConfigInput = {
+    eur_chf_rate: Number(config?.eur_chf_rate) || 0.96,
+    chf_per_km: Number(config?.chf_per_km) || 1.5,
+    customs_flat: Number(config?.customs_flat) || 160,
+    vat_rate: Number(config?.vat_rate) || 0.077,
+    automobilsteuer_rate: Number(config?.automobilsteuer_rate) || 0.04,
+    mfk_flat: Number(config?.mfk_flat) || 220,
+    preparation_flat: Number(config?.preparation_flat) || 100,
+    target_margin_chf: Number(config?.target_margin_chf) || 3500,
+    weight_margin: Number(config?.weight_margin) || 35,
+    weight_liquidity: Number(config?.weight_liquidity) || 25,
+    weight_risk: Number(config?.weight_risk) || 25,
+    weight_learning: Number(config?.weight_learning) || 15,
+    de_vat_rate: 0.19,
+  };
+  const sellPriceForCalc =
+    Number(a?.autoscout_ch_price_avg ?? 0) > 0
+      ? Number(a!.autoscout_ch_price_avg)
+      : market;
+  const distKmForCalc = Number(v.distance_km ?? 0);
+  const priceEurForCalc = Number(v.price_eur ?? 0);
+  const costs = priceEurForCalc > 0
+    ? calculateImportCosts(priceEurForCalc, distKmForCalc, sellPriceForCalc, cfgInput)
+    : null;
+
+  const transport_chf = costs?.transport_chf ?? 0;
+  const mfk_aufbereitung_chf = costs?.mfk_aufbereitung_chf ?? 0;
+  const wm = costs ? {
+    de_mwst_erstattung: costs.with_mwst.de_mwst_erstattung_chf,
+    netto: costs.with_mwst.netto_kaufpreis_chf,
+    automobilsteuer: costs.with_mwst.automobilsteuer_chf,
+    zoll: costs.with_mwst.zoll_chf,
+    ch_mwst: costs.with_mwst.ch_mwst_chf,
+    total: costs.with_mwst.total_chf,
+    margin: costs.with_mwst.margin_chf,
+    max_buy_eur: costs.with_mwst.max_buy_eur,
   } : null;
-  const wom = a ? {
-    automobilsteuer: Number(a.automobilsteuer_chf ?? 0),
-    zoll: Number(a.customs_chf ?? 0),
-    ch_mwst: Number(a.vat_chf ?? 0),
-    total: Number(a.total_without_mwst_chf ?? a.total_cost_chf ?? 0),
-    margin: Number(a.margin_without_mwst_chf ?? a.expected_margin_chf ?? 0),
-    max_buy_eur: Number(a.max_buy_without_mwst_eur ?? 0),
+  const wom = costs ? {
+    automobilsteuer: costs.without_mwst.automobilsteuer_chf,
+    zoll: costs.without_mwst.zoll_chf,
+    ch_mwst: costs.without_mwst.ch_mwst_chf,
+    total: costs.without_mwst.total_chf,
+    margin: costs.without_mwst.margin_chf,
+    max_buy_eur: costs.without_mwst.max_buy_eur,
   } : null;
-  const mwst_saving = Number(a?.mwst_saving_chf ?? 0);
+  const mwst_saving = costs?.mwst_saving_chf ?? 0;
   const distanceKm = v.distance_km != null ? Math.round(v.distance_km) : 0;
   const showWith = mwstStatus === "with";
   const total = showWith ? wm?.total ?? 0 : wom?.total ?? 0;
   const margin = showWith ? wm?.margin ?? 0 : wom?.margin ?? 0;
+  // Use live-computed kaufpreis CHF for display so it matches the table math
+  const displayPriceChf = costs?.kaufpreis_chf ?? price_chf;
 
   const factors = a ? [
     { label: "Marge", score: a.margin_score },
@@ -219,7 +247,7 @@ function VehiclePage() {
         </div>
       )}
 
-      {a && wm && wom && (
+      {wm && wom && (
         <Section title="Import-Kostenaufstellung">
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
@@ -242,7 +270,7 @@ function VehiclePage() {
                     subtitle="Händlerkauf"
                     accent="success"
                     rows={[
-                      { label: "Kaufpreis DE (brutto)", value: fmtChf(Number(a.price_chf)) },
+                      { label: "Kaufpreis DE (brutto)", value: fmtChf(displayPriceChf) },
                       { label: "− DE MwSt (19%)", value: `− ${fmtChf(wm.de_mwst_erstattung)}`, positive: true },
                       { label: "= Nettobasis", value: fmtChf(wm.netto), divider: true },
                       { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wm.automobilsteuer)}` },
@@ -261,7 +289,7 @@ function VehiclePage() {
                     subtitle="Privat / Differenz"
                     accent="info"
                     rows={[
-                      { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(Number(a.price_chf)) },
+                      { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(displayPriceChf) },
                       { label: "⚠️ Kein MwSt-Abzug möglich", value: "", note: true },
                       { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wom.automobilsteuer)}` },
                       { label: "+ Zoll CH", value: `+ ${fmtChf(wom.zoll)}` },
@@ -289,7 +317,7 @@ function VehiclePage() {
                   subtitle={showWith ? "Händlerkauf" : "Privat / Differenz"}
                   accent={showWith ? "success" : "info"}
                   rows={showWith ? [
-                    { label: "Kaufpreis DE (brutto)", value: fmtChf(Number(a.price_chf)) },
+                    { label: "Kaufpreis DE (brutto)", value: fmtChf(displayPriceChf) },
                     { label: "− DE MwSt (19%)", value: `− ${fmtChf(wm.de_mwst_erstattung)}`, positive: true },
                     { label: "= Nettobasis", value: fmtChf(wm.netto), divider: true },
                     { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wm.automobilsteuer)}` },
@@ -298,7 +326,7 @@ function VehiclePage() {
                     { label: `+ Transport (${distanceKm}km × 1.50)`, value: `+ ${fmtChf(transport_chf)}` },
                     { label: "+ MFK + Aufbereitung", value: `+ ${fmtChf(mfk_aufbereitung_chf)}` },
                   ] : [
-                    { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(Number(a.price_chf)) },
+                    { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(displayPriceChf) },
                     { label: "⚠️ Kein MwSt-Abzug möglich", value: "", note: true },
                     { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wom.automobilsteuer)}` },
                     { label: "+ Zoll CH", value: `+ ${fmtChf(wom.zoll)}` },
