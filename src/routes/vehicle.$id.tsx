@@ -55,7 +55,7 @@ function VehiclePage() {
   const v = data;
   const a = v.analysis;
   const current = v.decision?.decision;
-  const score = a?.deal_score ?? 0;
+  
   const price_chf = Number(a?.price_chf ?? 0);
   const market = Number(a?.market_value_chf ?? 0);
   const co2Threshold = Number(config?.co2_threshold_gkm ?? 130);
