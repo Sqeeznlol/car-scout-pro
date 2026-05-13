@@ -158,6 +158,7 @@ function AdminPage() {
           </div>
         </TabsContent>
 
+        <TabsContent value="email" className="mt-4">
           <Card>
             <div className="space-y-3">
               <div className="flex items-center justify-between py-3 border-b border-border">
