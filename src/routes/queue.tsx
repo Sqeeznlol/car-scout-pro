@@ -264,6 +264,8 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
           </Link>
         </div>
 
+        <AutoScoutLink analysis={a} />
+
         <div className="grid grid-cols-3 gap-2 pt-1">
           <Button variant="outline" className="h-12 border-danger/40 hover:bg-danger/10 hover:text-danger" onClick={() => onDecide("skip")}>
             <X className="h-5 w-5" /> Skip
