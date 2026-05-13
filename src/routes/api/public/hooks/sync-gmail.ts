@@ -84,6 +84,36 @@ async function runSync(limit: number) {
 
       for (const L of listings) {
         if (!L.price_eur) continue;
+
+        // Hard-Filter: Elektro/Hybrid/Gas werden still abgespeichert (für Audit)
+        // aber erscheinen nirgends im Tool und triggern keine Telegram-Nachricht.
+        const fuelLow = (L.fuel ?? "").toLowerCase();
+        const EXCLUDED_FUELS = ["elektro", "electric", "hybrid", "plug-in", "plugin", "mild-hybrid", "mildhybrid", "gas", "erdgas", "lpg", "cng"];
+        const isExcluded = EXCLUDED_FUELS.some((f) => fuelLow.includes(f));
+        if (isExcluded) {
+          await supabaseAdmin.from("vehicles").upsert(
+            {
+              source: "mobile.de",
+              source_message_id: L.source_message_id,
+              listing_url: L.listing_url,
+              title: L.title,
+              make: L.make,
+              model: L.model,
+              year: L.year,
+              mileage_km: L.mileage_km,
+              price_eur: L.price_eur,
+              fuel: L.fuel,
+              image_url: L.image_url,
+              raw_text: L.raw_text,
+              received_at: L.received_at,
+              skip_reason: "fuel_type_excluded",
+              telegram_sent: false,
+            },
+            { onConflict: "source_message_id" },
+          );
+          continue;
+        }
+
         // upsert vehicle by source_message_id
         const dist = await computeDistanceToKloten(L.seller_address, L.location);
         const { data: inserted_row, error: insErr } = await supabaseAdmin
