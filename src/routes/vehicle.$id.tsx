@@ -456,7 +456,71 @@ function MarketCard({ label, value, sub, tone }: { label: string; value: string;
     )}>
       <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
       <div className="text-2xl font-bold tabular-nums mt-1">{value}</div>
-      {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
+    {sub && <div className="text-xs text-muted-foreground mt-1">{sub}</div>}
+    </div>
+  );
+}
+
+function MwStBtn({ active, tone, onClick, label, sub }: {
+  active: boolean; tone: "success" | "info" | "warning"; onClick: () => void; label: string; sub: string;
+}) {
+  const tones = {
+    success: active ? "bg-success/15 border-success text-success" : "bg-card border-border text-muted-foreground hover:border-success/50",
+    info: active ? "bg-primary/15 border-primary text-primary" : "bg-card border-border text-muted-foreground hover:border-primary/50",
+    warning: active ? "bg-warning/15 border-warning text-warning" : "bg-card border-border text-muted-foreground hover:border-warning/50",
+  };
+  return (
+    <button onClick={onClick} className={cn("flex-1 py-2 px-3 rounded-lg text-xs font-medium border transition-all", tones[tone])}>
+      <div>{label}</div>
+      <div className="text-[10px] font-normal opacity-70 mt-0.5">{sub}</div>
+    </button>
+  );
+}
+
+interface CostRow { label: string; value: string; positive?: boolean; divider?: boolean; note?: boolean }
+function CostTable({ title, subtitle, accent, rows, total, sellPrice, margin, maxBuyEur }: {
+  title: string; subtitle: string; accent: "success" | "info";
+  rows: CostRow[]; total: number; sellPrice: number; margin: number; maxBuyEur: number;
+}) {
+  const c = accent === "success"
+    ? { border: "border-success/30", bg: "bg-success/5", header: "text-success" }
+    : { border: "border-primary/30", bg: "bg-primary/5", header: "text-primary" };
+  return (
+    <div className={cn("rounded-xl border overflow-hidden", c.border, c.bg)}>
+      <div className={cn("px-4 py-3 border-b", c.border)}>
+        <div className={cn("font-semibold text-sm", c.header)}>{title}</div>
+        <div className="text-xs text-muted-foreground">{subtitle}</div>
+      </div>
+      <div className="px-4 py-3 space-y-2 bg-card">
+        {rows.map((row, i) => (
+          <div key={i} className={cn(
+            "flex justify-between text-xs",
+            row.divider ? "border-t border-border pt-2 mt-2 font-medium text-foreground" : "text-muted-foreground",
+            row.note && "italic",
+          )}>
+            <span>{row.label}</span>
+            <span className={cn("tabular-nums", row.positive && "text-success")}>{row.value}</span>
+          </div>
+        ))}
+      </div>
+      <div className="px-4 py-3 border-t border-border bg-surface space-y-2">
+        <div className="flex justify-between text-sm font-bold">
+          <span>EINSTANDSPREIS</span>
+          <span className="tabular-nums">{fmtChf(total)}</span>
+        </div>
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>Verkaufspreis CH</span>
+          <span className="tabular-nums">{fmtChf(sellPrice)}</span>
+        </div>
+        <div className={cn("flex justify-between text-base font-bold", margin >= 0 ? "text-success" : "text-danger")}>
+          <span>MARGE</span>
+          <span className="tabular-nums">{margin >= 0 ? "+" : ""}{fmtChf(margin)}</span>
+        </div>
+        <div className="flex justify-between text-xs text-muted-foreground border-t border-border pt-2 mt-1">
+          <span>Max. EK für Zielmarge</span>
+          <span className="tabular-nums">{maxBuyEur.toLocaleString("de-CH")} €</span>
+        </div>
+      </div>
     </div>
   );
 }
