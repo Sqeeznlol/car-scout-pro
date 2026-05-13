@@ -220,8 +220,16 @@ function AdminPage() {
 
         <TabsContent value="blacklist" className="mt-4 space-y-4">
           <Card>
-            <div className="text-sm text-muted-foreground">
-              Filter-Regeln folgen in einer späteren Version. Vorerst werden alle eingehenden Inserate gelistet.
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm">
+              <div className="font-medium mb-2">ℹ️ Automatisch ausgeblendet</div>
+              <p className="text-muted-foreground mb-2">
+                Folgende Treibstofftypen werden systemweit ignoriert und erscheinen nie im Tool:
+              </p>
+              <ul className="text-muted-foreground space-y-1 ml-4 list-disc">
+                <li>Elektro</li>
+                <li>Hybrid / Plug-in Hybrid / Mild-Hybrid</li>
+                <li>Gas / Erdgas / LPG / CNG</li>
+              </ul>
             </div>
           </Card>
         </TabsContent>

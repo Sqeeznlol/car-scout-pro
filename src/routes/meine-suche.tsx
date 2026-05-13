@@ -11,7 +11,7 @@ const DEFAULT_TOKEN = "8591751475:AAFzXRVhkKaLcBrnSBlj0nj_7pQj-KcdLjM";
 const DEFAULT_CHAT_ID = "5162665016";
 
 const COMMON_MAKES = ["BMW", "Mercedes-Benz", "Audi", "VW", "Porsche", "Skoda", "Toyota", "Ford", "Opel", "Renault"];
-const FUELS = ["Diesel", "Benzin", "Hybrid", "Elektro", "Gas"];
+const FUELS = ["Diesel", "Benzin"];
 
 interface Filter {
   id?: string;
@@ -37,7 +37,7 @@ const DEFAULT_FILTER: Filter = {
   max_price_eur: 40000,
   min_margin_chf: 2500,
   min_deal_score: 65,
-  fuel_types: ["Diesel", "Benzin", "Hybrid"],
+  fuel_types: ["Diesel", "Benzin"],
   telegram_bot_token: DEFAULT_TOKEN,
   telegram_chat_id: DEFAULT_CHAT_ID,
 };

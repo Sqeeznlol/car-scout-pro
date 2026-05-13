@@ -84,6 +84,36 @@ async function runSync(limit: number) {
 
       for (const L of listings) {
         if (!L.price_eur) continue;
+
+        // Hard-Filter: Elektro/Hybrid/Gas werden still abgespeichert (für Audit)
+        // aber erscheinen nirgends im Tool und triggern keine Telegram-Nachricht.
+        const fuelLow = (L.fuel ?? "").toLowerCase();
+        const EXCLUDED_FUELS = ["elektro", "electric", "hybrid", "plug-in", "plugin", "mild-hybrid", "mildhybrid", "gas", "erdgas", "lpg", "cng"];
+        const isExcluded = EXCLUDED_FUELS.some((f) => fuelLow.includes(f));
+        if (isExcluded) {
+          await supabaseAdmin.from("vehicles").upsert(
+            {
+              source: "mobile.de",
+              source_message_id: L.source_message_id,
+              listing_url: L.listing_url,
+              title: L.title,
+              make: L.make,
+              model: L.model,
+              year: L.year,
+              mileage_km: L.mileage_km,
+              price_eur: L.price_eur,
+              fuel: L.fuel,
+              image_url: L.image_url,
+              raw_text: L.raw_text,
+              received_at: L.received_at,
+              skip_reason: "fuel_type_excluded",
+              telegram_sent: false,
+            },
+            { onConflict: "source_message_id" },
+          );
+          continue;
+        }
+
         // upsert vehicle by source_message_id
         const dist = await computeDistanceToKloten(L.seller_address, L.location);
         const { data: inserted_row, error: insErr } = await supabaseAdmin
@@ -144,30 +174,54 @@ async function runSync(limit: number) {
           config,
         );
         // CH-Marktwert via AutoScout24.ch (Median ähnlicher Inserate) — überschreibt Heuristik
+        let asExtra: {
+          autoscout_ch_url: string | null;
+          autoscout_ch_comparable_count: number | null;
+          autoscout_ch_price_min: number | null;
+          autoscout_ch_price_max: number | null;
+          autoscout_ch_price_avg: number | null;
+          autoscout_ch_scraped_at: string | null;
+        } = {
+          autoscout_ch_url: null,
+          autoscout_ch_comparable_count: null,
+          autoscout_ch_price_min: null,
+          autoscout_ch_price_max: null,
+          autoscout_ch_price_avg: null,
+          autoscout_ch_scraped_at: null,
+        };
         try {
           const ch = await estimateChMarketValue({
-            make: L.make, model: L.model, year: L.year, mileage_km: L.mileage_km,
+            make: L.make, model: L.model, year: L.year, mileage_km: L.mileage_km, fuel: L.fuel,
           });
-          if (ch && ch.market_value_chf > 0) {
-            analysis.market_value_chf = ch.market_value_chf;
-            analysis.expected_margin_chf = ch.market_value_chf - analysis.total_cost_chf;
-            // margin_score neu berechnen
-            const t = Number(config.target_margin_chf) || 3500;
-            analysis.margin_score = Math.max(0, Math.min(100, Math.round((analysis.expected_margin_chf / t) * 70 + 30)));
-            const tw = config.weight_margin + config.weight_liquidity + config.weight_risk + config.weight_learning || 100;
-            analysis.deal_score = Math.round(
-              (analysis.margin_score * config.weight_margin +
-                analysis.liquidity_score * config.weight_liquidity +
-                analysis.risk_score * config.weight_risk +
-                analysis.learning_score * config.weight_learning) / tw,
-            );
+          if (ch) {
+            asExtra = {
+              autoscout_ch_url: ch.url,
+              autoscout_ch_comparable_count: ch.count,
+              autoscout_ch_price_min: ch.min || null,
+              autoscout_ch_price_max: ch.max || null,
+              autoscout_ch_price_avg: ch.avg || null,
+              autoscout_ch_scraped_at: new Date().toISOString(),
+            };
+            if (ch.avg > 0) {
+              analysis.market_value_chf = ch.avg;
+              analysis.expected_margin_chf = ch.avg - analysis.total_cost_chf;
+              const t = Number(config.target_margin_chf) || 3500;
+              analysis.margin_score = Math.max(0, Math.min(100, Math.round((analysis.expected_margin_chf / t) * 70 + 30)));
+              const tw = config.weight_margin + config.weight_liquidity + config.weight_risk + config.weight_learning || 100;
+              analysis.deal_score = Math.round(
+                (analysis.margin_score * config.weight_margin +
+                  analysis.liquidity_score * config.weight_liquidity +
+                  analysis.risk_score * config.weight_risk +
+                  analysis.learning_score * config.weight_learning) / tw,
+              );
+            }
           }
         } catch (e) {
           errors.push(`ch-market: ${e instanceof Error ? e.message : String(e)}`);
         }
         await supabaseAdmin
           .from("vehicle_analyses")
-          .upsert({ vehicle_id: inserted_row.id, ...analysis, computed_at: new Date().toISOString() });
+          .upsert({ vehicle_id: inserted_row.id, ...analysis, ...asExtra, computed_at: new Date().toISOString() });
         // Telegram-Suchabo: prüfen ob Fahrzeug zu einem Filter passt
         try {
           await notifyMatchingFilters(
@@ -185,11 +239,15 @@ async function runSync(limit: number) {
               seller_type: L.seller_type,
               listing_url: L.listing_url,
               distance_km: dist?.distance_km ?? null,
+              image_url: L.image_url,
             },
             {
               total_cost_chf: analysis.total_cost_chf,
               expected_margin_chf: analysis.expected_margin_chf,
               deal_score: analysis.deal_score,
+              autoscout_ch_url: asExtra.autoscout_ch_url,
+              autoscout_ch_price_avg: asExtra.autoscout_ch_price_avg,
+              autoscout_ch_comparable_count: asExtra.autoscout_ch_comparable_count,
             },
           );
         } catch (e) {

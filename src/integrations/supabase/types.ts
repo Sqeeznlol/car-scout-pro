@@ -175,6 +175,12 @@ export type Database = {
       vehicle_analyses: {
         Row: {
           automobilsteuer_chf: number | null
+          autoscout_ch_comparable_count: number | null
+          autoscout_ch_price_avg: number | null
+          autoscout_ch_price_max: number | null
+          autoscout_ch_price_min: number | null
+          autoscout_ch_scraped_at: string | null
+          autoscout_ch_url: string | null
           computed_at: string
           customs_chf: number | null
           deal_score: number | null
@@ -194,6 +200,12 @@ export type Database = {
         }
         Insert: {
           automobilsteuer_chf?: number | null
+          autoscout_ch_comparable_count?: number | null
+          autoscout_ch_price_avg?: number | null
+          autoscout_ch_price_max?: number | null
+          autoscout_ch_price_min?: number | null
+          autoscout_ch_scraped_at?: string | null
+          autoscout_ch_url?: string | null
           computed_at?: string
           customs_chf?: number | null
           deal_score?: number | null
@@ -213,6 +225,12 @@ export type Database = {
         }
         Update: {
           automobilsteuer_chf?: number | null
+          autoscout_ch_comparable_count?: number | null
+          autoscout_ch_price_avg?: number | null
+          autoscout_ch_price_max?: number | null
+          autoscout_ch_price_min?: number | null
+          autoscout_ch_scraped_at?: string | null
+          autoscout_ch_url?: string | null
           computed_at?: string
           customs_chf?: number | null
           deal_score?: number | null
@@ -270,6 +288,7 @@ export type Database = {
           seller_phone: string | null
           seller_type: string | null
           seller_website: string | null
+          skip_reason: string | null
           source: string
           source_message_id: string | null
           telegram_sent: boolean
@@ -308,6 +327,7 @@ export type Database = {
           seller_phone?: string | null
           seller_type?: string | null
           seller_website?: string | null
+          skip_reason?: string | null
           source?: string
           source_message_id?: string | null
           telegram_sent?: boolean
@@ -346,6 +366,7 @@ export type Database = {
           seller_phone?: string | null
           seller_type?: string | null
           seller_website?: string | null
+          skip_reason?: string | null
           source?: string
           source_message_id?: string | null
           telegram_sent?: boolean

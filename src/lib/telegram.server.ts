@@ -49,6 +49,9 @@ interface AnalysisLite {
   total_cost_chf: number | null;
   expected_margin_chf: number | null;
   deal_score: number | null;
+  autoscout_ch_url?: string | null;
+  autoscout_ch_price_avg?: number | null;
+  autoscout_ch_comparable_count?: number | null;
 }
 
 export function vehicleMatchesFilter(
@@ -117,9 +120,19 @@ export function buildTelegramMessage(
     `*Kriterien*`,
     ...criteria.map((c) => `• ${c}`),
   ];
-  if (v.listing_url) {
-    lines.push("", `[Inserat öffnen](${esc(v.listing_url)})`);
+  // AutoScout24.ch Marktvergleich
+  if (a.autoscout_ch_price_avg && a.autoscout_ch_price_avg > 0) {
+    lines.push(
+      "",
+      `🇨🇭 AS24\\.ch Ø ${esc(fmtChf(a.autoscout_ch_price_avg))} \\(${esc(a.autoscout_ch_comparable_count ?? 0)} Inserate\\)`,
+    );
+  } else if (a.autoscout_ch_url) {
+    lines.push("", `🇨🇭 Keine direkten CH\\-Vergleichsinserate gefunden`);
   }
+  const linkLines: string[] = [];
+  if (v.listing_url) linkLines.push(`[Inserat öffnen](${esc(v.listing_url)})`);
+  if (a.autoscout_ch_url) linkLines.push(`[CH Marktpreise auf AutoScout24](${esc(a.autoscout_ch_url)})`);
+  if (linkLines.length) lines.push("", ...linkLines);
   return lines.filter((l) => l !== null).join("\n");
 }
 
