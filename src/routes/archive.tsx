@@ -112,7 +112,6 @@ function ArchivePage() {
                   </div>
                 </div>
                 <div className="hidden sm:flex flex-col items-end gap-1.5">
-                  <ScoreBadge score={v.analysis?.deal_score ?? 0} size="sm" />
                   <button onClick={() => undoMut.mutate(v.id)} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
                     <Undo2 className="h-3 w-3" /> Rückgängig
                   </button>
