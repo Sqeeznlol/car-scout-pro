@@ -49,6 +49,9 @@ interface AnalysisLite {
   total_cost_chf: number | null;
   expected_margin_chf: number | null;
   deal_score: number | null;
+  autoscout_ch_url?: string | null;
+  autoscout_ch_price_avg?: number | null;
+  autoscout_ch_comparable_count?: number | null;
 }
 
 export function vehicleMatchesFilter(
