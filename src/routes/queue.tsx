@@ -90,6 +90,7 @@ function QueuePage() {
   const [lastDecided, setLastDecided] = useState<string | null>(null);
 
   const handleDecide = (id: string, d: DecisionValue) => {
+    haptic(d === "interesting" ? 18 : d === "skip" ? 8 : 12);
     decideMut.mutate({ id, d });
     setLastDecided(id);
   };
