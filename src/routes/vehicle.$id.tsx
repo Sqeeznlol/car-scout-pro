@@ -203,6 +203,7 @@ function VehiclePage() {
         </div>
       </div>
 
+      {(v.seller_name || v.seller_phone || v.seller_address || v.seller_website || v.seller_type) && (
         <Section title="Händler / Verkäufer">
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
             {v.seller_name && (
