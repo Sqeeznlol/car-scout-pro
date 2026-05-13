@@ -11,7 +11,7 @@ const DEFAULT_TOKEN = "8591751475:AAFzXRVhkKaLcBrnSBlj0nj_7pQj-KcdLjM";
 const DEFAULT_CHAT_ID = "5162665016";
 
 const COMMON_MAKES = ["BMW", "Mercedes-Benz", "Audi", "VW", "Porsche", "Skoda", "Toyota", "Ford", "Opel", "Renault"];
-const FUELS = ["Diesel", "Benzin", "Hybrid", "Elektro", "Gas"];
+const FUELS = ["Diesel", "Benzin"];
 
 interface Filter {
   id?: string;
