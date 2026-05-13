@@ -119,12 +119,6 @@ function VehiclePage() {
   // Use live-computed kaufpreis CHF for display so it matches the table math
   const displayPriceChf = costs?.kaufpreis_chf ?? price_chf;
 
-  const factors = a ? [
-    { label: "Marge", score: a.margin_score },
-    { label: "Liquidität", score: a.liquidity_score },
-    { label: "Risiko", score: a.risk_score },
-    { label: "Learning", score: a.learning_score },
-  ] : [];
 
   return (
     <div className="mx-auto max-w-5xl px-4 lg:px-8 py-4 lg:py-8 space-y-6">
