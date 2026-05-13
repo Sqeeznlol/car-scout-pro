@@ -114,7 +114,7 @@ function MeineSuche() {
   if (loading) return <div className="p-8 text-muted-foreground">Lade…</div>;
 
   return (
-    <div className="max-w-4xl mx-auto p-4 lg:p-8 space-y-6">
+    <div className="max-w-4xl mx-auto p-4 lg:p-8 space-y-6 page-pb">
       <div>
         <h1 className="text-2xl font-semibold flex items-center gap-2">
           <Bell className="h-6 w-6 text-primary" /> Meine Wunsch-Benachrichtigung
