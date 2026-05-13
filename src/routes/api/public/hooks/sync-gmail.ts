@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { parseGmailMessage, type ParsedListing } from "@/lib/mobile-parser";
-import { computeAnalysis, type ConfigInput } from "@/lib/analysis";
+import { computeAnalysis, recomputeWithMarket, type ConfigInput } from "@/lib/analysis";
 import { computeDistanceToKloten } from "@/lib/distance.server";
 import { notifyMatchingFilters } from "@/lib/telegram.server";
 import { estimateChMarketValue } from "@/lib/ch-market.server";
