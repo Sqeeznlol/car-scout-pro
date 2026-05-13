@@ -247,7 +247,7 @@ function VehiclePage() {
         </div>
       )}
 
-      {a && wm && wom && (
+      {wm && wom && (
         <Section title="Import-Kostenaufstellung">
           <div className="space-y-4">
             <div className="flex flex-col gap-2">
