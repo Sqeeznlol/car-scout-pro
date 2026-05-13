@@ -169,7 +169,40 @@ function VehiclePage() {
         )}
       </div>
 
-      {(v.seller_name || v.seller_phone || v.seller_address || v.seller_website || v.seller_type) && (
+      {/* 4 Kennzahlen oben */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="col-span-2 rounded-2xl border border-success/30 bg-success/10 p-4 text-center">
+          <div className="text-sm text-success mb-1">💰 ERWARTETE MARGE</div>
+          <div className={cn("text-4xl font-bold tabular-nums", margin >= 0 ? "text-success" : "text-danger")}>
+            {margin >= 0 ? "+" : ""}{fmtChf(margin)}
+          </div>
+          <div className="text-xs text-success/70 mt-1">nach allen Importkosten ({mwstStatus === "with" ? "mit MwSt-Ausweis" : mwstStatus === "without" ? "ohne MwSt-Ausweis" : "ohne MwSt-Ausweis"})</div>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-4 text-center">
+          <div className="text-xs text-muted-foreground mb-1">📦 EINSTANDSPREIS CH</div>
+          <div className="text-2xl font-bold tabular-nums">{fmtChf(total)}</div>
+        </div>
+        <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 text-center">
+          <div className="text-xs text-primary mb-1">📊 MARKTPREIS CH</div>
+          <div className="text-2xl font-bold text-primary tabular-nums">
+            {market > 0 ? fmtChf(market) : "—"}
+          </div>
+          <div className="text-xs text-primary/70 mt-1">
+            {Number(a?.autoscout_ch_comparable_count ?? 0)} Inserate AutoScout24.ch
+          </div>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-4 text-center">
+          <div className="text-xs text-muted-foreground mb-1">🚗 KAUFPREIS DE</div>
+          <div className="text-2xl font-bold tabular-nums">{v.price_eur ? fmtEur(Number(v.price_eur)) : "—"}</div>
+          <div className="text-xs text-muted-foreground mt-1">{fmtChf(displayPriceChf)}</div>
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-4 text-center">
+          <div className="text-xs text-muted-foreground mb-1">📍 TRANSPORT</div>
+          <div className="text-2xl font-bold tabular-nums">{distanceKm} km</div>
+          <div className="text-xs text-muted-foreground mt-1">{fmtChf(transport_chf)}</div>
+        </div>
+      </div>
+
         <Section title="Händler / Verkäufer">
           <div className="rounded-xl border border-border bg-card p-5 space-y-3">
             {v.seller_name && (
