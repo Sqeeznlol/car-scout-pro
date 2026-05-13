@@ -50,7 +50,7 @@ function ArchivePage() {
   }, [vehicles]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 lg:px-8 py-4 lg:py-8 space-y-6">
+    <div className="mx-auto max-w-6xl px-4 lg:px-8 py-4 lg:py-8 space-y-6 page-pb">
       <div>
         <h1 className="text-xl lg:text-2xl font-semibold tracking-tight">Archiv</h1>
         <p className="text-sm text-muted-foreground">Jede Entscheidung an einem Ort. Filtern, suchen, nachsehen.</p>
@@ -67,8 +67,22 @@ function ArchivePage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Marke, Modell suchen…" className="pl-9" />
         </div>
+        <div className="flex gap-2 overflow-x-auto no-scrollbar sm:hidden">
+          {(["all", "interesting", "maybe", "skip"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={cn(
+                "shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-xs border transition",
+                filter === f ? "bg-primary text-primary-foreground border-primary" : "bg-card border-border",
+              )}
+            >
+              {f === "all" ? "Alle" : f === "interesting" ? "Interessant" : f === "maybe" ? "Vielleicht" : "Skip"}
+            </button>
+          ))}
+        </div>
         <Select value={filter} onValueChange={(v) => setFilter(v as typeof filter)}>
-          <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="hidden sm:flex w-48"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Alle</SelectItem>
             <SelectItem value="interesting">Interessant</SelectItem>
