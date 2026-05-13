@@ -397,40 +397,6 @@ function VehiclePage() {
         </Section>
       )}
 
-      {a && (
-        <Section title="Deal Score">
-          <div className="rounded-xl border border-border bg-card p-5 space-y-4">
-            <div className="flex items-center gap-4">
-              <div className="relative h-24 w-24 shrink-0">
-                <svg viewBox="0 0 36 36" className="h-24 w-24 -rotate-90">
-                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-border" />
-                  <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="2.5"
-                    strokeDasharray={`${score} 100`} strokeLinecap="round" className={cn(scoreColor(score).text)} />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center text-2xl font-bold tabular-nums">{score}</div>
-              </div>
-              <div>
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">Deal Score</div>
-                <div className="text-lg font-semibold">{scoreColor(score).label} Opportunity</div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {factors.map((f) => (
-                <div key={f.label}>
-                  <div className="flex items-center justify-between text-xs mb-1">
-                    <span className="text-muted-foreground">{f.label}</span>
-                    <span className="tabular-nums">{Math.round(Number(f.score ?? 0))}/100</span>
-                  </div>
-                  <div className="h-1.5 rounded-full bg-surface overflow-hidden">
-                    <div className="h-full bg-gradient-primary" style={{ width: `${Math.min(Number(f.score ?? 0), 100)}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Section>
-      )}
 
       {v.raw_text && (
         <Section title="Original-Text aus E-Mail">
