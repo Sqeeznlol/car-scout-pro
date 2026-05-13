@@ -270,7 +270,7 @@ function VehiclePage() {
                     subtitle="Händlerkauf"
                     accent="success"
                     rows={[
-                      { label: "Kaufpreis DE (brutto)", value: fmtChf(Number(a.price_chf)) },
+                      { label: "Kaufpreis DE (brutto)", value: fmtChf(displayPriceChf) },
                       { label: "− DE MwSt (19%)", value: `− ${fmtChf(wm.de_mwst_erstattung)}`, positive: true },
                       { label: "= Nettobasis", value: fmtChf(wm.netto), divider: true },
                       { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wm.automobilsteuer)}` },
@@ -289,7 +289,7 @@ function VehiclePage() {
                     subtitle="Privat / Differenz"
                     accent="info"
                     rows={[
-                      { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(Number(a.price_chf)) },
+                      { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(displayPriceChf) },
                       { label: "⚠️ Kein MwSt-Abzug möglich", value: "", note: true },
                       { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wom.automobilsteuer)}` },
                       { label: "+ Zoll CH", value: `+ ${fmtChf(wom.zoll)}` },
@@ -317,7 +317,7 @@ function VehiclePage() {
                   subtitle={showWith ? "Händlerkauf" : "Privat / Differenz"}
                   accent={showWith ? "success" : "info"}
                   rows={showWith ? [
-                    { label: "Kaufpreis DE (brutto)", value: fmtChf(Number(a.price_chf)) },
+                    { label: "Kaufpreis DE (brutto)", value: fmtChf(displayPriceChf) },
                     { label: "− DE MwSt (19%)", value: `− ${fmtChf(wm.de_mwst_erstattung)}`, positive: true },
                     { label: "= Nettobasis", value: fmtChf(wm.netto), divider: true },
                     { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wm.automobilsteuer)}` },
@@ -326,7 +326,7 @@ function VehiclePage() {
                     { label: `+ Transport (${distanceKm}km × 1.50)`, value: `+ ${fmtChf(transport_chf)}` },
                     { label: "+ MFK + Aufbereitung", value: `+ ${fmtChf(mfk_aufbereitung_chf)}` },
                   ] : [
-                    { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(Number(a.price_chf)) },
+                    { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(displayPriceChf) },
                     { label: "⚠️ Kein MwSt-Abzug möglich", value: "", note: true },
                     { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wom.automobilsteuer)}` },
                     { label: "+ Zoll CH", value: `+ ${fmtChf(wom.zoll)}` },
