@@ -317,9 +317,23 @@ function QueueCard({ vehicle, onDecide }: {
             href={a.autoscout_ch_url}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => { tappedAutoscout.current = true; }}
             className="flex items-center justify-between w-full px-3 py-2 rounded-lg border border-primary/30 hover:border-primary hover:bg-primary/5 transition text-xs text-primary"
           >
             <span>🔍 CH-Marktpreise auf AutoScout24.ch vergleichen</span>
+            <span>→</span>
+          </a>
+        )}
+
+        {vehicle.listing_url && (
+          <a
+            href={vehicle.listing_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => { tappedListing.current = true; }}
+            className="flex items-center justify-between w-full px-3 py-2 rounded-lg border border-border hover:border-primary hover:bg-accent transition text-xs"
+          >
+            <span>🔗 Original Inserat auf {vehicle.source}</span>
             <span>→</span>
           </a>
         )}
