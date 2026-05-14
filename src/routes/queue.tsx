@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
-import { motion, AnimatePresence, useMotionValue, useTransform, type PanInfo } from "framer-motion";
 import { Check, X, Bookmark, MapPin, Gauge, Calendar, Undo2, Fuel, RefreshCw, Inbox, Flame } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -8,7 +7,6 @@ import { fetchVehicles, recordDecision, undoDecision, type VehicleWithAnalysis, 
 import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { SwipeHint } from "@/components/SwipeHint";
 
 function haptic(ms = 10) {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -35,12 +33,17 @@ function effectiveMargin(v: VehicleWithAnalysis): number {
   if (v.seller_has_mwst === true) return Number(a.margin_with_mwst_chf ?? a.expected_margin_chf ?? 0);
   return Number(a.margin_without_mwst_chf ?? a.expected_margin_chf ?? 0);
 }
+function effectiveTotal(v: VehicleWithAnalysis): number {
+  const a = v.analysis;
+  if (!a) return 0;
+  return v.seller_has_mwst === true
+    ? Number(a.total_with_mwst_chf ?? a.total_cost_chf ?? 0)
+    : Number(a.total_without_mwst_chf ?? a.total_cost_chf ?? 0);
+}
 function vsMarketPct(v: VehicleWithAnalysis): number {
   const a = v.analysis;
   const market = Number(a?.autoscout_ch_price_avg ?? a?.market_value_chf ?? 0);
-  const total = v.seller_has_mwst === true
-    ? Number(a?.total_with_mwst_chf ?? a?.total_cost_chf ?? 0)
-    : Number(a?.total_without_mwst_chf ?? a?.total_cost_chf ?? 0);
+  const total = effectiveTotal(v);
   if (!market || !total) return 0;
   return Math.round(((total - market) / market) * 100);
 }
@@ -70,6 +73,7 @@ function QueuePage() {
   });
 
   const [sortKey, setSortKey] = useState<SortKey>("margin");
+  const [lastDecided, setLastDecided] = useState<string | null>(null);
 
   const queue = useMemo(() => {
     const open = vehicles.filter((v) => !v.decision);
@@ -87,8 +91,6 @@ function QueuePage() {
     });
   }, [vehicles, sortKey]);
 
-  const [lastDecided, setLastDecided] = useState<string | null>(null);
-
   const handleDecide = (id: string, d: DecisionValue) => {
     haptic(d === "interesting" ? 18 : d === "skip" ? 8 : 12);
     decideMut.mutate({ id, d });
@@ -99,36 +101,6 @@ function QueuePage() {
     return <div className="p-12 text-center text-muted-foreground">Lade Fahrzeuge…</div>;
   }
 
-  if (queue.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[70vh] px-6 text-center">
-        <div className="h-20 w-20 rounded-2xl bg-gradient-success/20 flex items-center justify-center mb-6 shadow-glow-success">
-          {vehicles.length === 0 ? <Inbox className="h-10 w-10 text-success" /> : <Flame className="h-10 w-10 text-success" />}
-        </div>
-        <h2 className="text-2xl font-semibold tracking-tight">
-          {vehicles.length === 0 ? "Noch keine Inserate" : "Queue abgearbeitet"}
-        </h2>
-        <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-          {vehicles.length === 0
-            ? 'Klicke unten auf „Gmail jetzt synchronisieren“, um mobile.de-Mails aus deinem Postfach zu importieren.'
-            : "Keine Fahrzeuge zur Entscheidung offen. Neue mobile.de-Mails erscheinen automatisch hier."}
-        </p>
-        <div className="mt-6 flex gap-2">
-          <Button onClick={() => syncMut.mutate()} disabled={syncMut.isPending} className="bg-gradient-primary text-primary-foreground">
-            <RefreshCw className={cn("h-4 w-4", syncMut.isPending && "animate-spin")} />
-            {syncMut.isPending ? "Synchronisiere…" : "Gmail jetzt synchronisieren"}
-          </Button>
-          {vehicles.length > 0 && <Button asChild variant="outline"><Link to="/archive">Archiv ansehen</Link></Button>}
-          {lastDecided && (
-            <Button variant="ghost" onClick={() => { undoMut.mutate(lastDecided); setLastDecided(null); }}>
-              <Undo2 className="h-4 w-4" /> Letzte rückgängig
-            </Button>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   const sortLabel: Record<SortKey, string> = {
     margin: "höchste Marge",
     newest: "neueste",
@@ -137,12 +109,13 @@ function QueuePage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl px-3 lg:px-8 py-3 lg:py-8 no-select page-pb">
-      <SwipeHint />
+    <div className="mx-auto max-w-2xl px-3 lg:px-8 py-3 lg:py-8 page-pb">
       <div className="flex items-center justify-between mb-3 gap-2">
         <div className="min-w-0">
           <h1 className="text-xl lg:text-2xl font-semibold tracking-tight truncate">Swipe Queue</h1>
-          <p className="text-xs lg:text-sm text-muted-foreground truncate">{queue.length} Fahrzeug{queue.length === 1 ? "" : "e"} · {sortLabel[sortKey]}</p>
+          <p className="text-xs lg:text-sm text-muted-foreground truncate">
+            {queue.length} Fahrzeug{queue.length === 1 ? "" : "e"} · sortiert nach {sortLabel[sortKey]}
+          </p>
         </div>
         <div className="flex gap-2 shrink-0">
           <Button size="sm" variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
@@ -177,50 +150,59 @@ function QueuePage() {
         ))}
       </div>
 
-      <div className="relative touch-pan-y" style={{ minHeight: "min(720px, calc(100svh - 240px))" }}>
-        <AnimatePresence initial={false}>
-          {queue.slice(0, 3).reverse().map((v, idx, arr) => {
-            const isTop = idx === arr.length - 1;
-            const depth = arr.length - 1 - idx;
-            return (
-              <SwipeCard
-                key={v.id}
-                vehicle={v}
-                isTop={isTop}
-                depth={depth}
-                onDecide={(d) => handleDecide(v.id, d)}
-              />
-            );
-          })}
-        </AnimatePresence>
+      {queue.length === 0 ? (
+        <EmptyState hasAny={vehicles.length > 0} onSync={() => syncMut.mutate()} syncing={syncMut.isPending} />
+      ) : (
+        <div className="space-y-4">
+          {queue.map((v) => (
+            <QueueCard key={v.id} vehicle={v} onDecide={(d) => handleDecide(v.id, d)} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EmptyState({ hasAny, onSync, syncing }: { hasAny: boolean; onSync: () => void; syncing: boolean }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
+      <div className="h-20 w-20 rounded-2xl bg-gradient-success/20 flex items-center justify-center mb-6 shadow-glow-success">
+        {!hasAny ? <Inbox className="h-10 w-10 text-success" /> : <Flame className="h-10 w-10 text-success" />}
+      </div>
+      <h2 className="text-2xl font-semibold tracking-tight">
+        {!hasAny ? "Noch keine Inserate" : "Queue abgearbeitet"}
+      </h2>
+      <p className="mt-2 text-sm text-muted-foreground max-w-sm">
+        {!hasAny
+          ? 'Klicke auf „Gmail jetzt synchronisieren“, um mobile.de-Mails zu importieren.'
+          : "Keine Fahrzeuge zur Entscheidung offen. Neue Mails erscheinen automatisch hier."}
+      </p>
+      <div className="mt-6 flex gap-2 flex-wrap justify-center">
+        <Button onClick={onSync} disabled={syncing} className="bg-gradient-primary text-primary-foreground">
+          <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
+          {syncing ? "Synchronisiere…" : "Gmail jetzt synchronisieren"}
+        </Button>
+        {hasAny && <Button asChild variant="outline"><Link to="/archive">Archiv ansehen</Link></Button>}
       </div>
     </div>
   );
 }
 
-function SwipeCard({ vehicle, isTop, depth, onDecide }: {
-  vehicle: VehicleWithAnalysis; isTop: boolean; depth: number;
+function QueueCard({ vehicle, onDecide }: {
+  vehicle: VehicleWithAnalysis;
   onDecide: (d: DecisionValue) => void;
 }) {
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotate = useTransform(x, [-200, 200], [-12, 12]);
-  const skipOpacity = useTransform(x, [-160, -40], [1, 0]);
-  const yesOpacity = useTransform(x, [40, 160], [0, 1]);
-  const maybeOpacity = useTransform(y, [-160, -40], [1, 0]);
+  const [deciding, setDeciding] = useState<DecisionValue | null>(null);
 
-  const handleDragEnd = (_: unknown, info: PanInfo) => {
-    const { offset, velocity } = info;
-    if (offset.x > 120 || velocity.x > 600) { haptic(18); onDecide("interesting"); }
-    else if (offset.x < -120 || velocity.x < -600) { haptic(8); onDecide("skip"); }
-    else if (offset.y < -120 || velocity.y < -600) { haptic(12); onDecide("maybe"); }
+  const handleClick = (d: DecisionValue) => {
+    if (deciding) return;
+    setDeciding(d);
+    setTimeout(() => onDecide(d), 180);
   };
 
   const a = vehicle.analysis;
   const margin = effectiveMargin(vehicle);
-  const total = vehicle.seller_has_mwst === true
-    ? Number(a?.total_with_mwst_chf ?? a?.total_cost_chf ?? 0)
-    : Number(a?.total_without_mwst_chf ?? a?.total_cost_chf ?? 0);
+  const total = effectiveTotal(vehicle);
   const market = Number(a?.autoscout_ch_price_avg ?? a?.market_value_chf ?? 0);
   const compCount = Number(a?.autoscout_ch_comparable_count ?? 0);
   const vsMkt = vsMarketPct(vehicle);
@@ -237,51 +219,15 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
     : "🟡 Marktpreis";
 
   return (
-    <motion.div
-      className={cn(
-        "absolute inset-x-0 mx-auto max-w-2xl rounded-2xl border border-border bg-card shadow-card overflow-hidden",
-        isTop ? "cursor-grab active:cursor-grabbing" : "pointer-events-none",
-      )}
-      style={{
-        x: isTop ? x : 0,
-        y: isTop ? y : 0,
-        rotate: isTop ? rotate : 0,
-        scale: 1 - depth * 0.04,
-        top: depth * 8,
-        zIndex: 10 - depth,
-        opacity: depth > 2 ? 0 : 1,
-      }}
-      drag={isTop ? true : false}
-      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
-      dragElastic={0.6}
-      onDragEnd={handleDragEnd}
-      initial={{ scale: 0.95, opacity: 0 }}
-      animate={{ scale: 1 - depth * 0.04, opacity: 1 }}
-      exit={{ x: x.get() > 0 ? 600 : x.get() < 0 ? -600 : 0, y: y.get() < 0 ? -600 : 0, opacity: 0, transition: { duration: 0.25 } }}
-      transition={{ type: "spring", stiffness: 320, damping: 30 }}
-    >
-      {isTop && (
-        <>
-          <motion.div style={{ opacity: yesOpacity }} className="absolute inset-0 z-20 pointer-events-none bg-success/10 border-4 border-success/60 rounded-2xl flex items-start justify-end p-6">
-            <span className="px-4 py-2 rounded-full bg-success text-success-foreground font-bold text-lg rotate-12">DEAL</span>
-          </motion.div>
-          <motion.div style={{ opacity: skipOpacity }} className="absolute inset-0 z-20 pointer-events-none bg-danger/10 border-4 border-danger/60 rounded-2xl flex items-start justify-start p-6">
-            <span className="px-4 py-2 rounded-full bg-danger text-danger-foreground font-bold text-lg -rotate-12">SKIP</span>
-          </motion.div>
-          <motion.div style={{ opacity: maybeOpacity }} className="absolute inset-0 z-20 pointer-events-none bg-warning/10 border-4 border-warning/60 rounded-2xl flex items-start justify-center p-6">
-            <span className="px-4 py-2 rounded-full bg-warning text-warning-foreground font-bold text-lg">SPÄTER</span>
-          </motion.div>
-        </>
-      )}
-
+    <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
       <div className="relative aspect-[16/10] bg-muted">
         {vehicle.image_url ? (
-          <img src={vehicle.image_url} alt={vehicle.title} className="w-full h-full object-cover" draggable={false} />
+          <img src={vehicle.image_url} alt={vehicle.title} className="w-full h-full object-cover" draggable={false} loading="lazy" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">Kein Bild</div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/30" />
-        <div className="absolute bottom-3 left-3 right-3 text-white">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/30 pointer-events-none" />
+        <div className="absolute bottom-3 left-3 right-3 text-white pointer-events-none">
           {vehicle.make && <div className="text-xs uppercase tracking-wider text-white/70">{vehicle.make}</div>}
           <div className="text-xl font-semibold leading-tight line-clamp-2">{vehicle.title}</div>
         </div>
@@ -307,7 +253,6 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
           </div>
         </div>
 
-        {/* 4 Kennzahlen */}
         <div className="grid grid-cols-2 gap-2">
           <div className={cn("rounded-xl border p-3", marginTone.border, marginTone.bg)}>
             <div className={cn("text-[11px] mb-1 opacity-70", marginTone.text)}>💰 MARGE</div>
@@ -359,18 +304,51 @@ function SwipeCard({ vehicle, isTop, depth, onDecide }: {
         </div>
 
         <div className="grid grid-cols-3 gap-2 pt-1">
-          <Button variant="outline" className="h-12 border-danger/40 hover:bg-danger/10 hover:text-danger" onClick={() => onDecide("skip")}>
-            <X className="h-5 w-5" /> Skip
-          </Button>
-          <Button variant="outline" className="h-12 border-warning/40 hover:bg-warning/10 hover:text-warning" onClick={() => onDecide("maybe")}>
-            <Bookmark className="h-5 w-5" /> Später
-          </Button>
-          <Button className="h-12 bg-gradient-success text-success-foreground hover:opacity-90 font-semibold" onClick={() => onDecide("interesting")}>
-            <Check className="h-5 w-5" /> Deal
-          </Button>
+          <button
+            type="button"
+            onClick={() => handleClick("skip")}
+            disabled={!!deciding}
+            className={cn(
+              "h-[72px] rounded-2xl flex flex-col items-center justify-center gap-1 font-semibold border-2 transition-all active:scale-95",
+              deciding === "skip"
+                ? "bg-danger/30 border-danger text-danger"
+                : "bg-danger/10 border-danger/30 text-danger hover:bg-danger/20",
+            )}
+          >
+            <X className="h-5 w-5" />
+            <span className="text-sm">Skip</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleClick("maybe")}
+            disabled={!!deciding}
+            className={cn(
+              "h-[72px] rounded-2xl flex flex-col items-center justify-center gap-1 font-semibold border-2 transition-all active:scale-95",
+              deciding === "maybe"
+                ? "bg-warning/30 border-warning text-warning"
+                : "bg-warning/10 border-warning/30 text-warning hover:bg-warning/20",
+            )}
+          >
+            <Bookmark className="h-5 w-5" />
+            <span className="text-sm">Später</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleClick("interesting")}
+            disabled={!!deciding}
+            className={cn(
+              "h-[72px] rounded-2xl flex flex-col items-center justify-center gap-1 font-semibold border-2 transition-all active:scale-95",
+              deciding === "interesting"
+                ? "bg-success/30 border-success text-success"
+                : "bg-success/10 border-success/30 text-success hover:bg-success/20",
+            )}
+          >
+            <Check className="h-5 w-5" />
+            <span className="text-sm">Deal</span>
+          </button>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
