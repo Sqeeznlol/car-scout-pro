@@ -225,6 +225,14 @@ function AdminPage() {
             </div>
           </Card>
         </TabsContent>
+
+        <TabsContent value="visitors" className="mt-4">
+          <VisitorsTab />
+        </TabsContent>
+
+        <TabsContent value="algo" className="mt-4">
+          <AlgorithmTab />
+        </TabsContent>
       </Tabs>
 
       <div className="flex justify-end sticky bottom-20 lg:bottom-4">
