@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect, memo, useCallback } from "react";
 import { Check, X, Bookmark, MapPin, Gauge, Calendar, Undo2, Fuel, RefreshCw, Inbox, Flame } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -8,6 +8,7 @@ import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTracking } from "@/hooks/useTracking";
+import { supabase } from "@/integrations/supabase/client";
 
 function haptic(ms = 10) {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -92,11 +93,22 @@ function QueuePage() {
     });
   }, [vehicles, sortKey]);
 
-  const handleDecide = (id: string, d: DecisionValue) => {
+  const handleDecide = useCallback((id: string, d: DecisionValue) => {
     haptic(d === "interesting" ? 18 : d === "skip" ? 8 : 12);
     decideMut.mutate({ id, d });
     setLastDecided(id);
-  };
+  }, [decideMut]);
+
+  // Realtime: neue Fahrzeuge erscheinen ohne Reload
+  useEffect(() => {
+    const channel = supabase
+      .channel("queue-new-vehicles")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "vehicles" }, () => {
+        qc.invalidateQueries({ queryKey: ["vehicles"] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [qc]);
 
   if (isLoading) {
     return <div className="p-12 text-center text-muted-foreground">Lade Fahrzeuge…</div>;
@@ -189,7 +201,7 @@ function EmptyState({ hasAny, onSync, syncing }: { hasAny: boolean; onSync: () =
   );
 }
 
-function QueueCard({ vehicle, onDecide }: {
+const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
   vehicle: VehicleWithAnalysis;
   onDecide: (d: DecisionValue) => void;
 }) {
@@ -392,7 +404,7 @@ function QueueCard({ vehicle, onDecide }: {
       </div>
     </div>
   );
-}
+});
 
 function Spec({ icon, label, sub }: { icon: React.ReactNode; label: string; sub: string }) {
   return (
