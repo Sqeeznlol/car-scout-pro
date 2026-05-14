@@ -255,3 +255,273 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     </div>
   );
 }
+
+interface SessionRow {
+  id: string;
+  session_id: string;
+  ip_address: string | null;
+  country: string | null;
+  city: string | null;
+  device_type: string | null;
+  browser: string | null;
+  os: string | null;
+  screen_width: number | null;
+  screen_height: number | null;
+  total_decisions: number;
+  total_interesting: number;
+  first_seen: string;
+  last_seen: string;
+}
+
+function VisitorsTab() {
+  const { data: sessions = [], isLoading } = useQuery({
+    queryKey: ["user_sessions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_sessions")
+        .select("*")
+        .order("last_seen", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return (data ?? []) as SessionRow[];
+    },
+  });
+
+  if (isLoading) return <Card><div className="text-sm text-muted-foreground">Lade…</div></Card>;
+  if (!sessions.length) {
+    return <Card><div className="text-sm text-muted-foreground">Noch keine Besucher erfasst.</div></Card>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {sessions.map((s) => {
+        const Icon = s.device_type === "mobile" ? Smartphone : s.device_type === "tablet" ? Tablet : Monitor;
+        const rate = s.total_decisions > 0 ? Math.round((s.total_interesting / s.total_decisions) * 100) : 0;
+        return (
+          <Card key={s.id}>
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+              <div>
+                <div className="text-base font-semibold">
+                  {s.city || "—"}{s.country ? `, ${s.country}` : ""}
+                </div>
+                <div className="text-xs text-muted-foreground font-mono mt-0.5">🌐 {s.ip_address ?? "unbekannt"}</div>
+              </div>
+              <div className="text-right">
+                <div className="text-sm flex items-center gap-1.5 justify-end">
+                  <Icon className="h-3.5 w-3.5" />
+                  {s.os} · {s.browser}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5">
+                  {s.screen_width}×{s.screen_height}
+                </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 mb-3">
+              <Stat value={fmtNum(s.total_decisions)} label="Entscheide" />
+              <Stat value={fmtNum(s.total_interesting)} label="Interessant" />
+              <Stat value={`${rate}%`} label="Rate" />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground border-t border-border pt-2">
+              <span>Zuerst: {new Date(s.first_seen).toLocaleString("de-CH")}</span>
+              <span>Zuletzt: {new Date(s.last_seen).toLocaleString("de-CH")}</span>
+            </div>
+          </Card>
+        );
+      })}
+    </div>
+  );
+}
+
+interface InsightRow {
+  id: string;
+  calculated_at: string;
+  total_decisions: number | null;
+  total_interesting: number | null;
+  conversion_rate: number | null;
+  preferred_makes: Array<{ make: string; interest_rate: number; total: number }> | null;
+  preferred_fuel_types: Array<{ fuel: string; interest_rate: number; total: number }> | null;
+  preferred_year_min: number | null;
+  preferred_year_max: number | null;
+  preferred_mileage_max: number | null;
+  preferred_price_min_eur: number | null;
+  preferred_price_max_eur: number | null;
+  preferred_margin_min_chf: number | null;
+  margin_correlation: number | null;
+  market_price_correlation: number | null;
+  mileage_correlation: number | null;
+  avg_time_on_interesting_ms: number | null;
+  avg_time_on_skip_ms: number | null;
+  autoscout_check_rate: number | null;
+}
+
+function AlgorithmTab() {
+  const qc = useQueryClient();
+  const calcFn = useServerFn(calculateInsights);
+  const { data: insight, isLoading } = useQuery({
+    queryKey: ["algorithm_insights_latest"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("algorithm_insights")
+        .select("*")
+        .order("calculated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data as InsightRow | null;
+    },
+  });
+
+  const calcMut = useMutation({
+    mutationFn: () => calcFn(),
+    onSuccess: (r) => {
+      if (r.ok) {
+        toast.success("Algorithmus berechnet", { description: `${r.totals?.total} Entscheidungen analysiert` });
+        qc.invalidateQueries({ queryKey: ["algorithm_insights_latest"] });
+      } else {
+        toast.warning("Zu wenig Daten", { description: `Nur ${r.count ?? 0} Entscheidungen vorhanden (min. 5)` });
+      }
+    },
+    onError: (e: Error) => toast.error("Fehler", { description: e.message }),
+  });
+
+  if (isLoading) return <Card><div className="text-sm text-muted-foreground">Lade…</div></Card>;
+
+  if (!insight || (insight.total_decisions ?? 0) < 5) {
+    return (
+      <Card>
+        <div className="text-center py-6 space-y-3">
+          <div className="text-4xl">🧠</div>
+          <div className="font-semibold">Noch zu wenig Daten</div>
+          <div className="text-sm text-muted-foreground">
+            Mindestens 5 Entscheidungen nötig. Aktuell: {insight?.total_decisions ?? 0}
+          </div>
+          <Button onClick={() => calcMut.mutate()} disabled={calcMut.isPending}>
+            <Brain className="h-4 w-4" /> Jetzt berechnen
+          </Button>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <Card><Stat value={fmtNum(insight.total_decisions ?? 0)} label="Entscheide" /></Card>
+        <Card><Stat value={fmtNum(insight.total_interesting ?? 0)} label="Interessant" /></Card>
+        <Card><Stat value={`${Math.round((insight.conversion_rate ?? 0) * 100)}%`} label="Quote" /></Card>
+      </div>
+
+      {insight.preferred_makes && insight.preferred_makes.length > 0 && (
+        <Card>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">🏆 Bevorzugte Marken</h3>
+          <div className="space-y-2">
+            {insight.preferred_makes.map((m) => (
+              <div key={m.make} className="flex items-center gap-3">
+                <div className="w-20 text-sm font-medium">{m.make}</div>
+                <div className="flex-1 h-2 bg-surface rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full"
+                    style={{
+                      width: `${Math.round(m.interest_rate * 100)}%`,
+                      background: m.interest_rate > 0.6 ? "#10b981" : m.interest_rate > 0.3 ? "#f59e0b" : "#6b7280",
+                    }}
+                  />
+                </div>
+                <div className="w-16 text-right text-sm tabular-nums">{Math.round(m.interest_rate * 100)}%</div>
+                <div className="w-12 text-right text-xs text-muted-foreground">n={m.total}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      <Card>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">⏱ Zeit pro Karte</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <Stat value={`${((insight.avg_time_on_interesting_ms ?? 0) / 1000).toFixed(1)}s`} label='Ø "Interessant"' />
+          <Stat value={`${((insight.avg_time_on_skip_ms ?? 0) / 1000).toFixed(1)}s`} label='Ø "Skip"' />
+        </div>
+        <div className="text-xs text-muted-foreground mt-3">
+          {(insight.avg_time_on_interesting_ms ?? 0) > (insight.avg_time_on_skip_ms ?? 0)
+            ? "💡 Du schaust interessante Autos länger an — Entscheidungen sind durchdacht."
+            : "⚡ Schnelle Entscheidungen bei beiden."}
+        </div>
+      </Card>
+
+      <Card>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">🔗 Korrelationen</h3>
+        <CorrelationBar label="Marge ↔ Interessant" value={insight.margin_correlation ?? 0} />
+        <CorrelationBar label="Marktpreis ↔ Interessant" value={insight.market_price_correlation ?? 0} />
+        <CorrelationBar label="Kilometer ↔ Interessant" value={insight.mileage_correlation ?? 0} />
+        <div className="text-xs text-muted-foreground mt-2">
+          Positiv = höher → wahrscheinlicher "Interessant"
+        </div>
+      </Card>
+
+      <Card>
+        <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground mb-3">🎯 Optimale Werte</h3>
+        <div className="grid sm:grid-cols-3 gap-3">
+          <KV label="Preis DE" value={`${fmtNum(insight.preferred_price_min_eur ?? 0)} – ${fmtNum(insight.preferred_price_max_eur ?? 0)} €`} />
+          <KV label="Max. KM" value={`${fmtNum(insight.preferred_mileage_max ?? 0)} km`} />
+          <KV label="Min. Marge" value={fmtChf(insight.preferred_margin_min_chf ?? 0)} />
+        </div>
+        <div className="text-sm mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+          🔍 AutoScout-Check Rate: <span className="font-semibold">{Math.round((insight.autoscout_check_rate ?? 0) * 100)}%</span> der interessanten Autos werden auf AutoScout24.ch nachgeschaut.
+        </div>
+      </Card>
+
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">
+          Zuletzt berechnet: {new Date(insight.calculated_at).toLocaleString("de-CH")}
+        </span>
+        <Button size="sm" variant="outline" onClick={() => calcMut.mutate()} disabled={calcMut.isPending}>
+          <Brain className={cn("h-4 w-4", calcMut.isPending && "animate-pulse")} />
+          Neu berechnen
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="text-center">
+      <div className="text-xl font-bold tabular-nums">{value}</div>
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground mt-0.5">{label}</div>
+    </div>
+  );
+}
+function KV({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-surface border border-border p-3">
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-sm font-semibold mt-1">{value}</div>
+    </div>
+  );
+}
+function CorrelationBar({ label, value }: { label: string; value: number }) {
+  const pct = Math.min(100, Math.abs(value) * 100);
+  const positive = value >= 0;
+  return (
+    <div className="py-2">
+      <div className="flex items-center justify-between text-xs mb-1">
+        <span className="text-muted-foreground">{label}</span>
+        <span className={cn("font-semibold tabular-nums", positive ? "text-success" : "text-danger")}>
+          {positive ? "+" : ""}{Math.round(value * 100)}%
+        </span>
+      </div>
+      <div className="h-2 bg-surface rounded-full overflow-hidden flex">
+        <div className="w-1/2 flex justify-end">
+          {!positive && (
+            <div className="h-full rounded-l-full" style={{ width: `${pct}%`, background: "#ef4444" }} />
+          )}
+        </div>
+        <div className="w-1/2 flex justify-start">
+          {positive && (
+            <div className="h-full rounded-r-full" style={{ width: `${pct}%`, background: "#10b981" }} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
