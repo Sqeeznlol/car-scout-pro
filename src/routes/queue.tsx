@@ -201,7 +201,7 @@ function EmptyState({ hasAny, onSync, syncing }: { hasAny: boolean; onSync: () =
   );
 }
 
-function QueueCard({ vehicle, onDecide }: {
+const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
   vehicle: VehicleWithAnalysis;
   onDecide: (d: DecisionValue) => void;
 }) {
