@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      algorithm_insights: {
+        Row: {
+          autoscout_check_rate: number | null
+          avg_time_on_interesting_ms: number | null
+          avg_time_on_skip_ms: number | null
+          calculated_at: string
+          conversion_rate: number | null
+          id: string
+          margin_correlation: number | null
+          market_price_correlation: number | null
+          mileage_correlation: number | null
+          preferred_fuel_types: Json | null
+          preferred_makes: Json | null
+          preferred_margin_min_chf: number | null
+          preferred_mileage_max: number | null
+          preferred_price_max_eur: number | null
+          preferred_price_min_eur: number | null
+          preferred_year_max: number | null
+          preferred_year_min: number | null
+          raw_insights: Json | null
+          total_decisions: number | null
+          total_interesting: number | null
+        }
+        Insert: {
+          autoscout_check_rate?: number | null
+          avg_time_on_interesting_ms?: number | null
+          avg_time_on_skip_ms?: number | null
+          calculated_at?: string
+          conversion_rate?: number | null
+          id?: string
+          margin_correlation?: number | null
+          market_price_correlation?: number | null
+          mileage_correlation?: number | null
+          preferred_fuel_types?: Json | null
+          preferred_makes?: Json | null
+          preferred_margin_min_chf?: number | null
+          preferred_mileage_max?: number | null
+          preferred_price_max_eur?: number | null
+          preferred_price_min_eur?: number | null
+          preferred_year_max?: number | null
+          preferred_year_min?: number | null
+          raw_insights?: Json | null
+          total_decisions?: number | null
+          total_interesting?: number | null
+        }
+        Update: {
+          autoscout_check_rate?: number | null
+          avg_time_on_interesting_ms?: number | null
+          avg_time_on_skip_ms?: number | null
+          calculated_at?: string
+          conversion_rate?: number | null
+          id?: string
+          margin_correlation?: number | null
+          market_price_correlation?: number | null
+          mileage_correlation?: number | null
+          preferred_fuel_types?: Json | null
+          preferred_makes?: Json | null
+          preferred_margin_min_chf?: number | null
+          preferred_mileage_max?: number | null
+          preferred_price_max_eur?: number | null
+          preferred_price_min_eur?: number | null
+          preferred_year_max?: number | null
+          preferred_year_min?: number | null
+          raw_insights?: Json | null
+          total_decisions?: number | null
+          total_interesting?: number | null
+        }
+        Relationships: []
+      }
       app_config: {
         Row: {
           automobilsteuer_rate: number
@@ -67,6 +136,86 @@ export type Database = {
           weight_risk?: number
         }
         Relationships: []
+      }
+      decision_events: {
+        Row: {
+          decided_at: string
+          decision: string
+          distance_km: number | null
+          id: string
+          margin_chf: number | null
+          market_price_ch: number | null
+          price_vs_market_percent: number | null
+          scrolled_to_autoscout: boolean | null
+          scrolled_to_market: boolean | null
+          seller_type: string | null
+          session_id: string
+          tapped_autoscout: boolean | null
+          tapped_listing: boolean | null
+          time_on_card_ms: number | null
+          vehicle_fuel_type: string | null
+          vehicle_id: string | null
+          vehicle_make: string | null
+          vehicle_mileage: number | null
+          vehicle_model: string | null
+          vehicle_price_eur: number | null
+          vehicle_year: number | null
+        }
+        Insert: {
+          decided_at?: string
+          decision: string
+          distance_km?: number | null
+          id?: string
+          margin_chf?: number | null
+          market_price_ch?: number | null
+          price_vs_market_percent?: number | null
+          scrolled_to_autoscout?: boolean | null
+          scrolled_to_market?: boolean | null
+          seller_type?: string | null
+          session_id: string
+          tapped_autoscout?: boolean | null
+          tapped_listing?: boolean | null
+          time_on_card_ms?: number | null
+          vehicle_fuel_type?: string | null
+          vehicle_id?: string | null
+          vehicle_make?: string | null
+          vehicle_mileage?: number | null
+          vehicle_model?: string | null
+          vehicle_price_eur?: number | null
+          vehicle_year?: number | null
+        }
+        Update: {
+          decided_at?: string
+          decision?: string
+          distance_km?: number | null
+          id?: string
+          margin_chf?: number | null
+          market_price_ch?: number | null
+          price_vs_market_percent?: number | null
+          scrolled_to_autoscout?: boolean | null
+          scrolled_to_market?: boolean | null
+          seller_type?: string | null
+          session_id?: string
+          tapped_autoscout?: boolean | null
+          tapped_listing?: boolean | null
+          time_on_card_ms?: number | null
+          vehicle_fuel_type?: string | null
+          vehicle_id?: string | null
+          vehicle_make?: string | null
+          vehicle_mileage?: number | null
+          vehicle_model?: string | null
+          vehicle_price_eur?: number | null
+          vehicle_year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "decision_events_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       decisions: {
         Row: {
@@ -169,6 +318,69 @@ export type Database = {
           telegram_bot_token?: string
           telegram_chat_id?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_sessions: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          device_type: string | null
+          first_seen: string
+          id: string
+          ip_address: string | null
+          last_seen: string
+          latitude: number | null
+          longitude: number | null
+          os: string | null
+          region: string | null
+          screen_height: number | null
+          screen_width: number | null
+          session_id: string
+          total_decisions: number
+          total_interesting: number
+          user_agent: string | null
+        }
+        Insert: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          device_type?: string | null
+          first_seen?: string
+          id?: string
+          ip_address?: string | null
+          last_seen?: string
+          latitude?: number | null
+          longitude?: number | null
+          os?: string | null
+          region?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          session_id: string
+          total_decisions?: number
+          total_interesting?: number
+          user_agent?: string | null
+        }
+        Update: {
+          browser?: string | null
+          city?: string | null
+          country?: string | null
+          device_type?: string | null
+          first_seen?: string
+          id?: string
+          ip_address?: string | null
+          last_seen?: string
+          latitude?: number | null
+          longitude?: number | null
+          os?: string | null
+          region?: string | null
+          screen_height?: number | null
+          screen_width?: number | null
+          session_id?: string
+          total_decisions?: number
+          total_interesting?: number
+          user_agent?: string | null
         }
         Relationships: []
       }
@@ -422,7 +634,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_session_decisions: {
+        Args: { p_interesting: number; p_session_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       decision_type: "interesting" | "maybe" | "skip"

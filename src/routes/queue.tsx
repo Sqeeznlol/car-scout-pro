@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { Check, X, Bookmark, MapPin, Gauge, Calendar, Undo2, Fuel, RefreshCw, Inbox, Flame } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -7,6 +7,7 @@ import { fetchVehicles, recordDecision, undoDecision, type VehicleWithAnalysis, 
 import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useTracking } from "@/hooks/useTracking";
 
 function haptic(ms = 10) {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -193,10 +194,37 @@ function QueueCard({ vehicle, onDecide }: {
   onDecide: (d: DecisionValue) => void;
 }) {
   const [deciding, setDeciding] = useState<DecisionValue | null>(null);
+  const cardAppearedAt = useRef<number>(Date.now());
+  const tappedAutoscout = useRef(false);
+  const tappedListing = useRef(false);
+  const { trackDecision } = useTracking();
 
   const handleClick = (d: DecisionValue) => {
     if (deciding) return;
     setDeciding(d);
+    const margin = effectiveMargin(vehicle);
+    const market = Number(vehicle.analysis?.autoscout_ch_price_avg ?? vehicle.analysis?.market_value_chf ?? 0);
+    void trackDecision(vehicle.id, d, {
+      timeOnCardMs: Date.now() - cardAppearedAt.current,
+      tappedAutoscout: tappedAutoscout.current,
+      tappedListing: tappedListing.current,
+      vehicle: {
+        id: vehicle.id,
+        make: vehicle.make,
+        model: vehicle.model,
+        year: vehicle.year,
+        mileage_km: vehicle.mileage_km,
+        price_eur: vehicle.price_eur,
+        fuel: vehicle.fuel,
+        seller_type: vehicle.seller_type,
+        distance_km: vehicle.distance_km,
+      },
+      analysis: {
+        margin_chf: margin === -Infinity ? null : margin,
+        market_price_ch: market || null,
+        price_vs_market_percent: vsMarketPct(vehicle),
+      },
+    });
     setTimeout(() => onDecide(d), 180);
   };
 
@@ -289,9 +317,23 @@ function QueueCard({ vehicle, onDecide }: {
             href={a.autoscout_ch_url}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() => { tappedAutoscout.current = true; }}
             className="flex items-center justify-between w-full px-3 py-2 rounded-lg border border-primary/30 hover:border-primary hover:bg-primary/5 transition text-xs text-primary"
           >
             <span>🔍 CH-Marktpreise auf AutoScout24.ch vergleichen</span>
+            <span>→</span>
+          </a>
+        )}
+
+        {vehicle.listing_url && (
+          <a
+            href={vehicle.listing_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => { tappedListing.current = true; }}
+            className="flex items-center justify-between w-full px-3 py-2 rounded-lg border border-border hover:border-primary hover:bg-accent transition text-xs"
+          >
+            <span>🔗 Original Inserat auf {vehicle.source}</span>
             <span>→</span>
           </a>
         )}

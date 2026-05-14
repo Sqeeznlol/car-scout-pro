@@ -16,7 +16,10 @@ const adminNavItem = { to: "/admin", label: "Admin", icon: Settings };
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation();
   const role = useRole();
-  const nav = role === "admin" ? [...baseNav, adminNavItem] : baseNav;
+  const host = typeof window !== "undefined" ? window.location.hostname : "";
+  const adminAllowedOnHost =
+    host.startsWith("admin.") || !host.endsWith("autosnipe.shop");
+  const nav = role === "admin" && adminAllowedOnHost ? [...baseNav, adminNavItem] : baseNav;
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: fetchVehicles });
 
   const { newCount, hotCount } = useMemo(() => {
