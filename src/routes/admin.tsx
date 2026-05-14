@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
-import { Save, Sliders, Mail, Sparkles, Ban, RefreshCw } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { Save, Sliders, Mail, Sparkles, Ban, RefreshCw, Users, Brain, Smartphone, Monitor, Tablet } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchConfig, saveConfig, fetchVehicles, type DbConfig } from "@/lib/db";
-import { fmtChf } from "@/lib/format";
+import { supabase } from "@/integrations/supabase/client";
+import { calculateInsights } from "@/lib/insights.functions";
+import { fmtChf, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
