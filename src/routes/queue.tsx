@@ -93,11 +93,22 @@ function QueuePage() {
     });
   }, [vehicles, sortKey]);
 
-  const handleDecide = (id: string, d: DecisionValue) => {
+  const handleDecide = useCallback((id: string, d: DecisionValue) => {
     haptic(d === "interesting" ? 18 : d === "skip" ? 8 : 12);
     decideMut.mutate({ id, d });
     setLastDecided(id);
-  };
+  }, [decideMut]);
+
+  // Realtime: neue Fahrzeuge erscheinen ohne Reload
+  useEffect(() => {
+    const channel = supabase
+      .channel("queue-new-vehicles")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "vehicles" }, () => {
+        qc.invalidateQueries({ queryKey: ["vehicles"] });
+      })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [qc]);
 
   if (isLoading) {
     return <div className="p-12 text-center text-muted-foreground">Lade Fahrzeuge…</div>;
