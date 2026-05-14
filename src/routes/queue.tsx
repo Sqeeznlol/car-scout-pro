@@ -194,10 +194,37 @@ function QueueCard({ vehicle, onDecide }: {
   onDecide: (d: DecisionValue) => void;
 }) {
   const [deciding, setDeciding] = useState<DecisionValue | null>(null);
+  const cardAppearedAt = useRef<number>(Date.now());
+  const tappedAutoscout = useRef(false);
+  const tappedListing = useRef(false);
+  const { trackDecision } = useTracking();
 
   const handleClick = (d: DecisionValue) => {
     if (deciding) return;
     setDeciding(d);
+    const margin = effectiveMargin(vehicle);
+    const market = Number(vehicle.analysis?.autoscout_ch_price_avg ?? vehicle.analysis?.market_value_chf ?? 0);
+    void trackDecision(vehicle.id, d, {
+      timeOnCardMs: Date.now() - cardAppearedAt.current,
+      tappedAutoscout: tappedAutoscout.current,
+      tappedListing: tappedListing.current,
+      vehicle: {
+        id: vehicle.id,
+        make: vehicle.make,
+        model: vehicle.model,
+        year: vehicle.year,
+        mileage_km: vehicle.mileage_km,
+        price_eur: vehicle.price_eur,
+        fuel: vehicle.fuel,
+        seller_type: vehicle.seller_type,
+        distance_km: vehicle.distance_km,
+      },
+      analysis: {
+        margin_chf: margin === -Infinity ? null : margin,
+        market_price_ch: market || null,
+        price_vs_market_percent: vsMarketPct(vehicle),
+      },
+    });
     setTimeout(() => onDecide(d), 180);
   };
 
