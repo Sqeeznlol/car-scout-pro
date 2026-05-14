@@ -404,7 +404,7 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
       </div>
     </div>
   );
-}
+});
 
 function Spec({ icon, label, sub }: { icon: React.ReactNode; label: string; sub: string }) {
   return (
