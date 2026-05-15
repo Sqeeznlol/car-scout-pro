@@ -231,6 +231,10 @@ function AdminPage() {
           <VisitorsTab />
         </TabsContent>
 
+        <TabsContent value="activity" className="mt-4">
+          <ActivityTab />
+        </TabsContent>
+
         <TabsContent value="algo" className="mt-4">
           <AlgorithmTab />
         </TabsContent>
