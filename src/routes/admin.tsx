@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Save, Sliders, Mail, Sparkles, Ban, RefreshCw, Users, Brain, Smartphone, Monitor, Tablet } from "lucide-react";
+import { Save, Sliders, Mail, Sparkles, Ban, RefreshCw, Users, Brain, Smartphone, Monitor, Tablet, ListChecks, ChevronDown, ChevronUp, Car as CarIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
