@@ -86,11 +86,12 @@ function AdminPage() {
       </div>
 
       <Tabs defaultValue="costs">
-        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-6">
+        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-7">
           <TabsTrigger value="costs"><Sliders className="h-4 w-4" /> Kosten</TabsTrigger>
           <TabsTrigger value="email"><Mail className="h-4 w-4" /> E-Mail</TabsTrigger>
           <TabsTrigger value="insights"><Sparkles className="h-4 w-4" /> Insights</TabsTrigger>
           <TabsTrigger value="visitors"><Users className="h-4 w-4" /> Besucher</TabsTrigger>
+          <TabsTrigger value="activity"><ListChecks className="h-4 w-4" /> Aktivitäten</TabsTrigger>
           <TabsTrigger value="algo"><Brain className="h-4 w-4" /> Algorithmus</TabsTrigger>
           <TabsTrigger value="blacklist"><Ban className="h-4 w-4" /> Filter</TabsTrigger>
         </TabsList>
