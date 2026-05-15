@@ -76,24 +76,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (!mounted) return null;
 
   const isAdminRoute = pathname.startsWith("/admin");
-  const host = typeof window !== "undefined" ? window.location.hostname : "";
-  // Admin allowed on admin.autosnipe.shop subdomain OR any non-production host (lovable preview, localhost)
-  const adminAllowedOnHost =
-    host.startsWith("admin.") || !host.endsWith("autosnipe.shop");
-
-  if (isAdminRoute && !adminAllowedOnHost) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="max-w-md text-center">
-          <h1 className="text-7xl font-bold text-foreground">404</h1>
-          <h2 className="mt-4 text-xl font-semibold">Seite nicht gefunden</h2>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Die angeforderte Seite existiert nicht.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   if (isAdminRoute && !read(ADMIN_KEY)) {
     return (
