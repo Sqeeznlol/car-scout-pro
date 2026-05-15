@@ -631,7 +631,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      admin_activity_log: {
+        Row: {
+          browser: string | null
+          city: string | null
+          country: string | null
+          decided_at: string | null
+          decision: string | null
+          device_type: string | null
+          id: string | null
+          image_url: string | null
+          ip_address: string | null
+          listing_url: string | null
+          margin_chf: number | null
+          os: string | null
+          screen_height: number | null
+          screen_width: number | null
+          seller_type: string | null
+          session_id: string | null
+          tapped_autoscout: boolean | null
+          tapped_listing: boolean | null
+          time_on_card_ms: number | null
+          vehicle_fuel_type: string | null
+          vehicle_make: string | null
+          vehicle_mileage: number | null
+          vehicle_model: string | null
+          vehicle_price_eur: number | null
+          vehicle_year: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       increment_session_decisions: {

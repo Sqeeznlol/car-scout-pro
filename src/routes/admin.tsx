@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Save, Sliders, Mail, Sparkles, Ban, RefreshCw, Users, Brain, Smartphone, Monitor, Tablet } from "lucide-react";
+import { Save, Sliders, Mail, Sparkles, Ban, RefreshCw, Users, Brain, Smartphone, Monitor, Tablet, ListChecks, ChevronDown, ChevronUp, Car as CarIcon } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,11 +86,12 @@ function AdminPage() {
       </div>
 
       <Tabs defaultValue="costs">
-        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-6">
+        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-7">
           <TabsTrigger value="costs"><Sliders className="h-4 w-4" /> Kosten</TabsTrigger>
           <TabsTrigger value="email"><Mail className="h-4 w-4" /> E-Mail</TabsTrigger>
           <TabsTrigger value="insights"><Sparkles className="h-4 w-4" /> Insights</TabsTrigger>
           <TabsTrigger value="visitors"><Users className="h-4 w-4" /> Besucher</TabsTrigger>
+          <TabsTrigger value="activity"><ListChecks className="h-4 w-4" /> Aktivitäten</TabsTrigger>
           <TabsTrigger value="algo"><Brain className="h-4 w-4" /> Algorithmus</TabsTrigger>
           <TabsTrigger value="blacklist"><Ban className="h-4 w-4" /> Filter</TabsTrigger>
         </TabsList>
@@ -228,6 +229,10 @@ function AdminPage() {
 
         <TabsContent value="visitors" className="mt-4">
           <VisitorsTab />
+        </TabsContent>
+
+        <TabsContent value="activity" className="mt-4">
+          <ActivityTab />
         </TabsContent>
 
         <TabsContent value="algo" className="mt-4">
@@ -521,6 +526,246 @@ function CorrelationBar({ label, value }: { label: string; value: number }) {
             <div className="h-full rounded-r-full" style={{ width: `${pct}%`, background: "#10b981" }} />
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+interface ActivityRow {
+  id: string;
+  decided_at: string;
+  decision: string;
+  time_on_card_ms: number | null;
+  tapped_autoscout: boolean | null;
+  tapped_listing: boolean | null;
+  vehicle_make: string | null;
+  vehicle_model: string | null;
+  vehicle_year: number | null;
+  vehicle_mileage: number | null;
+  vehicle_price_eur: number | null;
+  vehicle_fuel_type: string | null;
+  margin_chf: number | null;
+  seller_type: string | null;
+  listing_url: string | null;
+  image_url: string | null;
+  session_id: string;
+  ip_address: string | null;
+  city: string | null;
+  country: string | null;
+  device_type: string | null;
+  browser: string | null;
+  os: string | null;
+  screen_width: number | null;
+  screen_height: number | null;
+}
+
+function formatRelative(iso: string): string {
+  const d = new Date(iso);
+  const diffMin = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (diffMin < 1) return "gerade eben";
+  if (diffMin < 60) return `vor ${diffMin}min`;
+  const diffH = Math.floor(diffMin / 60);
+  if (diffH < 24) return `vor ${diffH}h`;
+  const diffD = Math.floor(diffH / 24);
+  if (diffD === 1) return "gestern";
+  return d.toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+function ActivityTab() {
+  const qc = useQueryClient();
+  const { data: logs = [], isLoading, isFetching } = useQuery({
+    queryKey: ["admin_activity_log"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("admin_activity_log" as never)
+        .select("*")
+        .order("decided_at", { ascending: false })
+        .limit(300);
+      if (error) throw error;
+      return (data ?? []) as unknown as ActivityRow[];
+    },
+  });
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const grouped = useMemo(() => {
+    const groups: Record<string, {
+      key: string;
+      ip: string;
+      city: string;
+      country: string;
+      device_type: string;
+      browser: string;
+      os: string;
+      screen: string;
+      session_id: string;
+      events: ActivityRow[];
+      total: number;
+      interesting: number;
+      skip: number;
+      maybe: number;
+      lastSeen: string;
+    }> = {};
+    for (const log of logs) {
+      const key = log.session_id ?? log.ip_address ?? "unbekannt";
+      if (!groups[key]) {
+        groups[key] = {
+          key,
+          ip: log.ip_address ?? "—",
+          city: log.city ?? "—",
+          country: log.country ?? "—",
+          device_type: log.device_type ?? "unknown",
+          browser: log.browser ?? "—",
+          os: log.os ?? "—",
+          screen: log.screen_width && log.screen_height ? `${log.screen_width}×${log.screen_height}` : "—",
+          session_id: log.session_id,
+          events: [],
+          total: 0, interesting: 0, skip: 0, maybe: 0,
+          lastSeen: log.decided_at,
+        };
+      }
+      const g = groups[key];
+      g.events.push(log);
+      g.total++;
+      if (log.decision === "interesting") g.interesting++;
+      else if (log.decision === "skip") g.skip++;
+      else if (log.decision === "maybe") g.maybe++;
+      if (log.decided_at > g.lastSeen) g.lastSeen = log.decided_at;
+    }
+    return Object.values(groups).sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime());
+  }, [logs]);
+
+  const toggle = (k: string) => setExpanded((prev) => {
+    const next = new Set(prev);
+    if (next.has(k)) next.delete(k); else next.add(k);
+    return next;
+  });
+
+  if (isLoading) return <Card><div className="text-sm text-muted-foreground">Lade…</div></Card>;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-semibold">Aktivitäten</h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {logs.length} Entscheide von {grouped.length} Geräten
+          </p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => qc.invalidateQueries({ queryKey: ["admin_activity_log"] })} disabled={isFetching}>
+          <RefreshCw className={cn("h-4 w-4", isFetching && "animate-spin")} /> Aktualisieren
+        </Button>
+      </div>
+
+      {grouped.length === 0 && (
+        <Card>
+          <div className="text-center py-8 space-y-2">
+            <ListChecks className="h-8 w-8 mx-auto text-muted-foreground" />
+            <div className="font-semibold">Noch keine Aktivitäten</div>
+            <div className="text-sm text-muted-foreground">Sobald Entscheidungen getroffen werden, erscheinen sie hier.</div>
+          </div>
+        </Card>
+      )}
+
+      {grouped.map((g) => {
+        const isOpen = expanded.has(g.key);
+        const Icon = g.device_type === "mobile" ? Smartphone : g.device_type === "tablet" ? Tablet : Monitor;
+        const conv = g.total > 0 ? Math.round((g.interesting / g.total) * 100) : 0;
+        return (
+          <div key={g.key} className="rounded-xl border border-border bg-card overflow-hidden">
+            <button
+              type="button"
+              onClick={() => toggle(g.key)}
+              className="w-full text-left p-4 hover:bg-surface/50 transition-colors"
+              style={{ WebkitTapHighlightColor: "transparent" }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-lg bg-surface border border-border flex items-center justify-center shrink-0">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-sm">{g.os} · {g.browser}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">📍 {g.city}, {g.country}</div>
+                    <div className="text-xs text-muted-foreground/70 font-mono mt-0.5">🌐 {g.ip}</div>
+                    <div className="text-xs text-muted-foreground/70 mt-0.5">🖥️ {g.screen}</div>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="flex items-center gap-1.5 justify-end mb-1.5 flex-wrap">
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-success/15 text-success">✓ {g.interesting}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-warning/15 text-warning">◷ {g.maybe}</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-danger/15 text-danger">✕ {g.skip}</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">{g.total} Entscheide · {conv}%</div>
+                  <div className="text-xs text-muted-foreground/70 mt-0.5">{formatRelative(g.lastSeen)}</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-center mt-3 text-xs text-muted-foreground gap-1">
+                {isOpen ? <><ChevronUp className="h-3 w-3" /> Zuklappen</> : <><ChevronDown className="h-3 w-3" /> {g.total} Entscheide ansehen</>}
+              </div>
+            </button>
+            {isOpen && (
+              <div className="border-t border-border">
+                {g.events.map((event, i) => (
+                  <ActivityRowItem key={event.id} event={event} isLast={i === g.events.length - 1} />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ActivityRowItem({ event, isLast }: { event: ActivityRow; isLast: boolean }) {
+  const cfg = event.decision === "interesting"
+    ? { label: "Interessant", color: "text-success", bg: "bg-success/5", icon: "✓" }
+    : event.decision === "maybe"
+    ? { label: "Später", color: "text-warning", bg: "bg-warning/5", icon: "◷" }
+    : { label: "Skip", color: "text-danger", bg: "bg-danger/5", icon: "✕" };
+  const time = new Date(event.decided_at).toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
+  return (
+    <div className={cn("flex items-center gap-3 px-4 py-3", cfg.bg, !isLast && "border-b border-border/50")}>
+      <div className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-surface border border-border flex items-center justify-center">
+        {event.image_url ? (
+          <img src={event.image_url} alt="" className="w-full h-full object-cover" loading="lazy" />
+        ) : (
+          <CarIcon className="h-5 w-5 text-muted-foreground" />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-sm truncate">
+          {event.vehicle_make ?? "—"} {event.vehicle_model ?? ""} {event.vehicle_year ?? ""}
+        </div>
+        <div className="text-xs text-muted-foreground mt-0.5">
+          {event.vehicle_mileage != null ? `${event.vehicle_mileage.toLocaleString("de-CH")} km` : "—"}
+          {" · "}{event.vehicle_price_eur != null ? `${event.vehicle_price_eur.toLocaleString("de-CH")} €` : "—"}
+          {event.vehicle_fuel_type ? ` · ${event.vehicle_fuel_type}` : ""}
+        </div>
+        {event.margin_chf != null && (
+          <div className={cn("text-xs mt-0.5 font-medium", event.margin_chf >= 3500 ? "text-success" : event.margin_chf >= 1500 ? "text-warning" : "text-danger")}>
+            Marge: CHF {Math.round(event.margin_chf).toLocaleString("de-CH")}
+          </div>
+        )}
+        {(event.tapped_autoscout || event.tapped_listing) && (
+          <div className="flex gap-1.5 mt-1 flex-wrap">
+            {event.tapped_autoscout && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary">🔍 AutoScout</span>
+            )}
+            {event.tapped_listing && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">🔗 Inserat</span>
+            )}
+          </div>
+        )}
+      </div>
+      <div className="shrink-0 text-right">
+        <div className={cn("text-base font-bold", cfg.color)}>{cfg.icon}</div>
+        <div className={cn("text-xs font-semibold", cfg.color)}>{cfg.label}</div>
+        <div className="text-xs text-muted-foreground mt-1">{time}</div>
+        {event.time_on_card_ms != null && event.time_on_card_ms > 0 && (
+          <div className="text-[10px] text-muted-foreground/70">{(event.time_on_card_ms / 1000).toFixed(1)}s</div>
+        )}
       </div>
     </div>
   );
