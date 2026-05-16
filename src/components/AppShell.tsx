@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchVehicles } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { useRole, setRole } from "@/components/AuthGate";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 const baseNav = [
   { to: "/queue", label: "Queue", icon: LayoutGrid },
