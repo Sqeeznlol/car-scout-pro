@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Search, ArrowUpDown, Check, X, Bookmark, Undo2 } from "lucide-react";
+import { Search, ArrowUpDown, Check, X, Bookmark, Undo2, Clock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchVehicles, undoDecision, type DecisionValue } from "@/lib/db";
 import { fmtChf, fmtKm } from "@/lib/format";
@@ -19,6 +19,23 @@ const decisionMeta: Record<DecisionValue, { label: string; icon: React.ReactNode
   maybe: { label: "Vielleicht", icon: <Bookmark className="h-3.5 w-3.5" />, cls: "bg-warning/15 text-warning border-warning/30" },
   skip: { label: "Skip", icon: <X className="h-3.5 w-3.5" />, cls: "bg-danger/15 text-danger border-danger/30" },
 };
+
+function fmtRelative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return "gerade eben";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `vor ${m} Min.`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `vor ${h} Std.`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `vor ${d} Tag${d === 1 ? "" : "en"}`;
+  const w = Math.floor(d / 7);
+  if (w < 5) return `vor ${w} Woche${w === 1 ? "" : "n"}`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `vor ${mo} Mon.`;
+  return `vor ${Math.floor(d / 365)} J.`;
+}
 
 function ArchivePage() {
   const qc = useQueryClient();
@@ -120,12 +137,22 @@ function ArchivePage() {
                     <span className={cn("inline-flex items-center gap-1 rounded-full border text-xs px-2 py-0.5", m.cls)}>
                       {m.icon} {m.label}
                     </span>
-                    <span className={cn("text-xs tabular-nums font-medium", margin > 0 ? "text-success" : "text-danger")}>
+                    <span className={cn("text-xs tabular-nums font-medium font-mono-data", margin > 0 ? "text-success" : "text-danger")}>
                       {margin > 0 ? "+" : ""}{fmtChf(margin)}
+                    </span>
+                    <span
+                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
+                      title={new Date(v.decision!.decided_at).toLocaleString("de-CH")}
+                    >
+                      <Clock className="h-3 w-3" />
+                      <span className="font-mono-data">{fmtRelative(v.decision!.decided_at)}</span>
                     </span>
                   </div>
                 </div>
                 <div className="hidden sm:flex flex-col items-end gap-1.5">
+                  <div className="text-[11px] text-muted-foreground font-mono-data" title={new Date(v.decision!.decided_at).toLocaleString("de-CH")}>
+                    {new Date(v.decision!.decided_at).toLocaleString("de-CH", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                  </div>
                   <button onClick={() => undoMut.mutate(v.id)} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
                     <Undo2 className="h-3 w-3" /> Rückgängig
                   </button>
