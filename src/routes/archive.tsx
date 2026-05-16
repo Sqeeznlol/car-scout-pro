@@ -120,12 +120,22 @@ function ArchivePage() {
                     <span className={cn("inline-flex items-center gap-1 rounded-full border text-xs px-2 py-0.5", m.cls)}>
                       {m.icon} {m.label}
                     </span>
-                    <span className={cn("text-xs tabular-nums font-medium", margin > 0 ? "text-success" : "text-danger")}>
+                    <span className={cn("text-xs tabular-nums font-medium font-mono-data", margin > 0 ? "text-success" : "text-danger")}>
                       {margin > 0 ? "+" : ""}{fmtChf(margin)}
+                    </span>
+                    <span
+                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground"
+                      title={new Date(v.decision!.decided_at).toLocaleString("de-CH")}
+                    >
+                      <Clock className="h-3 w-3" />
+                      <span className="font-mono-data">{fmtRelative(v.decision!.decided_at)}</span>
                     </span>
                   </div>
                 </div>
                 <div className="hidden sm:flex flex-col items-end gap-1.5">
+                  <div className="text-[11px] text-muted-foreground font-mono-data" title={new Date(v.decision!.decided_at).toLocaleString("de-CH")}>
+                    {new Date(v.decision!.decided_at).toLocaleString("de-CH", { day: "2-digit", month: "2-digit", year: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                  </div>
                   <button onClick={() => undoMut.mutate(v.id)} className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1">
                     <Undo2 className="h-3 w-3" /> Rückgängig
                   </button>
