@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchVehicles } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { useRole, setRole } from "@/components/AuthGate";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 const baseNav = [
   { to: "/queue", label: "Queue", icon: LayoutGrid },
@@ -69,7 +70,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-chart-2" />
               <span>{hotCount} hot deal{hotCount === 1 ? "" : "s"} in queue</span>
-            </div>
+          </div>
+          <ThemeSwitcher />
           </div>
           <button
             onClick={() => setRole(null)}
@@ -98,17 +100,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   pathname.startsWith("/vehicle") ? "Vehicle Detail" : ""}
               </div>
             </div>
-            <button className="relative h-9 w-9 rounded-md border border-border bg-card hover:bg-accent flex items-center justify-center transition">
-              <Bell className="h-4 w-4" />
-              {newCount > 0 && (
-                <span className={cn(
-                  "absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full text-[10px] font-semibold flex items-center justify-center",
-                  hotCount > 0 ? "bg-danger text-danger-foreground" : "bg-chart-2 text-primary-foreground",
-                )}>
-                  {newCount}
-                </span>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="lg:hidden"><ThemeSwitcher compact /></div>
+              <button className="relative h-9 w-9 rounded-md border border-border bg-card hover:bg-accent flex items-center justify-center transition">
+                <Bell className="h-4 w-4" />
+                {newCount > 0 && (
+                  <span className={cn(
+                    "absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full text-[10px] font-semibold flex items-center justify-center tabular-nums",
+                    hotCount > 0 ? "bg-danger text-danger-foreground" : "bg-chart-2 text-primary-foreground",
+                  )}>
+                    {newCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </header>
 
