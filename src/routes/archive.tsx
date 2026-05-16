@@ -20,6 +20,23 @@ const decisionMeta: Record<DecisionValue, { label: string; icon: React.ReactNode
   skip: { label: "Skip", icon: <X className="h-3.5 w-3.5" />, cls: "bg-danger/15 text-danger border-danger/30" },
 };
 
+function fmtRelative(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const s = Math.floor(diff / 1000);
+  if (s < 60) return "gerade eben";
+  const m = Math.floor(s / 60);
+  if (m < 60) return `vor ${m} Min.`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `vor ${h} Std.`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `vor ${d} Tag${d === 1 ? "" : "en"}`;
+  const w = Math.floor(d / 7);
+  if (w < 5) return `vor ${w} Woche${w === 1 ? "" : "n"}`;
+  const mo = Math.floor(d / 30);
+  if (mo < 12) return `vor ${mo} Mon.`;
+  return `vor ${Math.floor(d / 365)} J.`;
+}
+
 function ArchivePage() {
   const qc = useQueryClient();
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: fetchVehicles });
