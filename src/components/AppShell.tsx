@@ -101,7 +101,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="lg:hidden"><ThemeSwitcher compact /></div>
+              <ThemeSwitcher compact />
               <button className="relative h-9 w-9 rounded-md border border-border bg-card hover:bg-accent flex items-center justify-center transition">
                 <Bell className="h-4 w-4" />
                 {newCount > 0 && (
