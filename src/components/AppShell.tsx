@@ -71,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Sparkles className="h-3.5 w-3.5 text-chart-2" />
               <span>{hotCount} hot deal{hotCount === 1 ? "" : "s"} in queue</span>
           </div>
-          <ThemeSwitcher />
+          
           </div>
           <button
             onClick={() => setRole(null)}
