@@ -100,17 +100,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   pathname.startsWith("/vehicle") ? "Vehicle Detail" : ""}
               </div>
             </div>
-            <button className="relative h-9 w-9 rounded-md border border-border bg-card hover:bg-accent flex items-center justify-center transition">
-              <Bell className="h-4 w-4" />
-              {newCount > 0 && (
-                <span className={cn(
-                  "absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full text-[10px] font-semibold flex items-center justify-center",
-                  hotCount > 0 ? "bg-danger text-danger-foreground" : "bg-chart-2 text-primary-foreground",
-                )}>
-                  {newCount}
-                </span>
-              )}
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="lg:hidden"><ThemeSwitcher compact /></div>
+              <button className="relative h-9 w-9 rounded-md border border-border bg-card hover:bg-accent flex items-center justify-center transition">
+                <Bell className="h-4 w-4" />
+                {newCount > 0 && (
+                  <span className={cn(
+                    "absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full text-[10px] font-semibold flex items-center justify-center tabular-nums",
+                    hotCount > 0 ? "bg-danger text-danger-foreground" : "bg-chart-2 text-primary-foreground",
+                  )}>
+                    {newCount}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
         </header>
 
