@@ -140,9 +140,9 @@ export function ImportRechner({
 
           {/* AutoScout Schätzwert */}
           {autoscoutAvg > 0 ? (
-            <div className="rounded-xl border border-info/30 bg-info/5 p-4 flex items-start justify-between gap-4">
+            <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <div className="text-sm font-semibold text-info">Marktpreis Schweiz (AutoScout24.ch)</div>
+                <div className="text-sm font-semibold text-primary">Marktpreis Schweiz (AutoScout24.ch)</div>
                 <div className="text-xs text-muted-foreground mt-0.5">
                   Schätzwert aus {autoscoutCount} vergleichbaren Inseraten
                 </div>
@@ -151,13 +151,13 @@ export function ImportRechner({
                     href={autoscoutUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-xs text-info hover:underline mt-2"
+                    className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-2"
                   >
                     Direkt auf AutoScout24.ch vergleichen <ExternalLink className="h-3 w-3" />
                   </a>
                 )}
               </div>
-              <div className="text-2xl font-bold text-info tabular-nums whitespace-nowrap" style={mono}>
+              <div className="text-2xl font-bold text-primary tabular-nums whitespace-nowrap" style={mono}>
                 {fmt(autoscoutAvg)}
               </div>
             </div>
