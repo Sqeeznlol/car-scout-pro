@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Bell, LayoutGrid, Archive, Settings, Car, Sparkles, LogOut } from "lucide-react";
+import { Bell, LayoutGrid, Archive, Settings, Car, Sparkles, LogOut, Calculator } from "lucide-react";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchVehicles } from "@/lib/db";
@@ -10,6 +10,7 @@ import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 const baseNav = [
   { to: "/queue", label: "Queue", icon: LayoutGrid },
   { to: "/archive", label: "Archiv", icon: Archive },
+  { to: "/rechner", label: "Rechner", icon: Calculator },
   { to: "/meine-suche", label: "Meine Suche", icon: Bell },
 ];
 const adminNavItem = { to: "/admin", label: "Admin", icon: Settings };
@@ -120,7 +121,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <main className="flex-1 pb-24 lg:pb-0">{children}</main>
 
         <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 glass border-t border-border safe-bottom">
-          <div className={cn("grid", nav.length === 4 ? "grid-cols-4" : nav.length === 3 ? "grid-cols-3" : "grid-cols-2")}>
+          <div className={cn("grid", nav.length === 5 ? "grid-cols-5" : nav.length === 4 ? "grid-cols-4" : nav.length === 3 ? "grid-cols-3" : "grid-cols-2")}>
             {nav.map((n) => {
               const active = pathname.startsWith(n.to);
               return (

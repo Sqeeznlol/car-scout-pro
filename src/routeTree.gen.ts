@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RechnerRouteImport } from './routes/rechner'
 import { Route as QueueRouteImport } from './routes/queue'
 import { Route as MeineSucheRouteImport } from './routes/meine-suche'
 import { Route as ArchiveRouteImport } from './routes/archive'
@@ -17,6 +18,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as VehicleIdRouteImport } from './routes/vehicle.$id'
 import { Route as ApiPublicHooksSyncGmailRouteImport } from './routes/api/public/hooks/sync-gmail'
 
+const RechnerRoute = RechnerRouteImport.update({
+  id: '/rechner',
+  path: '/rechner',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const QueueRoute = QueueRouteImport.update({
   id: '/queue',
   path: '/queue',
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/archive': typeof ArchiveRoute
   '/meine-suche': typeof MeineSucheRoute
   '/queue': typeof QueueRoute
+  '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
 }
@@ -68,6 +75,7 @@ export interface FileRoutesByTo {
   '/archive': typeof ArchiveRoute
   '/meine-suche': typeof MeineSucheRoute
   '/queue': typeof QueueRoute
+  '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
 }
@@ -78,6 +86,7 @@ export interface FileRoutesById {
   '/archive': typeof ArchiveRoute
   '/meine-suche': typeof MeineSucheRoute
   '/queue': typeof QueueRoute
+  '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
 }
@@ -89,6 +98,7 @@ export interface FileRouteTypes {
     | '/archive'
     | '/meine-suche'
     | '/queue'
+    | '/rechner'
     | '/vehicle/$id'
     | '/api/public/hooks/sync-gmail'
   fileRoutesByTo: FileRoutesByTo
@@ -98,6 +108,7 @@ export interface FileRouteTypes {
     | '/archive'
     | '/meine-suche'
     | '/queue'
+    | '/rechner'
     | '/vehicle/$id'
     | '/api/public/hooks/sync-gmail'
   id:
@@ -107,6 +118,7 @@ export interface FileRouteTypes {
     | '/archive'
     | '/meine-suche'
     | '/queue'
+    | '/rechner'
     | '/vehicle/$id'
     | '/api/public/hooks/sync-gmail'
   fileRoutesById: FileRoutesById
@@ -117,12 +129,20 @@ export interface RootRouteChildren {
   ArchiveRoute: typeof ArchiveRoute
   MeineSucheRoute: typeof MeineSucheRoute
   QueueRoute: typeof QueueRoute
+  RechnerRoute: typeof RechnerRoute
   VehicleIdRoute: typeof VehicleIdRoute
   ApiPublicHooksSyncGmailRoute: typeof ApiPublicHooksSyncGmailRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/rechner': {
+      id: '/rechner'
+      path: '/rechner'
+      fullPath: '/rechner'
+      preLoaderRoute: typeof RechnerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/queue': {
       id: '/queue'
       path: '/queue'
@@ -181,6 +201,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArchiveRoute: ArchiveRoute,
   MeineSucheRoute: MeineSucheRoute,
   QueueRoute: QueueRoute,
+  RechnerRoute: RechnerRoute,
   VehicleIdRoute: VehicleIdRoute,
   ApiPublicHooksSyncGmailRoute: ApiPublicHooksSyncGmailRoute,
 }
