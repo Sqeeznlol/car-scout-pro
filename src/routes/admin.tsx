@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchConfig, saveConfig, fetchVehicles, type DbConfig } from "@/lib/db";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateInsights } from "@/lib/insights.functions";
+import { recalculateAllVehicles } from "@/lib/recalculate.functions";
 import { fmtChf, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -162,6 +163,8 @@ function AdminPage() {
               </div>
             </div>
           </div>
+
+          <RecalculateCard />
         </TabsContent>
 
         <TabsContent value="email" className="mt-4">
