@@ -131,10 +131,6 @@ function QueuePage() {
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
-          <Button size="sm" variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
-            <RefreshCw className={cn("h-4 w-4", syncMut.isPending && "animate-spin")} />
-            <span className="hidden sm:inline">Sync</span>
-          </Button>
           {lastDecided && (
             <Button size="sm" variant="ghost" onClick={() => { undoMut.mutate(lastDecided); setLastDecided(null); }}>
               <Undo2 className="h-4 w-4" /> <span className="hidden sm:inline">Undo</span>
