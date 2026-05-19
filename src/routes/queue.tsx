@@ -20,12 +20,6 @@ export const Route = createFileRoute("/queue")({
   component: QueuePage,
 });
 
-async function triggerSync() {
-  const res = await fetch("/api/public/hooks/sync-gmail", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || "Sync failed");
-  return data as { checked: number; parsed: number; inserted: number; errors: string[] };
-}
 
 type SortKey = "margin" | "newest" | "price" | "vsMarket";
 
