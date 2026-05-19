@@ -255,6 +255,47 @@ function AdminPage() {
 function Card({ children }: { children: React.ReactNode }) {
   return <div className="rounded-xl border border-border bg-card p-5">{children}</div>;
 }
+
+function RecalculateCard() {
+  const qc = useQueryClient();
+  const recalcFn = useServerFn(recalculateAllVehicles);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ updated: number; total: number } | null>(null);
+
+  const handleRecalculate = async () => {
+    setLoading(true);
+    try {
+      const r = await recalcFn();
+      setResult({ updated: r.updated, total: r.total });
+      toast.success(`${r.updated} von ${r.total} Fahrzeugen neu berechnet`);
+      qc.invalidateQueries({ queryKey: ["vehicles"] });
+    } catch (e) {
+      toast.error("Fehler beim Neuberechnen", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+        Wartung — Neuberechnung
+      </h3>
+      <p className="text-sm text-muted-foreground mb-3">
+        Nach einer Änderung der Kostenwerte können alle bestehenden Fahrzeuge mit der aktuellen Konfiguration neu berechnet werden.
+      </p>
+      <Button onClick={handleRecalculate} disabled={loading} variant="outline">
+        <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+        {loading ? "Berechne neu…" : "Alle Fahrzeuge neu berechnen"}
+      </Button>
+      {result && (
+        <div className="mt-3 text-sm text-muted-foreground">
+          ✅ {result.updated} / {result.total} Fahrzeuge aktualisiert
+        </div>
+      )}
+    </Card>
+  );
+}
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
