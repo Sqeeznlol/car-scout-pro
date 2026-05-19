@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect, memo, useCallback } from "react";
-import { Check, X, Bookmark, MapPin, Gauge, Calendar, Undo2, Fuel, RefreshCw, Inbox, Flame } from "lucide-react";
+import { Check, X, Bookmark, MapPin, Gauge, Calendar, Undo2, Fuel, Inbox, Flame } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { fetchVehicles, recordDecision, undoDecision, type VehicleWithAnalysis, type DecisionValue } from "@/lib/db";
 import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { Button } from "@/components/ui/button";
