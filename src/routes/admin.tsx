@@ -298,6 +298,60 @@ function RecalculateCard() {
     </Card>
   );
 }
+
+function RefreshAutoScoutCard() {
+  const qc = useQueryClient();
+  const refreshFn = useServerFn(refreshAutoScoutAll);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ updated: number; skipped: number; total: number; errors: string[] } | null>(null);
+
+  const handleRefresh = async () => {
+    setLoading(true);
+    setResult(null);
+    try {
+      const r = await refreshFn();
+      setResult({ updated: r.updated, skipped: r.skipped, total: r.total, errors: r.errors });
+      if (r.errors.length === 0) toast.success(`${r.updated} Fahrzeuge mit CH-Marktwert aktualisiert`);
+      else toast.warning(`${r.updated} aktualisiert, ${r.errors.length} Fehler`);
+      qc.invalidateQueries({ queryKey: ["vehicles"] });
+    } catch (e) {
+      toast.error("Fehler beim AutoScout-Abruf", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+        CH-Marktwerte (AutoScout24.ch)
+      </h3>
+      <p className="text-sm text-muted-foreground mb-3">
+        Ruft für jedes Fahrzeug den aktuellen Schweizer Marktpreis von AutoScout24.ch ab.
+        Fahrzeuge die in den letzten 7 Tagen abgefragt wurden werden übersprungen. Ca. 1.5s pro Fahrzeug.
+      </p>
+      <Button onClick={handleRefresh} disabled={loading} variant="outline">
+        <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+        {loading ? "Frage AutoScout24.ch ab…" : "CH-Marktwerte aktualisieren"}
+      </Button>
+      {result && (
+        <div className="mt-3 space-y-2 text-sm">
+          <div className="text-muted-foreground">
+            ✅ {result.updated} aktualisiert · {result.skipped} übersprungen · {result.total} gesamt
+          </div>
+          {result.errors.length > 0 && (
+            <details className="text-xs text-muted-foreground">
+              <summary className="cursor-pointer">{result.errors.length} Fehler</summary>
+              <ul className="mt-2 space-y-1 max-h-40 overflow-auto">
+                {result.errors.map((e, i) => <li key={i} className="font-mono">{e}</li>)}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
