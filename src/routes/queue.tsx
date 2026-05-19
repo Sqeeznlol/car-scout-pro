@@ -65,14 +65,17 @@ function QueuePage() {
     mutationFn: (id: string) => undoDecision(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
   });
-  const syncMut = useMutation({
-    mutationFn: triggerSync,
-    onSuccess: (r) => {
-      toast.success(`${r.inserted} neue Inserate geladen`, { description: `${r.checked} Mails geprüft · ${r.parsed} Inserate erkannt` });
-      qc.invalidateQueries({ queryKey: ["vehicles"] });
-    },
-    onError: (e: Error) => toast.error("Sync fehlgeschlagen", { description: e.message }),
-  });
+  // Auto-Sync alle 5 Minuten (still im Hintergrund)
+  useEffect(() => {
+    const tick = () => {
+      fetch("/api/public/hooks/sync-gmail", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })
+        .then(() => qc.invalidateQueries({ queryKey: ["vehicles"] }))
+        .catch(() => { /* silent */ });
+    };
+    tick();
+    const id = setInterval(tick, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [qc]);
 
   const [sortKey, setSortKey] = useState<SortKey>("margin");
   const [lastDecided, setLastDecided] = useState<string | null>(null);
