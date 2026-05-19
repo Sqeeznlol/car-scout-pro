@@ -160,7 +160,7 @@ function QueuePage() {
       </div>
 
       {queue.length === 0 ? (
-        <EmptyState hasAny={vehicles.length > 0} onSync={() => syncMut.mutate()} syncing={syncMut.isPending} />
+        <EmptyState hasAny={vehicles.length > 0} />
       ) : (
         <div className="space-y-4">
           {queue.map((v) => (
@@ -172,7 +172,7 @@ function QueuePage() {
   );
 }
 
-function EmptyState({ hasAny, onSync, syncing }: { hasAny: boolean; onSync: () => void; syncing: boolean }) {
+function EmptyState({ hasAny }: { hasAny: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
       <div className="h-20 w-20 rounded-2xl bg-gradient-success/20 flex items-center justify-center mb-6 shadow-glow-success">
@@ -183,16 +183,12 @@ function EmptyState({ hasAny, onSync, syncing }: { hasAny: boolean; onSync: () =
       </h2>
       <p className="mt-2 text-sm text-muted-foreground max-w-sm">
         {!hasAny
-          ? 'Klicke auf „Gmail jetzt synchronisieren“, um mobile.de-Mails zu importieren.'
+          ? "Gmail wird automatisch alle 5 Minuten synchronisiert. Neue Inserate erscheinen hier."
           : "Keine Fahrzeuge zur Entscheidung offen. Neue Mails erscheinen automatisch hier."}
       </p>
-      <div className="mt-6 flex gap-2 flex-wrap justify-center">
-        <Button onClick={onSync} disabled={syncing} className="bg-gradient-primary text-primary-foreground">
-          <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
-          {syncing ? "Synchronisiere…" : "Gmail jetzt synchronisieren"}
-        </Button>
-        {hasAny && <Button asChild variant="outline"><Link to="/archive">Archiv ansehen</Link></Button>}
-      </div>
+      {hasAny && (
+        <div className="mt-6"><Button asChild variant="outline"><Link to="/archive">Archiv ansehen</Link></Button></div>
+      )}
     </div>
   );
 }
