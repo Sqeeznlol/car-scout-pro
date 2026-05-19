@@ -294,12 +294,12 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className={cn("rounded-xl border p-3", marginTone.border, marginTone.bg)}>
-            <div className={cn("text-[11px] mb-1 opacity-70", marginTone.text)}>💰 MARGE</div>
-            <div className={cn("text-xl font-bold tabular-nums", marginTone.text)}>
-              {margin === -Infinity ? "—" : `${margin >= 0 ? "+" : ""}${fmtChf(margin)}`}
+          <div className={cn("rounded-xl border p-3", totalTone.border, totalTone.bg)}>
+            <div className={cn("text-[11px] mb-1 opacity-70", totalTone.text)}>📦 EINSTANDSPREIS</div>
+            <div className={cn("text-xl font-bold tabular-nums", totalTone.text)}>
+              {total > 0 ? fmtChf(total) : "—"}
             </div>
-            <div className={cn("text-[11px] opacity-60 mt-0.5", marginTone.text)}>nach Import CH</div>
+            <div className={cn("text-[11px] opacity-60 mt-0.5", totalTone.text)}>alle Kosten CH</div>
           </div>
           <div className="rounded-xl border border-primary/30 bg-primary/10 p-3">
             <div className="text-[11px] text-primary mb-1">📊 MARKTPREIS CH</div>
@@ -310,10 +310,12 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
               {compCount > 0 ? `${compCount} Inserate CH` : "AutoScout24.ch"}
             </div>
           </div>
-          <div className="rounded-xl border border-border bg-surface p-3">
-            <div className="text-[11px] text-muted-foreground mb-1">📦 EINSTANDSPREIS</div>
-            <div className="text-xl font-bold tabular-nums">{total > 0 ? fmtChf(total) : "—"}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">alle Kosten CH</div>
+          <div className={cn("rounded-xl border p-3", marginTone.border, marginTone.bg)}>
+            <div className={cn("text-[11px] mb-1 opacity-70", marginTone.text)}>💰 MARGE</div>
+            <div className={cn("text-xl font-bold tabular-nums", marginTone.text)}>
+              {margin === -Infinity ? "—" : `${margin >= 0 ? "+" : ""}${fmtChf(margin)}`}
+            </div>
+            <div className={cn("text-[11px] opacity-60 mt-0.5", marginTone.text)}>nach Import CH</div>
           </div>
           <div className="rounded-xl border border-border bg-surface p-3">
             <div className="text-[11px] text-muted-foreground mb-1">🔍 VERGLEICH</div>
