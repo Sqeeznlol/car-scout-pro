@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Bell, LayoutGrid, Archive, Settings, Car, Sparkles, LogOut, Calculator } from "lucide-react";
+import { Bell, LayoutGrid, Archive, Settings, Car, Sparkles, LogOut } from "lucide-react";
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchVehicles } from "@/lib/db";
@@ -10,7 +10,6 @@ import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 const baseNav = [
   { to: "/queue", label: "Queue", icon: LayoutGrid },
   { to: "/archive", label: "Archiv", icon: Archive },
-  { to: "/rechner", label: "Rechner", icon: Calculator },
   { to: "/meine-suche", label: "Meine Suche", icon: Bell },
 ];
 const adminNavItem = { to: "/admin", label: "Admin", icon: Settings };

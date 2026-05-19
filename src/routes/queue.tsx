@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect, memo, useCallback } from "react";
-import { Check, X, Bookmark, MapPin, Gauge, Calendar, Undo2, Fuel, RefreshCw, Inbox, Flame } from "lucide-react";
+import { Check, X, Bookmark, MapPin, Gauge, Calendar, Undo2, Fuel, Inbox, Flame } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { fetchVehicles, recordDecision, undoDecision, type VehicleWithAnalysis, type DecisionValue } from "@/lib/db";
 import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { Button } from "@/components/ui/button";
@@ -20,12 +19,6 @@ export const Route = createFileRoute("/queue")({
   component: QueuePage,
 });
 
-async function triggerSync() {
-  const res = await fetch("/api/public/hooks/sync-gmail", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
-  const data = await res.json();
-  if (!data.ok) throw new Error(data.error || "Sync failed");
-  return data as { checked: number; parsed: number; inserted: number; errors: string[] };
-}
 
 type SortKey = "margin" | "newest" | "price" | "vsMarket";
 
@@ -65,14 +58,17 @@ function QueuePage() {
     mutationFn: (id: string) => undoDecision(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["vehicles"] }),
   });
-  const syncMut = useMutation({
-    mutationFn: triggerSync,
-    onSuccess: (r) => {
-      toast.success(`${r.inserted} neue Inserate geladen`, { description: `${r.checked} Mails geprüft · ${r.parsed} Inserate erkannt` });
-      qc.invalidateQueries({ queryKey: ["vehicles"] });
-    },
-    onError: (e: Error) => toast.error("Sync fehlgeschlagen", { description: e.message }),
-  });
+  // Auto-Sync alle 5 Minuten (still im Hintergrund)
+  useEffect(() => {
+    const tick = () => {
+      fetch("/api/public/hooks/sync-gmail", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" })
+        .then(() => qc.invalidateQueries({ queryKey: ["vehicles"] }))
+        .catch(() => { /* silent */ });
+    };
+    tick();
+    const id = setInterval(tick, 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [qc]);
 
   const [sortKey, setSortKey] = useState<SortKey>("margin");
   const [lastDecided, setLastDecided] = useState<string | null>(null);
@@ -131,10 +127,6 @@ function QueuePage() {
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
-          <Button size="sm" variant="outline" onClick={() => syncMut.mutate()} disabled={syncMut.isPending}>
-            <RefreshCw className={cn("h-4 w-4", syncMut.isPending && "animate-spin")} />
-            <span className="hidden sm:inline">Sync</span>
-          </Button>
           {lastDecided && (
             <Button size="sm" variant="ghost" onClick={() => { undoMut.mutate(lastDecided); setLastDecided(null); }}>
               <Undo2 className="h-4 w-4" /> <span className="hidden sm:inline">Undo</span>
@@ -164,7 +156,7 @@ function QueuePage() {
       </div>
 
       {queue.length === 0 ? (
-        <EmptyState hasAny={vehicles.length > 0} onSync={() => syncMut.mutate()} syncing={syncMut.isPending} />
+        <EmptyState hasAny={vehicles.length > 0} />
       ) : (
         <div className="space-y-4">
           {queue.map((v) => (
@@ -176,7 +168,7 @@ function QueuePage() {
   );
 }
 
-function EmptyState({ hasAny, onSync, syncing }: { hasAny: boolean; onSync: () => void; syncing: boolean }) {
+function EmptyState({ hasAny }: { hasAny: boolean }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
       <div className="h-20 w-20 rounded-2xl bg-gradient-success/20 flex items-center justify-center mb-6 shadow-glow-success">
@@ -187,16 +179,12 @@ function EmptyState({ hasAny, onSync, syncing }: { hasAny: boolean; onSync: () =
       </h2>
       <p className="mt-2 text-sm text-muted-foreground max-w-sm">
         {!hasAny
-          ? 'Klicke auf „Gmail jetzt synchronisieren“, um mobile.de-Mails zu importieren.'
+          ? "Gmail wird automatisch alle 5 Minuten synchronisiert. Neue Inserate erscheinen hier."
           : "Keine Fahrzeuge zur Entscheidung offen. Neue Mails erscheinen automatisch hier."}
       </p>
-      <div className="mt-6 flex gap-2 flex-wrap justify-center">
-        <Button onClick={onSync} disabled={syncing} className="bg-gradient-primary text-primary-foreground">
-          <RefreshCw className={cn("h-4 w-4", syncing && "animate-spin")} />
-          {syncing ? "Synchronisiere…" : "Gmail jetzt synchronisieren"}
-        </Button>
-        {hasAny && <Button asChild variant="outline"><Link to="/archive">Archiv ansehen</Link></Button>}
-      </div>
+      {hasAny && (
+        <div className="mt-6"><Button asChild variant="outline"><Link to="/archive">Archiv ansehen</Link></Button></div>
+      )}
     </div>
   );
 }
