@@ -166,6 +166,7 @@ function AdminPage() {
           </div>
 
           <RecalculateCard />
+          <RefreshAutoScoutCard />
         </TabsContent>
 
         <TabsContent value="email" className="mt-4">
