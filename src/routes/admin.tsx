@@ -11,6 +11,7 @@ import { fetchConfig, saveConfig, fetchVehicles, type DbConfig } from "@/lib/db"
 import { supabase } from "@/integrations/supabase/client";
 import { calculateInsights } from "@/lib/insights.functions";
 import { recalculateAllVehicles } from "@/lib/recalculate.functions";
+import { refreshAutoScoutAll } from "@/lib/refresh-autoscout.functions";
 import { fmtChf, fmtNum } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
