@@ -271,103 +271,15 @@ function VehiclePage() {
         </div>
       )}
 
-      {wm && wom && (
-        <Section title="Import-Kostenaufstellung">
-          <div className="space-y-4">
-            <div className="flex flex-col gap-2">
-              <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">🧾 MwSt-Status des Verkäufers</div>
-              <div className="flex gap-2">
-                <MwStBtn active={mwstStatus === "with"} tone="success" onClick={() => handleMwstChange("with")}
-                  label="✅ MwSt ausweisbar" sub="Händler / gewerblich" />
-                <MwStBtn active={mwstStatus === "without"} tone="info" onClick={() => handleMwstChange("without")}
-                  label="❌ Kein MwSt-Ausweis" sub="Privat / Differenz" />
-                <MwStBtn active={mwstStatus === "unknown"} tone="warning" onClick={() => handleMwstChange("unknown")}
-                  label="❓ Unbekannt" sub="Beide anzeigen" />
-              </div>
-            </div>
+      <ImportRechner
+        initialPrice={priceEurForCalc}
+        initialDistance={distKmForCalc || 300}
+        autoscoutAvg={Number(a?.autoscout_ch_price_avg ?? 0)}
+        autoscoutCount={Number(a?.autoscout_ch_comparable_count ?? 0)}
+        autoscoutUrl={a?.autoscout_ch_url ?? undefined}
+        vehicleName={[v.make, v.model, v.year].filter(Boolean).join(" ")}
+      />
 
-            {mwstStatus === "unknown" ? (
-              <>
-                <div className="grid md:grid-cols-2 gap-3">
-                  <CostTable
-                    title="✅ MIT MwSt-Ausweis"
-                    subtitle="Händlerkauf"
-                    accent="success"
-                    rows={[
-                      { label: "Kaufpreis DE (brutto)", value: fmtChf(displayPriceChf) },
-                      { label: "− DE MwSt (19%)", value: `− ${fmtChf(wm.de_mwst_erstattung)}`, positive: true },
-                      { label: "= Nettobasis", value: fmtChf(wm.netto), divider: true },
-                      { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wm.automobilsteuer)}` },
-                      { label: "+ Zoll CH", value: `+ ${fmtChf(wm.zoll)}` },
-                      { label: "+ CH MwSt (7.7%)", value: `+ ${fmtChf(wm.ch_mwst)}` },
-                      { label: `+ Transport (${distanceKm}km × 1.50)`, value: `+ ${fmtChf(transport_chf)}` },
-                      { label: "+ MFK + Aufbereitung", value: `+ ${fmtChf(mfk_aufbereitung_chf)}` },
-                    ]}
-                    total={wm.total}
-                    sellPrice={market}
-                    margin={wm.margin}
-                    maxBuyEur={wm.max_buy_eur}
-                  />
-                  <CostTable
-                    title="❌ OHNE MwSt-Ausweis"
-                    subtitle="Privat / Differenz"
-                    accent="info"
-                    rows={[
-                      { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(displayPriceChf) },
-                      { label: "⚠️ Kein MwSt-Abzug möglich", value: "", note: true },
-                      { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wom.automobilsteuer)}` },
-                      { label: "+ Zoll CH", value: `+ ${fmtChf(wom.zoll)}` },
-                      { label: "+ CH MwSt (7.7%)", value: `+ ${fmtChf(wom.ch_mwst)}` },
-                      { label: `+ Transport (${distanceKm}km × 1.50)`, value: `+ ${fmtChf(transport_chf)}` },
-                      { label: "+ MFK + Aufbereitung", value: `+ ${fmtChf(mfk_aufbereitung_chf)}` },
-                    ]}
-                    total={wom.total}
-                    sellPrice={market}
-                    margin={wom.margin}
-                    maxBuyEur={wom.max_buy_eur}
-                  />
-                </div>
-                <div className="flex items-center justify-center gap-2 bg-warning/10 border border-warning/30 rounded-lg p-3">
-                  <span className="text-warning">💡</span>
-                  <span className="text-warning text-sm">
-                    MwSt-Ersparnis wenn ausweisbar: <strong className="ml-1">{fmtChf(mwst_saving)}</strong>
-                  </span>
-                </div>
-              </>
-            ) : (
-              <div className="grid md:grid-cols-1 gap-3">
-                <CostTable
-                  title={showWith ? "✅ MIT MwSt-Ausweis" : "❌ OHNE MwSt-Ausweis"}
-                  subtitle={showWith ? "Händlerkauf" : "Privat / Differenz"}
-                  accent={showWith ? "success" : "info"}
-                  rows={showWith ? [
-                    { label: "Kaufpreis DE (brutto)", value: fmtChf(displayPriceChf) },
-                    { label: "− DE MwSt (19%)", value: `− ${fmtChf(wm.de_mwst_erstattung)}`, positive: true },
-                    { label: "= Nettobasis", value: fmtChf(wm.netto), divider: true },
-                    { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wm.automobilsteuer)}` },
-                    { label: "+ Zoll CH", value: `+ ${fmtChf(wm.zoll)}` },
-                    { label: "+ CH MwSt (7.7%)", value: `+ ${fmtChf(wm.ch_mwst)}` },
-                    { label: `+ Transport (${distanceKm}km × 1.50)`, value: `+ ${fmtChf(transport_chf)}` },
-                    { label: "+ MFK + Aufbereitung", value: `+ ${fmtChf(mfk_aufbereitung_chf)}` },
-                  ] : [
-                    { label: "Kaufpreis (Einfuhrbasis)", value: fmtChf(displayPriceChf) },
-                    { label: "⚠️ Kein MwSt-Abzug möglich", value: "", note: true },
-                    { label: "+ Automobilsteuer (4%)", value: `+ ${fmtChf(wom.automobilsteuer)}` },
-                    { label: "+ Zoll CH", value: `+ ${fmtChf(wom.zoll)}` },
-                    { label: "+ CH MwSt (7.7%)", value: `+ ${fmtChf(wom.ch_mwst)}` },
-                    { label: `+ Transport (${distanceKm}km × 1.50)`, value: `+ ${fmtChf(transport_chf)}` },
-                    { label: "+ MFK + Aufbereitung", value: `+ ${fmtChf(mfk_aufbereitung_chf)}` },
-                  ]}
-                  total={showWith ? wm.total : wom.total}
-                  sellPrice={market}
-                  margin={showWith ? wm.margin : wom.margin}
-                  maxBuyEur={showWith ? wm.max_buy_eur : wom.max_buy_eur}
-                />
-              </div>
-            )}
-          </div>
-        </Section>
-      )}
 
       {a && (
         <Section title="Marktanalyse Schweiz">
