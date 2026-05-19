@@ -247,10 +247,10 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
   const compCount = Number(a?.autoscout_ch_comparable_count ?? 0);
   const vsMkt = vsMarketPct(vehicle);
 
-  // Marge → immer gelb/amber (warning)
-  const marginTone = { border: "border-warning/30", bg: "bg-warning/10", text: "text-warning" };
-  // Einstandspreis → immer grün (success)
-  const totalTone = { border: "border-success/30", bg: "bg-success/10", text: "text-success" };
+  // Marge → grün (success)
+  const marginTone = { border: "border-success/30", bg: "bg-success/10", text: "text-success" };
+  // Einstandspreis → gelb (warning)
+  const totalTone = { border: "border-warning/30", bg: "bg-warning/10", text: "text-warning" };
 
   const vsMarketText =
     !market ? "🟡 kein CH-Vergleich"
