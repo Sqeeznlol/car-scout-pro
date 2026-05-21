@@ -407,6 +407,69 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
   );
 });
 
+function CostBreakdown({ vehicle, total }: { vehicle: VehicleWithAnalysis; total: number }) {
+  const a = vehicle.analysis;
+  if (!a) return null;
+  const hasMwst = vehicle.seller_has_mwst === true;
+  const priceEur = Number(vehicle.price_eur ?? 0);
+  const priceChf = Number(a.price_chf ?? 0);
+  const netto = Number(a.netto_kaufpreis_chf ?? 0);
+  const deMwstBack = Number(a.de_mwst_erstattung_chf ?? 0);
+  const autoSt = Number(a.automobilsteuer_chf ?? 0);
+  const zoll = Number(a.zoll_chf ?? a.customs_chf ?? 0);
+  const chMwst = Number(a.ch_mwst_chf ?? a.vat_chf ?? 0);
+  const transport = Number(a.transport_chf ?? 0);
+  const mfk = Number(a.mfk_chf ?? 0);
+  const prep = Number(a.preparation_chf ?? 0);
+  const km = vehicle.distance_km ? Math.round(vehicle.distance_km) : null;
+
+  return (
+    <div className="rounded-xl border border-warning/30 bg-warning/5 p-4 space-y-1 text-sm">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs uppercase tracking-wider font-semibold text-warning">
+          Kostenaufschlüsselung Einstandspreis
+        </div>
+        <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-warning/20 text-warning font-bold">
+          {hasMwst ? "mit MwSt-Ausweis" : "ohne MwSt-Ausweis"}
+        </span>
+      </div>
+
+      <BRow label={`Kaufpreis DE${priceEur ? ` (${fmtEur(priceEur)})` : ""}`} value={fmtChf(priceChf)} />
+      {hasMwst && deMwstBack > 0 && (
+        <>
+          <BRow label="− DE MwSt 19% (Erstattung)" value={`− ${fmtChf(deMwstBack)}`} tone="success" />
+          <div className="border-t border-warning/20 my-1.5" />
+          <BRow label="= Nettobasis (Einfuhr CH)" value={fmtChf(netto)} bold />
+        </>
+      )}
+      {autoSt > 0 && <BRow label="+ Automobilsteuer CH (4%)" value={`+ ${fmtChf(autoSt)}`} indent />}
+      {zoll > 0 && <BRow label="+ Zoll CH (pauschal)" value={`+ ${fmtChf(zoll)}`} indent />}
+      {chMwst > 0 && <BRow label="+ Schweizer MwSt (7.7%)" value={`+ ${fmtChf(chMwst)}`} indent />}
+      {transport > 0 && (
+        <BRow label={`+ Transport${km ? ` (${km} km)` : ""}`} value={`+ ${fmtChf(transport)}`} indent />
+      )}
+      {mfk > 0 && <BRow label="+ MFK" value={`+ ${fmtChf(mfk)}`} indent />}
+      {prep > 0 && <BRow label="+ Aufbereitung" value={`+ ${fmtChf(prep)}`} indent />}
+
+      <div className="border-t border-warning/30 mt-2 pt-2 flex items-center justify-between">
+        <span className="text-xs uppercase tracking-wider font-bold text-warning">Total Einstandspreis</span>
+        <span className="text-lg font-bold text-warning tabular-nums">{fmtChf(total)}</span>
+      </div>
+    </div>
+  );
+}
+
+function BRow({ label, value, indent, tone, bold }: { label: string; value: string; indent?: boolean; tone?: "success"; bold?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className={cn("text-sm", indent && "pl-3 text-muted-foreground", bold && "font-semibold text-foreground")}>{label}</span>
+      <span className={cn("text-sm tabular-nums whitespace-nowrap", tone === "success" && "text-success font-medium", bold && "font-bold")}>{value}</span>
+    </div>
+  );
+}
+
+
+
 function Spec({ icon, label, sub }: { icon: React.ReactNode; label: string; sub: string }) {
   return (
     <div className="flex items-center gap-2.5">
