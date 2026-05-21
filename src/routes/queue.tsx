@@ -194,6 +194,7 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
   onDecide: (d: DecisionValue) => void;
 }) {
   const [deciding, setDeciding] = useState<DecisionValue | null>(null);
+  const [showBreakdown, setShowBreakdown] = useState(false);
   const cardAppearedAt = useRef<number>(Date.now());
   const tappedAutoscout = useRef(false);
   const tappedListing = useRef(false);
