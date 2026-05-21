@@ -283,13 +283,19 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <div className={cn("rounded-xl border p-3", totalTone.border, totalTone.bg)}>
+          <button
+            type="button"
+            onClick={() => setShowBreakdown((s) => !s)}
+            className={cn("text-left rounded-xl border p-3 transition hover:opacity-90 active:scale-[0.98]", totalTone.border, totalTone.bg)}
+          >
             <div className={cn("text-[11px] mb-1 opacity-70", totalTone.text)}>📦 EINSTANDSPREIS</div>
             <div className={cn("text-xl font-bold tabular-nums", totalTone.text)}>
               {total > 0 ? fmtChf(total) : "—"}
             </div>
-            <div className={cn("text-[11px] opacity-60 mt-0.5", totalTone.text)}>alle Kosten CH</div>
-          </div>
+            <div className={cn("text-[11px] opacity-60 mt-0.5", totalTone.text)}>
+              {showBreakdown ? "▲ ausblenden" : "▼ alle Kosten CH"}
+            </div>
+          </button>
           <div className="rounded-xl border border-primary/30 bg-primary/10 p-3">
             <div className="text-[11px] text-primary mb-1">📊 MARKTPREIS CH</div>
             <div className="text-xl font-bold text-primary tabular-nums">
@@ -314,6 +320,10 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
             </div>
           </div>
         </div>
+
+        {showBreakdown && a && (
+          <CostBreakdown vehicle={vehicle} total={total} />
+        )}
 
         {a?.autoscout_ch_url && (
           <a
