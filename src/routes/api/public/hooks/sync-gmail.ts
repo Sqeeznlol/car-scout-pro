@@ -50,18 +50,18 @@ async function runSync(limit: number) {
   // Fetch config once
   const { data: cfg } = await supabaseAdmin.from("app_config").select("*").eq("id", 1).single();
   const config: ConfigInput = {
-    eur_chf_rate: Number(cfg?.eur_chf_rate ?? 0.96),
-    chf_per_km: Number(cfg?.chf_per_km ?? 0.85),
-    customs_flat: Number(cfg?.customs_flat ?? 0),
-    vat_rate: Number(cfg?.vat_rate ?? 0.081),
-    automobilsteuer_rate: Number(cfg?.automobilsteuer_rate ?? 0.04),
-    mfk_flat: Number(cfg?.mfk_flat ?? 600),
-    preparation_flat: Number(cfg?.preparation_flat ?? 1200),
-    target_margin_chf: Number(cfg?.target_margin_chf ?? 3500),
-    weight_margin: cfg?.weight_margin ?? 35,
-    weight_liquidity: cfg?.weight_liquidity ?? 25,
-    weight_risk: cfg?.weight_risk ?? 25,
-    weight_learning: cfg?.weight_learning ?? 15,
+    eur_chf_rate:         Number(cfg?.eur_chf_rate)         || 0.96,
+    chf_per_km:           Number(cfg?.chf_per_km)           || 1.50,
+    customs_flat:         Number(cfg?.customs_flat)         || 160,
+    vat_rate:             Number(cfg?.vat_rate)             || 0.077,
+    automobilsteuer_rate: Number(cfg?.automobilsteuer_rate) || 0.04,
+    mfk_flat:             Number(cfg?.mfk_flat)             || 220,
+    preparation_flat:     Number(cfg?.preparation_flat)     || 100,
+    target_margin_chf:    Number(cfg?.target_margin_chf)    || 3500,
+    weight_margin:        cfg?.weight_margin                ?? 35,
+    weight_liquidity:     cfg?.weight_liquidity             ?? 25,
+    weight_risk:          cfg?.weight_risk                  ?? 25,
+    weight_learning:      cfg?.weight_learning              ?? 15,
   };
 
   let parsed = 0;
