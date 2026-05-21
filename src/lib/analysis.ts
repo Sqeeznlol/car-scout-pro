@@ -210,42 +210,91 @@ function dealScoreFor(margin: number, c: ConfigInput, sub: ReturnType<typeof sub
 }
 
 export function computeAnalysis(v: VehicleInput, c: ConfigInput): Analysis {
-  const distance = v.distance_km ?? distanceFromLocation(v.location);
+  const DE_MWST = 0.19;
+  const CH_AUTO = 0.04;
+  const CH_MWST = 0.077;
+
+  const kaufpreis_chf = v.price_eur * c.eur_chf_rate;
+  const netto_chf = kaufpreis_chf / (1 + DE_MWST);
+  const de_mwst_erstattung = kaufpreis_chf - netto_chf;
+
+  const automobilsteuer_chf = netto_chf * CH_AUTO;
+  const zoll_chf = c.customs_flat;
+  const ch_mwst_chf = (netto_chf + zoll_chf) * CH_MWST;
+
+  const distance_km = v.distance_km ?? null;
+  const transport_chf = distance_km != null ? Math.round(distance_km * c.chf_per_km) : 0;
+
+  const mfk_chf = c.mfk_flat;
+  const preparation_chf = c.preparation_flat;
+
+  const total_with_mwst_chf = Math.round(
+    netto_chf + automobilsteuer_chf + zoll_chf + ch_mwst_chf +
+    transport_chf + mfk_chf + preparation_chf
+  );
+
+  const automobilsteuer_b = kaufpreis_chf * CH_AUTO;
+  const ch_mwst_b = (kaufpreis_chf + zoll_chf) * CH_MWST;
+  const total_without_mwst = Math.round(
+    kaufpreis_chf + automobilsteuer_b + zoll_chf + ch_mwst_b +
+    transport_chf + mfk_chf + preparation_chf
+  );
+
   const market_value_chf = estimateChMarket(v.price_eur, c.eur_chf_rate, v.year);
-  const costs = calculateImportCosts(v.price_eur, distance, market_value_chf, c);
+  const expected_margin_chf = market_value_chf - total_with_mwst_chf;
 
-  // Conservative basis: WITHOUT MwSt
-  const total_cost_chf = costs.without_mwst.total_chf;
-  const expected_margin_chf = costs.without_mwst.margin_chf;
+  const fuelLow = (v.fuel || "").toLowerCase();
+  const fuelBonus = fuelLow.includes("diesel") ? -5
+    : fuelLow.includes("elect") ? -10
+    : fuelLow.includes("hybrid") ? 5 : 10;
+  const ageYears = v.year ? Math.max(0, new Date().getFullYear() - v.year) : 6;
+  const liquidity_score = Math.max(0, Math.min(100, 60 + fuelBonus + Math.max(-20, 15 - ageYears * 3)));
 
-  const sub = subScores(v);
-  const { margin_score, deal_score } = dealScoreFor(expected_margin_chf, c, sub);
+  const mileage = v.mileage_km ?? 100000;
+  const mileageHit = Math.max(0, Math.min(40, Math.round((mileage - 80000) / 5000) * 2));
+  const ageHit = Math.max(0, Math.min(30, ageYears * 3));
+  const privateHit = v.seller_type === "private" ? 15 : 0;
+  const risk_score = Math.max(0, Math.min(100, 100 - mileageHit - ageHit - privateHit));
+  const learning_score = 50;
+
+  const margin_score = Math.max(0, Math.min(100,
+    Math.round((expected_margin_chf / (c.target_margin_chf || 3500)) * 70 + 30)
+  ));
+  const totalWeight = (c.weight_margin + c.weight_liquidity + c.weight_risk + c.weight_learning) || 100;
+  const deal_score = Math.round(
+    (margin_score * c.weight_margin +
+     liquidity_score * c.weight_liquidity +
+     risk_score * c.weight_risk +
+     learning_score * c.weight_learning) / totalWeight
+  );
 
   return {
-    price_chf: costs.kaufpreis_chf,
-    transport_chf: costs.transport_chf,
-    customs_chf: costs.without_mwst.zoll_chf,
-    vat_chf: costs.without_mwst.ch_mwst_chf,
-    automobilsteuer_chf: costs.without_mwst.automobilsteuer_chf,
-    mfk_chf: c.mfk_flat,
-    preparation_chf: c.preparation_flat,
-    total_cost_chf,
+    price_chf: Math.round(kaufpreis_chf),
+    transport_chf,
+    customs_chf: Math.round(zoll_chf),
+    vat_chf: Math.round(ch_mwst_chf),
+    automobilsteuer_chf: Math.round(automobilsteuer_chf),
+    mfk_chf,
+    preparation_chf,
+    total_cost_chf: total_with_mwst_chf,
     market_value_chf,
     expected_margin_chf,
     deal_score,
     margin_score,
-    ...sub,
-    de_mwst_erstattung_chf: costs.with_mwst.de_mwst_erstattung_chf,
-    netto_kaufpreis_chf: costs.with_mwst.netto_kaufpreis_chf,
-    zoll_chf: costs.without_mwst.zoll_chf,
-    ch_mwst_chf: costs.without_mwst.ch_mwst_chf,
-    total_with_mwst_chf: costs.with_mwst.total_chf,
-    margin_with_mwst_chf: costs.with_mwst.margin_chf,
-    max_buy_with_mwst_eur: costs.with_mwst.max_buy_eur,
-    total_without_mwst_chf: costs.without_mwst.total_chf,
-    margin_without_mwst_chf: costs.without_mwst.margin_chf,
-    max_buy_without_mwst_eur: costs.without_mwst.max_buy_eur,
-    mwst_saving_chf: costs.mwst_saving_chf,
+    liquidity_score,
+    risk_score,
+    learning_score,
+    de_mwst_erstattung_chf: Math.round(de_mwst_erstattung),
+    netto_kaufpreis_chf: Math.round(netto_chf),
+    zoll_chf: Math.round(zoll_chf),
+    ch_mwst_chf: Math.round(ch_mwst_chf),
+    total_with_mwst_chf,
+    margin_with_mwst_chf: Math.round(market_value_chf - total_with_mwst_chf),
+    max_buy_with_mwst_eur: 0,
+    total_without_mwst_chf: total_without_mwst,
+    margin_without_mwst_chf: Math.round(market_value_chf - total_without_mwst),
+    max_buy_without_mwst_eur: 0,
+    mwst_saving_chf: total_without_mwst - total_with_mwst_chf,
   };
 }
 
