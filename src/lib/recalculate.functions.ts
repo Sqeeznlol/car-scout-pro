@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { computeAnalysis, type ConfigInput } from "@/lib/analysis";
+import { getLiveEurChfRate } from "@/lib/fx.server";
 
 export const recalculateAllVehicles = createServerFn({ method: "POST" }).handler(
   async () => {
@@ -11,8 +12,9 @@ export const recalculateAllVehicles = createServerFn({ method: "POST" }).handler
       .single();
     if (cfgErr) throw new Error(cfgErr.message);
 
+    const liveRate = await getLiveEurChfRate();
     const config: ConfigInput = {
-      eur_chf_rate: Number(cfg.eur_chf_rate) || 0.96,
+      eur_chf_rate: liveRate,
       chf_per_km: Number(cfg.chf_per_km) || 1.5,
       customs_flat: Number(cfg.customs_flat) || 160,
       vat_rate: Number(cfg.vat_rate) || 0.081,
