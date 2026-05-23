@@ -75,7 +75,7 @@ function VehiclePage() {
 
   // ── Live import-cost computation (don't trust stale stored fields) ──
   const cfgInput: ConfigInput = {
-    eur_chf_rate: Number(config?.eur_chf_rate) || 0.96,
+    eur_chf_rate: Number(fx?.rate) || Number(config?.eur_chf_rate) || 0.94,
     chf_per_km: Number(config?.chf_per_km) || 1.5,
     customs_flat: Number(config?.customs_flat) || 160,
     vat_rate: Number(config?.vat_rate) || 0.081,
