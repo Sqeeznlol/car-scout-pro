@@ -15,7 +15,7 @@ export const recalculateAllVehicles = createServerFn({ method: "POST" }).handler
       eur_chf_rate: Number(cfg.eur_chf_rate) || 0.96,
       chf_per_km: Number(cfg.chf_per_km) || 1.5,
       customs_flat: Number(cfg.customs_flat) || 160,
-      vat_rate: Number(cfg.vat_rate) || 0.077,
+      vat_rate: Number(cfg.vat_rate) || 0.081,
       automobilsteuer_rate: Number(cfg.automobilsteuer_rate) || 0.04,
       mfk_flat: Number(cfg.mfk_flat) || 220,
       preparation_flat: Number(cfg.preparation_flat) || 100,

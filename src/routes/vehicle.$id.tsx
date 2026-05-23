@@ -71,7 +71,7 @@ function VehiclePage() {
     eur_chf_rate: Number(config?.eur_chf_rate) || 0.96,
     chf_per_km: Number(config?.chf_per_km) || 1.5,
     customs_flat: Number(config?.customs_flat) || 160,
-    vat_rate: Number(config?.vat_rate) || 0.077,
+    vat_rate: Number(config?.vat_rate) || 0.081,
     automobilsteuer_rate: Number(config?.automobilsteuer_rate) || 0.04,
     mfk_flat: Number(config?.mfk_flat) || 220,
     preparation_flat: Number(config?.preparation_flat) || 100,

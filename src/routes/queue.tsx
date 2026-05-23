@@ -430,12 +430,12 @@ function CostBreakdown({ vehicle, total }: { vehicle: VehicleWithAnalysis; total
           Kostenaufschlüsselung Einstandspreis
         </div>
         <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-warning/20 text-warning font-bold">
-          {hasMwst ? "mit MwSt-Ausweis" : "ohne MwSt-Ausweis"}
+          Netto (MwSt rückerstattbar)
         </span>
       </div>
 
       <BRow label={`Kaufpreis DE${priceEur ? ` (${fmtEur(priceEur)})` : ""}`} value={fmtChf(priceChf)} />
-      {hasMwst && deMwstBack > 0 && (
+      {deMwstBack > 0 && (
         <>
           <BRow label="− DE MwSt 19% (Erstattung)" value={`− ${fmtChf(deMwstBack)}`} tone="success" />
           <div className="border-t border-warning/20 my-1.5" />
@@ -444,7 +444,7 @@ function CostBreakdown({ vehicle, total }: { vehicle: VehicleWithAnalysis; total
       )}
       {autoSt > 0 && <BRow label="+ Automobilsteuer CH (4%)" value={`+ ${fmtChf(autoSt)}`} indent />}
       {zoll > 0 && <BRow label="+ Zoll CH (pauschal)" value={`+ ${fmtChf(zoll)}`} indent />}
-      {chMwst > 0 && <BRow label="+ Schweizer MwSt (7.7%)" value={`+ ${fmtChf(chMwst)}`} indent />}
+      {chMwst > 0 && <BRow label="+ Schweizer MwSt (8.1%)" value={`+ ${fmtChf(chMwst)}`} indent />}
       {transport > 0 && (
         <BRow label={`+ Transport${km ? ` (${km} km)` : ""}`} value={`+ ${fmtChf(transport)}`} indent />
       )}

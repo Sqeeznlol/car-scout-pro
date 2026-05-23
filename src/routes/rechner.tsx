@@ -30,7 +30,7 @@ function RechnerPage() {
         <div className="font-medium text-foreground mb-1">Feste Steuersätze (gesetzlich)</div>
         <div>· Deutsche MwSt: <span className="tabular-nums">19 %</span> (§12 UStG)</div>
         <div>· Schweizer Automobilsteuer: <span className="tabular-nums">4 %</span></div>
-        <div>· Schweizer MwSt: <span className="tabular-nums">7.7 %</span></div>
+        <div>· Schweizer MwSt: <span className="tabular-nums">8.1 %</span></div>
         <div className="pt-2 text-foreground/80">Variable Werte (EUR/CHF Kurs, Transport, Zoll, MFK, Aufbereitung) aus Admin-Config.</div>
       </div>
     </div>

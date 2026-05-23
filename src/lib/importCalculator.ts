@@ -3,7 +3,7 @@
 export const FIXED_RATES = {
   DE_MWST: 0.19,
   CH_AUTO_STEUER: 0.04,
-  CH_MWST: 0.077,
+  CH_MWST: 0.081,
 } as const;
 
 export interface ImportConfig {
