@@ -5,6 +5,7 @@ import { computeAnalysis, recomputeWithMarket, type ConfigInput } from "@/lib/an
 import { computeDistanceToKloten } from "@/lib/distance.server";
 import { notifyMatchingFilters } from "@/lib/telegram.server";
 import { estimateChMarketValue } from "@/lib/ch-market.server";
+import { getLiveEurChfRate } from "@/lib/fx.server";
 
 const GMAIL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
