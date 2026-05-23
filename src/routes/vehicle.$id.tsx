@@ -23,6 +23,12 @@ function VehiclePage() {
     queryFn: () => fetchVehicle(id),
   });
   const { data: config } = useQuery({ queryKey: ["config"], queryFn: fetchConfig });
+  const { data: fx } = useQuery({
+    queryKey: ["fx-eur-chf"],
+    queryFn: () => getEurChfRate(),
+    staleTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
   const decideMut = useMutation({
     mutationFn: (d: DecisionValue) => recordDecision(id, d),
     onSuccess: () => {
