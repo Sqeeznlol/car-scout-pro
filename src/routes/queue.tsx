@@ -125,6 +125,8 @@ function QueuePage() {
     vsMarket: "günstigster vs. Markt",
   };
 
+  const hiddenCount = vehicles.filter((v) => !v.decision).length - filteredVehicles.length;
+
   return (
     <div className="mx-auto max-w-2xl px-3 lg:px-8 py-3 lg:py-8 page-pb">
       <div className="flex items-center justify-between mb-3 gap-2">
