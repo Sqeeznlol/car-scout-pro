@@ -9,6 +9,7 @@ import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ImportRechner } from "@/components/ImportRechner";
+import { getEurChfRate } from "@/lib/fx.functions";
 
 export const Route = createFileRoute("/vehicle/$id")({
   component: VehiclePage,
