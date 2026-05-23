@@ -430,12 +430,12 @@ function CostBreakdown({ vehicle, total }: { vehicle: VehicleWithAnalysis; total
           Kostenaufschlüsselung Einstandspreis
         </div>
         <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded bg-warning/20 text-warning font-bold">
-          {hasMwst ? "mit MwSt-Ausweis" : "ohne MwSt-Ausweis"}
+          Netto (MwSt rückerstattbar)
         </span>
       </div>
 
       <BRow label={`Kaufpreis DE${priceEur ? ` (${fmtEur(priceEur)})` : ""}`} value={fmtChf(priceChf)} />
-      {hasMwst && deMwstBack > 0 && (
+      {deMwstBack > 0 && (
         <>
           <BRow label="− DE MwSt 19% (Erstattung)" value={`− ${fmtChf(deMwstBack)}`} tone="success" />
           <div className="border-t border-warning/20 my-1.5" />
