@@ -143,7 +143,7 @@ function AdminPage() {
               {[
                 { label: "Deutsche MwSt", value: "19.0%", note: "DE Gesetz" },
                 { label: "Automobilsteuer CH", value: "4.0%", note: "CH Gesetz" },
-                { label: "Schweizer MwSt", value: "7.7%", note: "CH Gesetz" },
+                { label: "Schweizer MwSt", value: "8.1%", note: "CH Gesetz" },
               ].map((item) => (
                 <div key={item.label} className="bg-surface border border-border rounded-lg p-3">
                   <div className="text-xs text-muted-foreground mb-1">{item.label}</div>

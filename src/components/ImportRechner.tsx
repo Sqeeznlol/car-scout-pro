@@ -122,7 +122,7 @@ export function ImportRechner({
               <CostRow label="= Nettobasis (Einfuhrbasis CH)" value={fmt(result.with_mwst.netto_basis_chf)} bold />
               <CostRow indent label="+ Automobilsteuer Schweiz (4%)" value={`+ ${fmt(result.with_mwst.automobilsteuer_chf)}`} />
               <CostRow indent label="+ Zoll Schweiz (pauschal)" value={`+ ${fmt(result.with_mwst.zoll_chf)}`} />
-              <CostRow indent label="+ Schweizer MwSt (7.7%)" value={`+ ${fmt(result.with_mwst.ch_mwst_chf)}`} />
+              <CostRow indent label="+ Schweizer MwSt (8.1%)" value={`+ ${fmt(result.with_mwst.ch_mwst_chf)}`} />
               <CostRow indent label={`+ Transport (${dKm} km × CHF ${config?.chf_per_km ?? 1.5})`} value={`+ ${fmt(result.with_mwst.transport_chf)}`} />
               <CostRow indent label="+ MFK + Aufbereitung" value={`+ ${fmt(result.with_mwst.mfk_preparation_chf)}`} />
             </div>
@@ -199,7 +199,7 @@ export function ImportRechner({
                 <CostRow label="Kaufpreis (kein Abzug möglich)" value={fmt(result.kaufpreis_chf)} muted />
                 <CostRow label="+ Automobilsteuer (4%)" value={`+ ${fmt(result.without_mwst.automobilsteuer_chf)}`} muted />
                 <CostRow label="+ Zoll CH" value={`+ ${fmt(result.without_mwst.zoll_chf)}`} muted />
-                <CostRow label="+ CH MwSt (7.7%)" value={`+ ${fmt(result.without_mwst.ch_mwst_chf)}`} muted />
+                <CostRow label="+ CH MwSt (8.1%)" value={`+ ${fmt(result.without_mwst.ch_mwst_chf)}`} muted />
                 <CostRow label="+ Transport" value={`+ ${fmt(result.without_mwst.transport_chf)}`} muted />
                 <CostRow label="+ MFK + Aufbereitung" value={`+ ${fmt(result.without_mwst.mfk_preparation_chf)}`} muted />
                 <div className="border-t border-border my-2" />

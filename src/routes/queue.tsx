@@ -444,7 +444,7 @@ function CostBreakdown({ vehicle, total }: { vehicle: VehicleWithAnalysis; total
       )}
       {autoSt > 0 && <BRow label="+ Automobilsteuer CH (4%)" value={`+ ${fmtChf(autoSt)}`} indent />}
       {zoll > 0 && <BRow label="+ Zoll CH (pauschal)" value={`+ ${fmtChf(zoll)}`} indent />}
-      {chMwst > 0 && <BRow label="+ Schweizer MwSt (7.7%)" value={`+ ${fmtChf(chMwst)}`} indent />}
+      {chMwst > 0 && <BRow label="+ Schweizer MwSt (8.1%)" value={`+ ${fmtChf(chMwst)}`} indent />}
       {transport > 0 && (
         <BRow label={`+ Transport${km ? ` (${km} km)` : ""}`} value={`+ ${fmtChf(transport)}`} indent />
       )}

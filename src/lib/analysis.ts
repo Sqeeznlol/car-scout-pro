@@ -5,7 +5,7 @@ export interface ConfigInput {
   eur_chf_rate: number;
   chf_per_km: number;
   customs_flat: number;          // = zoll_pauschale_chf (160 CHF)
-  vat_rate: number;              // CH MwSt = 0.077
+  vat_rate: number;              // CH MwSt = 0.081
   automobilsteuer_rate: number;  // CH = 0.04
   mfk_flat: number;              // 220
   preparation_flat: number;      // 100
@@ -212,7 +212,7 @@ function dealScoreFor(margin: number, c: ConfigInput, sub: ReturnType<typeof sub
 export function computeAnalysis(v: VehicleInput, c: ConfigInput): Analysis {
   const DE_MWST = 0.19;
   const CH_AUTO = 0.04;
-  const CH_MWST = 0.077;
+  const CH_MWST = 0.081;
 
   const kaufpreis_chf = v.price_eur * c.eur_chf_rate;
   const netto_chf = kaufpreis_chf / (1 + DE_MWST);
