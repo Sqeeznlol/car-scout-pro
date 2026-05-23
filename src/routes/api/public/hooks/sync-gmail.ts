@@ -5,6 +5,7 @@ import { computeAnalysis, recomputeWithMarket, type ConfigInput } from "@/lib/an
 import { computeDistanceToKloten } from "@/lib/distance.server";
 import { notifyMatchingFilters } from "@/lib/telegram.server";
 import { estimateChMarketValue } from "@/lib/ch-market.server";
+import { getLiveEurChfRate } from "@/lib/fx.server";
 
 const GMAIL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
@@ -49,8 +50,9 @@ async function runSync(limit: number) {
 
   // Fetch config once
   const { data: cfg } = await supabaseAdmin.from("app_config").select("*").eq("id", 1).single();
+  const liveRate = await getLiveEurChfRate();
   const config: ConfigInput = {
-    eur_chf_rate:         Number(cfg?.eur_chf_rate)         || 0.96,
+    eur_chf_rate:         liveRate,
     chf_per_km:           Number(cfg?.chf_per_km)           || 1.50,
     customs_flat:         Number(cfg?.customs_flat)         || 160,
     vat_rate:             Number(cfg?.vat_rate)             || 0.081,

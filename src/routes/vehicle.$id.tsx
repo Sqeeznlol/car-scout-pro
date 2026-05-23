@@ -9,6 +9,7 @@ import { fmtChf, fmtEur, fmtKm } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ImportRechner } from "@/components/ImportRechner";
+import { getEurChfRate } from "@/lib/fx.functions";
 
 export const Route = createFileRoute("/vehicle/$id")({
   component: VehiclePage,
@@ -22,6 +23,12 @@ function VehiclePage() {
     queryFn: () => fetchVehicle(id),
   });
   const { data: config } = useQuery({ queryKey: ["config"], queryFn: fetchConfig });
+  const { data: fx } = useQuery({
+    queryKey: ["fx-eur-chf"],
+    queryFn: () => getEurChfRate(),
+    staleTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
   const decideMut = useMutation({
     mutationFn: (d: DecisionValue) => recordDecision(id, d),
     onSuccess: () => {
@@ -68,7 +75,7 @@ function VehiclePage() {
 
   // ── Live import-cost computation (don't trust stale stored fields) ──
   const cfgInput: ConfigInput = {
-    eur_chf_rate: Number(config?.eur_chf_rate) || 0.96,
+    eur_chf_rate: Number(fx?.rate) || Number(config?.eur_chf_rate) || 0.94,
     chf_per_km: Number(config?.chf_per_km) || 1.5,
     customs_flat: Number(config?.customs_flat) || 160,
     vat_rate: Number(config?.vat_rate) || 0.081,

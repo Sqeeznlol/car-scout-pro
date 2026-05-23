@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, Calculator, TrendingUp, Info, ChevronDown, ChevronUp, Lightbulb } from "lucide-react";
 import { fetchConfig } from "@/lib/db";
 import { calculate, type ImportConfig } from "@/lib/importCalculator";
+import { getEurChfRate } from "@/lib/fx.functions";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -34,6 +35,12 @@ export function ImportRechner({
   vehicleName,
 }: Props) {
   const { data: cfg } = useQuery({ queryKey: ["config"], queryFn: fetchConfig });
+  const { data: fx } = useQuery({
+    queryKey: ["fx-eur-chf"],
+    queryFn: () => getEurChfRate(),
+    staleTime: 60 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
   const [preis, setPreis] = useState<number>(initialPrice);
   const [km, setKm] = useState<number>(initialDistance);
   const [showWithout, setShowWithout] = useState(false);
@@ -47,13 +54,13 @@ export function ImportRechner({
   const config: ImportConfig | null = useMemo(() => {
     if (!cfg) return null;
     return {
-      eur_chf_rate: Number(cfg.eur_chf_rate) || 0.96,
+      eur_chf_rate: Number(fx?.rate) || Number(cfg.eur_chf_rate) || 0.94,
       chf_per_km: Number(cfg.chf_per_km) || 1.5,
       zoll_chf: Number(cfg.customs_flat) || 160,
       mfk_chf: Number(cfg.mfk_flat) || 220,
       preparation_chf: Number(cfg.preparation_flat) || 100,
     };
-  }, [cfg]);
+  }, [cfg, fx]);
 
   const result = useMemo(() => {
     if (!dPreis || !config) return null;
