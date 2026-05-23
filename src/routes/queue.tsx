@@ -73,10 +73,18 @@ function QueuePage() {
   const [sortKey, setSortKey] = useState<SortKey>("margin");
   const [lastDecided, setLastDecided] = useState<string | null>(null);
 
+  const filteredVehicles = useMemo(() => {
+    return vehicles.filter((v) => {
+      if (v.decision) return false;
+      if (v.year == null || v.year < 2021) return false;
+      if (v.mileage_km != null && v.mileage_km > 100000) return false;
+      return true;
+    });
+  }, [vehicles]);
+
   const queue = useMemo(() => {
-    const open = vehicles.filter((v) => !v.decision);
     const ts = (v: VehicleWithAnalysis) => new Date(v.received_at ?? v.created_at).getTime();
-    return open.sort((a, b) => {
+    return [...filteredVehicles].sort((a, b) => {
       if (sortKey === "margin") {
         const d = effectiveMargin(b) - effectiveMargin(a);
         if (d !== 0) return d;
@@ -87,7 +95,7 @@ function QueuePage() {
       if (sortKey === "vsMarket") return vsMarketPct(a) - vsMarketPct(b);
       return 0;
     });
-  }, [vehicles, sortKey]);
+  }, [filteredVehicles, sortKey]);
 
   const handleDecide = useCallback((id: string, d: DecisionValue) => {
     haptic(d === "interesting" ? 18 : d === "skip" ? 8 : 12);
@@ -117,6 +125,8 @@ function QueuePage() {
     vsMarket: "günstigster vs. Markt",
   };
 
+  const hiddenCount = vehicles.filter((v) => !v.decision).length - filteredVehicles.length;
+
   return (
     <div className="mx-auto max-w-2xl px-3 lg:px-8 py-3 lg:py-8 page-pb">
       <div className="flex items-center justify-between mb-3 gap-2">
@@ -124,6 +134,7 @@ function QueuePage() {
           <h1 className="text-xl lg:text-2xl font-semibold tracking-tight truncate">Swipe Queue</h1>
           <p className="text-xs lg:text-sm text-muted-foreground truncate">
             {queue.length} Fahrzeug{queue.length === 1 ? "" : "e"} · sortiert nach {sortLabel[sortKey]}
+            {hiddenCount > 0 ? ` · ${hiddenCount} ausgefiltert` : ""}
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
