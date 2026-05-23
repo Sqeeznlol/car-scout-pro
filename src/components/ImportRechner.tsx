@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ExternalLink, Calculator, TrendingUp, Info, ChevronDown, ChevronUp, Lightbulb } from "lucide-react";
 import { fetchConfig } from "@/lib/db";
 import { calculate, type ImportConfig } from "@/lib/importCalculator";
+import { getEurChfRate } from "@/lib/fx.functions";
 import { cn } from "@/lib/utils";
 
 interface Props {
