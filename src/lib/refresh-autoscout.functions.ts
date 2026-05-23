@@ -2,13 +2,15 @@ import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { estimateChMarketValue } from "@/lib/ch-market.server";
 import { computeAnalysis, recomputeWithMarket, type ConfigInput } from "@/lib/analysis";
+import { getLiveEurChfRate } from "@/lib/fx.server";
 
 export const refreshAutoScoutAll = createServerFn({ method: "POST" }).handler(async () => {
   const { data: cfg } = await supabaseAdmin
     .from("app_config").select("*").eq("id", 1).single();
 
+  const liveRate = await getLiveEurChfRate();
   const config: ConfigInput = {
-    eur_chf_rate:         Number(cfg?.eur_chf_rate)         || 0.96,
+    eur_chf_rate:         liveRate,
     chf_per_km:           Number(cfg?.chf_per_km)           || 1.50,
     customs_flat:         Number(cfg?.customs_flat)         || 160,
     vat_rate:             Number(cfg?.vat_rate)             || 0.081,
