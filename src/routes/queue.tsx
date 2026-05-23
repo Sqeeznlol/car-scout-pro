@@ -134,6 +134,7 @@ function QueuePage() {
           <h1 className="text-xl lg:text-2xl font-semibold tracking-tight truncate">Swipe Queue</h1>
           <p className="text-xs lg:text-sm text-muted-foreground truncate">
             {queue.length} Fahrzeug{queue.length === 1 ? "" : "e"} · sortiert nach {sortLabel[sortKey]}
+            {hiddenCount > 0 ? ` · ${hiddenCount} ausgefiltert` : ""}
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
