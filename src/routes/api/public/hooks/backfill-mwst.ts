@@ -17,7 +17,12 @@ async function runBackfill() {
   for (const v of rows ?? []) {
     if (!v.raw_text) continue;
     try {
-      const updates: Record<string, unknown> = {};
+      const updates: {
+        seller_has_mwst?: boolean;
+        price_eur_netto?: number;
+        country_code?: string;
+        skip_reason?: string;
+      } = {};
       if (v.seller_has_mwst == null) {
         const m = detectMwStFromText(v.raw_text);
         if (m.has_mwst !== null) {
