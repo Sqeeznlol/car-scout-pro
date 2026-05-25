@@ -299,7 +299,7 @@ export type Database = {
           min_margin_chf?: number | null
           models?: string[]
           name?: string
-          telegram_bot_token?: string
+          telegram_bot_token: string
           telegram_chat_id?: string
           updated_at?: string
         }
