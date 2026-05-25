@@ -279,6 +279,65 @@ function VehiclePage() {
         </div>
       )}
 
+      {costs && (
+        <Section title="Kostenaufstellung Import DE → CH">
+          <div className="rounded-xl border border-border bg-card p-4 mb-3 flex flex-wrap gap-2 items-center">
+            <span className="text-xs text-muted-foreground mr-2">MwSt-Ausweis Verkäufer:</span>
+            <MwStBtn active={mwstStatus === "with"} tone="success" onClick={() => handleMwstChange("with")} label="✓ Mit MwSt" sub="Nettobetrag (Händler)" />
+            <MwStBtn active={mwstStatus === "without"} tone="warning" onClick={() => handleMwstChange("without")} label="✗ Ohne MwSt" sub="§25a / Privat" />
+            <MwStBtn active={mwstStatus === "unknown"} tone="info" onClick={() => handleMwstChange("unknown")} label="? Unklar" sub="noch prüfen" />
+          </div>
+
+          {wm && mwstStatus === "with" && (
+            <CostTable
+              title="Szenario A — Mit MwSt-Ausweis (Händler / Netto)"
+              subtitle={`EUR/CHF: ${cfgInput.eur_chf_rate.toFixed(4)} · Distanz: ${distanceKm} km`}
+              accent="success"
+              rows={[
+                { label: `Kaufpreis DE (brutto): ${fmtEur(priceEurForCalc)}`, value: fmtChf(displayPriceChf) },
+                { label: "DE MwSt-Erstattung (19%)", value: `−${fmtChf(wm.de_mwst_erstattung)}`, positive: true },
+                { label: "Netto-Kaufpreis CH", value: fmtChf(wm.netto), divider: true },
+                { label: "+ Automobilsteuer (4% auf Netto)", value: fmtChf(wm.automobilsteuer) },
+                { label: "+ Zoll (pauschal)", value: fmtChf(wm.zoll) },
+                { label: "+ CH-MwSt (8.1% auf Netto+Zoll)", value: fmtChf(wm.ch_mwst) },
+                { label: `+ Transport (${distanceKm} km × ${cfgInput.chf_per_km} CHF)`, value: fmtChf(transport_chf) },
+                { label: "+ MFK + Aufbereitung", value: fmtChf(mfk_aufbereitung_chf) },
+              ]}
+              total={wm.total}
+              sellPrice={sellPriceForCalc}
+              margin={wm.margin}
+              maxBuyEur={wm.max_buy_eur}
+            />
+          )}
+
+          {wom && mwstStatus !== "with" && (
+            <CostTable
+              title="Szenario B — Ohne MwSt-Ausweis (§25a / Privat)"
+              subtitle={`EUR/CHF: ${cfgInput.eur_chf_rate.toFixed(4)} · Distanz: ${distanceKm} km`}
+              accent="info"
+              rows={[
+                { label: `Kaufpreis DE: ${fmtEur(priceEurForCalc)}`, value: fmtChf(displayPriceChf), divider: true },
+                { label: "+ Automobilsteuer (4% auf Brutto)", value: fmtChf(wom.automobilsteuer) },
+                { label: "+ Zoll (pauschal)", value: fmtChf(wom.zoll) },
+                { label: "+ CH-MwSt (8.1% auf Brutto+Zoll)", value: fmtChf(wom.ch_mwst) },
+                { label: `+ Transport (${distanceKm} km × ${cfgInput.chf_per_km} CHF)`, value: fmtChf(transport_chf) },
+                { label: "+ MFK + Aufbereitung", value: fmtChf(mfk_aufbereitung_chf) },
+              ]}
+              total={wom.total}
+              sellPrice={sellPriceForCalc}
+              margin={wom.margin}
+              maxBuyEur={wom.max_buy_eur}
+            />
+          )}
+
+          {mwst_saving > 0 && (
+            <div className="mt-3 text-xs text-muted-foreground text-center">
+              MwSt-Ersparnis bei Händlerkauf: <span className="text-success font-medium tabular-nums">{fmtChf(mwst_saving)}</span>
+            </div>
+          )}
+        </Section>
+      )}
+
       <ImportRechner
         initialPrice={priceEurForCalc}
         initialDistance={distKmForCalc || 300}

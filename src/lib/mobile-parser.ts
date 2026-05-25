@@ -140,11 +140,16 @@ function detectTransmission(text: string): string | null {
 }
 
 function detectLocation(text: string): string | null {
-  // Look for "Standort: X" or "PLZ Stadt"
-  const m1 = /Standort[:\s]+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-.\s]{2,40})/.exec(text);
-  if (m1) return m1[1].trim().replace(/\s+/g, " ");
-  const m2 = /\b\d{5}\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]{2,30})/.exec(text);
-  if (m2) return m2[1];
+  // Priority 1: "DE-XXXXX Stadtname" (mobile.de dealer entries)
+  const mDe = /DE-(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-\s]{2,40}?)(?=\s{2,}|\s*$|\s*[<•|·,])/.exec(text)
+    ?? /DE-(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]{2,40})/.exec(text);
+  if (mDe) return `${mDe[1]} ${mDe[2].trim()}`.replace(/\s+/g, " ");
+  // Priority 2: plain "XXXXX Stadtname"
+  const mPlz = /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]{2,30})/.exec(text);
+  if (mPlz) return `${mPlz[1]} ${mPlz[2]}`;
+  // Priority 3: "Standort: X"
+  const mStd = /Standort[:\s]+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-.\s]{2,40})/.exec(text);
+  if (mStd) return mStd[1].trim().replace(/\s+/g, " ");
   return null;
 }
 

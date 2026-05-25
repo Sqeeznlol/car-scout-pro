@@ -47,14 +47,16 @@ function ArchivePage() {
 
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | DecisionValue>("all");
+  const [onlyWithMwst, setOnlyWithMwst] = useState(true);
 
   const rows = useMemo(() => {
     return vehicles
       .filter((v) => v.decision)
+      .filter((v) => (onlyWithMwst ? v.seller_has_mwst === true : true))
       .filter((v) => (q ? `${v.title} ${v.make ?? ""} ${v.model ?? ""}`.toLowerCase().includes(q.toLowerCase()) : true))
       .filter((v) => (filter === "all" ? true : v.decision?.decision === filter))
       .sort((a, b) => new Date(b.decision!.decided_at).getTime() - new Date(a.decision!.decided_at).getTime());
-  }, [vehicles, q, filter]);
+  }, [vehicles, q, filter, onlyWithMwst]);
 
   const stats = useMemo(() => {
     const decided = vehicles.filter((v) => v.decision);
@@ -108,6 +110,16 @@ function ArchivePage() {
           </SelectContent>
         </Select>
       </div>
+
+      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={onlyWithMwst}
+          onChange={(e) => setOnlyWithMwst(e.target.checked)}
+          className="h-4 w-4 accent-primary"
+        />
+        <span>Nur Fahrzeuge mit MwSt-Ausweis (Nettobetrag)</span>
+      </label>
 
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
