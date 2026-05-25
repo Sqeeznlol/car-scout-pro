@@ -213,6 +213,35 @@ function EmptyState({ hasAny }: { hasAny: boolean }) {
   );
 }
 
+function MwStBadge({ vehicle }: { vehicle: VehicleWithAnalysis }) {
+  const v = vehicle.seller_has_mwst;
+  if (v === true) {
+    return (
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-success/15 border border-success/30 px-2.5 py-1 text-[11px] font-medium text-success">
+        ✓ MwSt ausweisbar (Netto)
+      </div>
+    );
+  }
+  if (v === false) {
+    return (
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-muted border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+        §25a (keine MwSt)
+      </div>
+    );
+  }
+  return (
+    <a
+      href={vehicle.listing_url ?? "#"}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1.5 rounded-full bg-warning/15 border border-warning/30 px-2.5 py-1 text-[11px] font-medium text-warning hover:bg-warning/25"
+      title="MwSt-Status unbekannt — Inserat öffnen zum Prüfen"
+    >
+      ⚠ MwSt unklar — prüfen
+    </a>
+  );
+}
+
 const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
   vehicle: VehicleWithAnalysis;
   onDecide: (d: DecisionValue) => void;
