@@ -26,6 +26,9 @@ export interface ParsedListing {
   seller_phone: string | null;
   seller_address: string | null;
   seller_website: string | null;
+  seller_has_mwst: boolean | null;
+  price_eur_netto: number | null;
+  country_code: string | null;
   raw_text: string;
   received_at: string | null;
 }
