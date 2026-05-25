@@ -23,7 +23,18 @@ async function runBackfill() {
     if (!v.listing_url) continue;
     try {
       const det = await fetchListingDetails(v.listing_url);
-      const updates: Record<string, unknown> = {};
+      const updates: Partial<{
+        seller_has_mwst: boolean;
+        price_eur_netto: number;
+        country_code: string;
+        skip_reason: string;
+        location: string;
+        latitude: number;
+        longitude: number;
+        distance_km: number;
+        distance_minutes: number;
+        distance_computed_at: string;
+      }> = {};
       if (v.seller_has_mwst == null && det.has_mwst !== null) {
         updates.seller_has_mwst = det.has_mwst;
         if (det.netto_eur) updates.price_eur_netto = det.netto_eur;
