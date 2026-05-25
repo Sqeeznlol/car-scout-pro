@@ -111,6 +111,16 @@ function ArchivePage() {
         </Select>
       </div>
 
+      <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={onlyWithMwst}
+          onChange={(e) => setOnlyWithMwst(e.target.checked)}
+          className="h-4 w-4 accent-primary"
+        />
+        <span>Nur Fahrzeuge mit MwSt-Ausweis (Nettobetrag)</span>
+      </label>
+
       {rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border p-12 text-center">
           <ArrowUpDown className="h-8 w-8 mx-auto text-muted-foreground" />
