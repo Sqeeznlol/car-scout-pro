@@ -180,7 +180,7 @@ function QueuePage() {
       </label>
 
       {queue.length === 0 ? (
-        <EmptyState hasAny={vehicles.length > 0} />
+        <EmptyState hasAny={vehicles.length > 0} hiddenCount={hiddenCount} onClearFilter={() => setOnlyWithMwst(false)} />
       ) : (
         <div className="space-y-4">
           {queue.map((v) => (
