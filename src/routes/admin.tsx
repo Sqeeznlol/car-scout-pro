@@ -167,6 +167,7 @@ function AdminPage() {
 
           <RecalculateCard />
           <RefreshAutoScoutCard />
+          <BackfillMwStCard />
         </TabsContent>
 
         <TabsContent value="email" className="mt-4">
