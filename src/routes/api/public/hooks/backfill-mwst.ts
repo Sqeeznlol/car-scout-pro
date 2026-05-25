@@ -1,62 +1,57 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { detectMwStFromListing } from "@/lib/mwst-detector.server";
+import { detectMwStFromText, detectCountry } from "@/lib/mobile-parser";
 
-async function runBackfill(limit: number) {
+async function runBackfill() {
   const { data: rows, error } = await supabaseAdmin
     .from("vehicles")
-    .select("id, listing_url")
-    .is("seller_has_mwst", null)
-    .not("listing_url", "is", null)
-    .limit(limit);
+    .select("id, raw_text, seller_has_mwst, country_code, skip_reason")
+    .not("raw_text", "is", null);
   if (error) throw new Error(error.message);
 
-  let checked = 0;
-  let updated_true = 0;
-  let updated_false = 0;
-  let still_unknown = 0;
+  let mwst_set = 0;
+  let country_set = 0;
+  let archived_non_de = 0;
   const errors: string[] = [];
 
-  for (const r of rows ?? []) {
-    if (!r.listing_url) continue;
-    checked++;
+  for (const v of rows ?? []) {
+    if (!v.raw_text) continue;
     try {
-      const det = await detectMwStFromListing(r.listing_url);
-      if (det.has_mwst === true) {
-        await supabaseAdmin.from("vehicles").update({ seller_has_mwst: true }).eq("id", r.id);
-        updated_true++;
-      } else if (det.has_mwst === false) {
-        await supabaseAdmin.from("vehicles").update({ seller_has_mwst: false }).eq("id", r.id);
-        updated_false++;
-      } else {
-        still_unknown++;
+      const updates: Record<string, unknown> = {};
+      if (v.seller_has_mwst == null) {
+        const m = detectMwStFromText(v.raw_text);
+        if (m.has_mwst !== null) {
+          updates.seller_has_mwst = m.has_mwst;
+          if (m.netto_eur) updates.price_eur_netto = m.netto_eur;
+          mwst_set++;
+        }
+      }
+      if (!v.country_code) {
+        const c = detectCountry(v.raw_text);
+        if (c) {
+          updates.country_code = c;
+          country_set++;
+          if (c !== "DE" && !v.skip_reason) {
+            updates.skip_reason = `country_${c}`;
+            archived_non_de++;
+          }
+        }
+      }
+      if (Object.keys(updates).length > 0) {
+        await supabaseAdmin.from("vehicles").update(updates).eq("id", v.id);
       }
     } catch (e) {
-      errors.push(`${r.id}: ${e instanceof Error ? e.message : String(e)}`);
+      errors.push(`${v.id}: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
-
-  return { checked, updated_true, updated_false, still_unknown, errors };
+  return { checked: rows?.length ?? 0, mwst_set, country_set, archived_non_de, errors };
 }
 
 export const Route = createFileRoute("/api/public/hooks/backfill-mwst")({
   server: {
     handlers: {
-      POST: async ({ request }) => {
-        let limit = 50;
-        try {
-          const body = (await request.json()) as { limit?: number } | null;
-          if (body?.limit && Number.isFinite(body.limit)) limit = Math.min(200, Math.max(1, body.limit));
-        } catch {
-          /* ignore */
-        }
-        const r = await runBackfill(limit);
-        return Response.json(r);
-      },
-      GET: async () => {
-        const r = await runBackfill(50);
-        return Response.json(r);
-      },
+      POST: async () => Response.json(await runBackfill()),
+      GET: async () => Response.json(await runBackfill()),
     },
   },
 });
