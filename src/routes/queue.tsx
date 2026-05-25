@@ -176,7 +176,7 @@ function QueuePage() {
           onChange={(e) => setOnlyWithMwst(e.target.checked)}
           className="h-4 w-4 accent-primary"
         />
-        <span>Nur Fahrzeuge mit MwSt-Ausweis (Nettobetrag)</span>
+        <span>§25a-Fahrzeuge ohne MwSt-Ausweis ausblenden</span>
       </label>
 
       {queue.length === 0 ? (
