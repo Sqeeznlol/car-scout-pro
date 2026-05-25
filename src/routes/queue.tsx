@@ -287,6 +287,7 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
       </div>
 
       <div className="p-4 lg:p-5 space-y-4">
+        <MwStBadge vehicle={vehicle} />
         <div className="grid grid-cols-2 gap-3 text-sm">
           <Spec icon={<Calendar className="h-3.5 w-3.5" />} label={vehicle.year ? String(vehicle.year) : "—"} sub="EZ" />
           <Spec icon={<Gauge className="h-3.5 w-3.5" />} label={vehicle.mileage_km ? fmtKm(vehicle.mileage_km) : "—"} sub="Kilometer" />
