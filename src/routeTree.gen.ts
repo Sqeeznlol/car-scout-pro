@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as VehicleIdRouteImport } from './routes/vehicle.$id'
 import { Route as ApiPublicHooksTestJinaRouteImport } from './routes/api/public/hooks/test-jina'
 import { Route as ApiPublicHooksSyncGmailRouteImport } from './routes/api/public/hooks/sync-gmail'
+import { Route as ApiPublicHooksExtensionIngestRouteImport } from './routes/api/public/hooks/extension-ingest'
 import { Route as ApiPublicHooksBackfillMwstRouteImport } from './routes/api/public/hooks/backfill-mwst'
 
 const RechnerRoute = RechnerRouteImport.update({
@@ -65,6 +66,12 @@ const ApiPublicHooksSyncGmailRoute = ApiPublicHooksSyncGmailRouteImport.update({
   path: '/api/public/hooks/sync-gmail',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksExtensionIngestRoute =
+  ApiPublicHooksExtensionIngestRouteImport.update({
+    id: '/api/public/hooks/extension-ingest',
+    path: '/api/public/hooks/extension-ingest',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksBackfillMwstRoute =
   ApiPublicHooksBackfillMwstRouteImport.update({
     id: '/api/public/hooks/backfill-mwst',
@@ -81,6 +88,7 @@ export interface FileRoutesByFullPath {
   '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
+  '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
@@ -93,6 +101,7 @@ export interface FileRoutesByTo {
   '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
+  '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
@@ -106,6 +115,7 @@ export interface FileRoutesById {
   '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
+  '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/rechner'
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
+    | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
   fileRoutesByTo: FileRoutesByTo
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/rechner'
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
+    | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
   id:
@@ -144,6 +156,7 @@ export interface FileRouteTypes {
     | '/rechner'
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
+    | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
   fileRoutesById: FileRoutesById
@@ -157,6 +170,7 @@ export interface RootRouteChildren {
   RechnerRoute: typeof RechnerRoute
   VehicleIdRoute: typeof VehicleIdRoute
   ApiPublicHooksBackfillMwstRoute: typeof ApiPublicHooksBackfillMwstRoute
+  ApiPublicHooksExtensionIngestRoute: typeof ApiPublicHooksExtensionIngestRoute
   ApiPublicHooksSyncGmailRoute: typeof ApiPublicHooksSyncGmailRoute
   ApiPublicHooksTestJinaRoute: typeof ApiPublicHooksTestJinaRoute
 }
@@ -226,6 +240,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSyncGmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/extension-ingest': {
+      id: '/api/public/hooks/extension-ingest'
+      path: '/api/public/hooks/extension-ingest'
+      fullPath: '/api/public/hooks/extension-ingest'
+      preLoaderRoute: typeof ApiPublicHooksExtensionIngestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/backfill-mwst': {
       id: '/api/public/hooks/backfill-mwst'
       path: '/api/public/hooks/backfill-mwst'
@@ -245,9 +266,20 @@ const rootRouteChildren: RootRouteChildren = {
   RechnerRoute: RechnerRoute,
   VehicleIdRoute: VehicleIdRoute,
   ApiPublicHooksBackfillMwstRoute: ApiPublicHooksBackfillMwstRoute,
+  ApiPublicHooksExtensionIngestRoute: ApiPublicHooksExtensionIngestRoute,
   ApiPublicHooksSyncGmailRoute: ApiPublicHooksSyncGmailRoute,
   ApiPublicHooksTestJinaRoute: ApiPublicHooksTestJinaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
