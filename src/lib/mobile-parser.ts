@@ -147,6 +147,14 @@ function detectLocation(text: string): string | null {
   const mDe = /DE-(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-\s]{2,40}?)(?=\s{2,}|\s*$|\s*[<•|·,])/.exec(text)
     ?? /DE-(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]{2,40})/.exec(text);
   if (mDe) return `${mDe[1]} ${mDe[2].trim()}`.replace(/\s+/g, " ");
+  // Priority 2: plain "XXXXX Stadtname"
+  const mPlz = /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]{2,30})/.exec(text);
+  if (mPlz) return `${mPlz[1]} ${mPlz[2]}`;
+  // Priority 3: "Standort: X"
+  const mStd = /Standort[:\s]+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-.\s]{2,40})/.exec(text);
+  if (mStd) return mStd[1].trim().replace(/\s+/g, " ");
+  return null;
+}
 
 export function detectMwStFromText(block: string): { has_mwst: boolean | null; netto_eur: number | null } {
   // Pattern 1: "54.538 € (Netto), 19% MwSt."
@@ -173,16 +181,6 @@ export function detectCountry(text: string): string | null {
   if (/\bFrankreich\b/i.test(text)) return "FR";
   if (/\bNiederlande/i.test(text)) return "NL";
   if (/\bBelgien\b/i.test(text)) return "BE";
-  return null;
-}
-
-function _detectLocationContinued(text: string): string | null {
-  // Priority 2: plain "XXXXX Stadtname"
-  const mPlz = /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]{2,30})/.exec(text);
-  if (mPlz) return `${mPlz[1]} ${mPlz[2]}`;
-  // Priority 3: "Standort: X"
-  const mStd = /Standort[:\s]+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-.\s]{2,40})/.exec(text);
-  if (mStd) return mStd[1].trim().replace(/\s+/g, " ");
   return null;
 }
 
