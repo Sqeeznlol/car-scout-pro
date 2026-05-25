@@ -356,7 +356,7 @@ function RefreshAutoScoutCard() {
 function BackfillMwStCard() {
   const qc = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ checked: number; updated_true: number; updated_false: number; still_unknown: number; errors: string[] } | null>(null);
+  const [result, setResult] = useState<{ checked: number; mwst_set: number; country_set: number; archived_non_de: number; errors: string[] } | null>(null);
 
   const handleRun = async () => {
     setLoading(true);
@@ -365,16 +365,15 @@ function BackfillMwStCard() {
       const res = await fetch("/api/public/hooks/backfill-mwst", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ limit: 50 }),
       });
       const r = await res.json();
       setResult(r);
-      toast.success(`${r.updated_true + r.updated_false} aktualisiert`, {
-        description: `${r.updated_true} mit MwSt · ${r.updated_false} §25a · ${r.still_unknown} unklar`,
+      toast.success(`${r.mwst_set + r.country_set} Felder aktualisiert`, {
+        description: `${r.mwst_set} MwSt · ${r.country_set} Land · ${r.archived_non_de} Nicht-DE archiviert`,
       });
       qc.invalidateQueries({ queryKey: ["vehicles"] });
     } catch (e) {
-      toast.error("Fehler beim MwSt-Backfill", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Fehler beim Backfill", { description: e instanceof Error ? e.message : String(e) });
     } finally {
       setLoading(false);
     }
@@ -383,20 +382,20 @@ function BackfillMwStCard() {
   return (
     <Card>
       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-        MwSt-Status nachträglich erkennen
+        Bestehende Inserate analysieren (MwSt + Land)
       </h3>
       <p className="text-sm text-muted-foreground mb-3">
-        Lädt die mobile.de-Inserate aller Fahrzeuge mit unbekanntem MwSt-Status (50 pro Aufruf) und
-        erkennt automatisch ob die MwSt ausweisbar ist oder es sich um ein §25a-Fahrzeug handelt.
+        Liest den E-Mail-Text aller Fahrzeuge erneut und setzt MwSt-Status, Land und archiviert
+        Nicht-DE-Fahrzeuge automatisch.
       </p>
       <Button onClick={handleRun} disabled={loading} variant="outline">
         <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
-        {loading ? "Prüfe Inserate…" : "MwSt-Status von mobile.de erkennen"}
+        {loading ? "Analysiere…" : "Bestehende Inserate analysieren"}
       </Button>
       {result && (
         <div className="mt-3 space-y-1 text-sm text-muted-foreground">
           <div>✅ {result.checked} Fahrzeuge geprüft</div>
-          <div>🟢 {result.updated_true} mit MwSt-Ausweis · ⚪ {result.updated_false} §25a · 🟡 {result.still_unknown} weiter unklar</div>
+          <div>🟢 {result.mwst_set} MwSt gesetzt · 🌍 {result.country_set} Land gesetzt · 📦 {result.archived_non_de} Nicht-DE archiviert</div>
           {result.errors.length > 0 && (
             <details className="text-xs">
               <summary className="cursor-pointer">{result.errors.length} Fehler</summary>
