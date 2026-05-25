@@ -167,6 +167,7 @@ function AdminPage() {
 
           <RecalculateCard />
           <RefreshAutoScoutCard />
+          <BackfillMwStCard />
         </TabsContent>
 
         <TabsContent value="email" className="mt-4">
@@ -352,6 +353,64 @@ function RefreshAutoScoutCard() {
     </Card>
   );
 }
+function BackfillMwStCard() {
+  const qc = useQueryClient();
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<{ checked: number; updated_true: number; updated_false: number; still_unknown: number; errors: string[] } | null>(null);
+
+  const handleRun = async () => {
+    setLoading(true);
+    setResult(null);
+    try {
+      const res = await fetch("/api/public/hooks/backfill-mwst", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ limit: 50 }),
+      });
+      const r = await res.json();
+      setResult(r);
+      toast.success(`${r.updated_true + r.updated_false} aktualisiert`, {
+        description: `${r.updated_true} mit MwSt · ${r.updated_false} §25a · ${r.still_unknown} unklar`,
+      });
+      qc.invalidateQueries({ queryKey: ["vehicles"] });
+    } catch (e) {
+      toast.error("Fehler beim MwSt-Backfill", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+        MwSt-Status nachträglich erkennen
+      </h3>
+      <p className="text-sm text-muted-foreground mb-3">
+        Lädt die mobile.de-Inserate aller Fahrzeuge mit unbekanntem MwSt-Status (50 pro Aufruf) und
+        erkennt automatisch ob die MwSt ausweisbar ist oder es sich um ein §25a-Fahrzeug handelt.
+      </p>
+      <Button onClick={handleRun} disabled={loading} variant="outline">
+        <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+        {loading ? "Prüfe Inserate…" : "MwSt-Status von mobile.de erkennen"}
+      </Button>
+      {result && (
+        <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+          <div>✅ {result.checked} Fahrzeuge geprüft</div>
+          <div>🟢 {result.updated_true} mit MwSt-Ausweis · ⚪ {result.updated_false} §25a · 🟡 {result.still_unknown} weiter unklar</div>
+          {result.errors.length > 0 && (
+            <details className="text-xs">
+              <summary className="cursor-pointer">{result.errors.length} Fehler</summary>
+              <ul className="mt-2 space-y-1 max-h-40 overflow-auto">
+                {result.errors.map((e, i) => <li key={i} className="font-mono">{e}</li>)}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>

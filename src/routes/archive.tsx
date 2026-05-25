@@ -47,12 +47,12 @@ function ArchivePage() {
 
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | DecisionValue>("all");
-  const [onlyWithMwst, setOnlyWithMwst] = useState(true);
+  const [onlyWithMwst, setOnlyWithMwst] = useState(false);
 
   const rows = useMemo(() => {
     return vehicles
       .filter((v) => v.decision)
-      .filter((v) => (onlyWithMwst ? v.seller_has_mwst === true : true))
+      .filter((v) => (onlyWithMwst ? v.seller_has_mwst !== false : true))
       .filter((v) => (q ? `${v.title} ${v.make ?? ""} ${v.model ?? ""}`.toLowerCase().includes(q.toLowerCase()) : true))
       .filter((v) => (filter === "all" ? true : v.decision?.decision === filter))
       .sort((a, b) => new Date(b.decision!.decided_at).getTime() - new Date(a.decision!.decided_at).getTime());
@@ -118,7 +118,7 @@ function ArchivePage() {
           onChange={(e) => setOnlyWithMwst(e.target.checked)}
           className="h-4 w-4 accent-primary"
         />
-        <span>Nur Fahrzeuge mit MwSt-Ausweis (Nettobetrag)</span>
+        <span>§25a-Fahrzeuge ohne MwSt-Ausweis ausblenden</span>
       </label>
 
       {rows.length === 0 ? (

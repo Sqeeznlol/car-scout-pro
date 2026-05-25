@@ -72,14 +72,15 @@ function QueuePage() {
 
   const [sortKey, setSortKey] = useState<SortKey>("margin");
   const [lastDecided, setLastDecided] = useState<string | null>(null);
-  const [onlyWithMwst, setOnlyWithMwst] = useState(true);
+  const [onlyWithMwst, setOnlyWithMwst] = useState(false);
 
   const filteredVehicles = useMemo(() => {
     return vehicles.filter((v) => {
       if (v.decision) return false;
       if (v.year == null || v.year < 2021) return false;
       if (v.mileage_km != null && v.mileage_km > 100000) return false;
-      if (onlyWithMwst && v.seller_has_mwst !== true) return false;
+      // onlyWithMwst: filtere nur explizit MwSt-lose (§25a) aus; unbekannt (null) bleibt drin
+      if (onlyWithMwst && v.seller_has_mwst === false) return false;
       return true;
     });
   }, [vehicles, onlyWithMwst]);
@@ -175,7 +176,7 @@ function QueuePage() {
           onChange={(e) => setOnlyWithMwst(e.target.checked)}
           className="h-4 w-4 accent-primary"
         />
-        <span>Nur Fahrzeuge mit MwSt-Ausweis (Nettobetrag)</span>
+        <span>§25a-Fahrzeuge ohne MwSt-Ausweis ausblenden</span>
       </label>
 
       {queue.length === 0 ? (
@@ -209,6 +210,35 @@ function EmptyState({ hasAny }: { hasAny: boolean }) {
         <div className="mt-6"><Button asChild variant="outline"><Link to="/archive">Archiv ansehen</Link></Button></div>
       )}
     </div>
+  );
+}
+
+function MwStBadge({ vehicle }: { vehicle: VehicleWithAnalysis }) {
+  const v = vehicle.seller_has_mwst;
+  if (v === true) {
+    return (
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-success/15 border border-success/30 px-2.5 py-1 text-[11px] font-medium text-success">
+        ✓ MwSt ausweisbar (Netto)
+      </div>
+    );
+  }
+  if (v === false) {
+    return (
+      <div className="inline-flex items-center gap-1.5 rounded-full bg-muted border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+        §25a (keine MwSt)
+      </div>
+    );
+  }
+  return (
+    <a
+      href={vehicle.listing_url ?? "#"}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1.5 rounded-full bg-warning/15 border border-warning/30 px-2.5 py-1 text-[11px] font-medium text-warning hover:bg-warning/25"
+      title="MwSt-Status unbekannt — Inserat öffnen zum Prüfen"
+    >
+      ⚠ MwSt unklar — prüfen
+    </a>
   );
 }
 
@@ -286,6 +316,7 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
       </div>
 
       <div className="p-4 lg:p-5 space-y-4">
+        <MwStBadge vehicle={vehicle} />
         <div className="grid grid-cols-2 gap-3 text-sm">
           <Spec icon={<Calendar className="h-3.5 w-3.5" />} label={vehicle.year ? String(vehicle.year) : "—"} sub="EZ" />
           <Spec icon={<Gauge className="h-3.5 w-3.5" />} label={vehicle.mileage_km ? fmtKm(vehicle.mileage_km) : "—"} sub="Kilometer" />

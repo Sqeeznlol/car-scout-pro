@@ -6,6 +6,7 @@ import { computeDistanceToKloten } from "@/lib/distance.server";
 import { notifyMatchingFilters } from "@/lib/telegram.server";
 import { estimateChMarketValue } from "@/lib/ch-market.server";
 import { getLiveEurChfRate } from "@/lib/fx.server";
+import { detectMwStFromListing } from "@/lib/mwst-detector.server";
 
 const GMAIL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
@@ -163,6 +164,29 @@ async function runSync(limit: number) {
           continue;
         }
         inserted++;
+
+        // MwSt-Status aus Inserat ableiten (nur wenn noch unbekannt)
+        if (L.listing_url) {
+          try {
+            const { data: existing } = await supabaseAdmin
+              .from("vehicles")
+              .select("seller_has_mwst")
+              .eq("id", inserted_row.id)
+              .single();
+            if (existing?.seller_has_mwst == null) {
+              const mwst = await detectMwStFromListing(L.listing_url);
+              if (mwst.has_mwst !== null) {
+                await supabaseAdmin
+                  .from("vehicles")
+                  .update({ seller_has_mwst: mwst.has_mwst })
+                  .eq("id", inserted_row.id);
+              }
+            }
+          } catch (e) {
+            errors.push(`mwst-detect: ${e instanceof Error ? e.message : String(e)}`);
+          }
+        }
+
         let analysis = computeAnalysis(
           {
             price_eur: L.price_eur,

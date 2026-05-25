@@ -17,6 +17,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VehicleIdRouteImport } from './routes/vehicle.$id'
 import { Route as ApiPublicHooksSyncGmailRouteImport } from './routes/api/public/hooks/sync-gmail'
+import { Route as ApiPublicHooksBackfillMwstRouteImport } from './routes/api/public/hooks/backfill-mwst'
 
 const RechnerRoute = RechnerRouteImport.update({
   id: '/rechner',
@@ -58,6 +59,12 @@ const ApiPublicHooksSyncGmailRoute = ApiPublicHooksSyncGmailRouteImport.update({
   path: '/api/public/hooks/sync-gmail',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksBackfillMwstRoute =
+  ApiPublicHooksBackfillMwstRouteImport.update({
+    id: '/api/public/hooks/backfill-mwst',
+    path: '/api/public/hooks/backfill-mwst',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -67,6 +74,7 @@ export interface FileRoutesByFullPath {
   '/queue': typeof QueueRoute
   '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
+  '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
 }
 export interface FileRoutesByTo {
@@ -77,6 +85,7 @@ export interface FileRoutesByTo {
   '/queue': typeof QueueRoute
   '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
+  '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
 }
 export interface FileRoutesById {
@@ -88,6 +97,7 @@ export interface FileRoutesById {
   '/queue': typeof QueueRoute
   '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
+  '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
 }
 export interface FileRouteTypes {
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/queue'
     | '/rechner'
     | '/vehicle/$id'
+    | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/sync-gmail'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -110,6 +121,7 @@ export interface FileRouteTypes {
     | '/queue'
     | '/rechner'
     | '/vehicle/$id'
+    | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/sync-gmail'
   id:
     | '__root__'
@@ -120,6 +132,7 @@ export interface FileRouteTypes {
     | '/queue'
     | '/rechner'
     | '/vehicle/$id'
+    | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/sync-gmail'
   fileRoutesById: FileRoutesById
 }
@@ -131,6 +144,7 @@ export interface RootRouteChildren {
   QueueRoute: typeof QueueRoute
   RechnerRoute: typeof RechnerRoute
   VehicleIdRoute: typeof VehicleIdRoute
+  ApiPublicHooksBackfillMwstRoute: typeof ApiPublicHooksBackfillMwstRoute
   ApiPublicHooksSyncGmailRoute: typeof ApiPublicHooksSyncGmailRoute
 }
 
@@ -192,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSyncGmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/backfill-mwst': {
+      id: '/api/public/hooks/backfill-mwst'
+      path: '/api/public/hooks/backfill-mwst'
+      fullPath: '/api/public/hooks/backfill-mwst'
+      preLoaderRoute: typeof ApiPublicHooksBackfillMwstRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -203,6 +224,7 @@ const rootRouteChildren: RootRouteChildren = {
   QueueRoute: QueueRoute,
   RechnerRoute: RechnerRoute,
   VehicleIdRoute: VehicleIdRoute,
+  ApiPublicHooksBackfillMwstRoute: ApiPublicHooksBackfillMwstRoute,
   ApiPublicHooksSyncGmailRoute: ApiPublicHooksSyncGmailRoute,
 }
 export const routeTree = rootRouteImport
