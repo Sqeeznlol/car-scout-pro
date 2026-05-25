@@ -6,6 +6,7 @@ import { computeDistanceToKloten } from "@/lib/distance.server";
 import { notifyMatchingFilters } from "@/lib/telegram.server";
 import { estimateChMarketValue } from "@/lib/ch-market.server";
 import { getLiveEurChfRate } from "@/lib/fx.server";
+import { fetchListingDetails } from "@/lib/mwst-detector.server";
 
 
 const GMAIL = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
@@ -194,6 +195,65 @@ async function runSync(limit: number) {
           continue;
         }
         inserted++;
+
+        // Hole MwSt + verlässlichen Standort von mobile.de über Jina Reader
+        let resolvedLocation = L.location;
+        let resolvedCountry = L.country_code;
+        let resolvedHasMwst = L.seller_has_mwst;
+        let resolvedNetto = L.price_eur_netto;
+
+        if (L.listing_url && (resolvedHasMwst == null || resolvedCountry == null)) {
+          try {
+            const det = await fetchListingDetails(L.listing_url);
+            if (det.has_mwst !== null && resolvedHasMwst == null) resolvedHasMwst = det.has_mwst;
+            if (det.netto_eur && !resolvedNetto) resolvedNetto = det.netto_eur;
+            if (det.location && !resolvedLocation) resolvedLocation = det.location;
+            if (det.country_code && !resolvedCountry) resolvedCountry = det.country_code;
+          } catch (e) {
+            errors.push(`jina-fetch: ${e instanceof Error ? e.message : String(e)}`);
+          }
+        }
+
+        if (resolvedCountry && resolvedCountry !== "DE") {
+          await supabaseAdmin.from("vehicles").update({
+            country_code: resolvedCountry,
+            seller_has_mwst: resolvedHasMwst,
+            skip_reason: `country_${resolvedCountry}`,
+          }).eq("id", inserted_row.id);
+          continue;
+        }
+
+        {
+          const updates: Partial<{
+            seller_has_mwst: boolean;
+            price_eur_netto: number;
+            country_code: string;
+            location: string;
+            latitude: number;
+            longitude: number;
+            distance_km: number;
+            distance_minutes: number;
+            distance_computed_at: string;
+          }> = {
+            seller_has_mwst: resolvedHasMwst ?? undefined,
+            price_eur_netto: resolvedNetto ?? undefined,
+            country_code: resolvedCountry ?? undefined,
+          };
+          if (resolvedLocation && resolvedLocation !== L.location) {
+            updates.location = resolvedLocation;
+            const newDist = await computeDistanceToKloten(resolvedLocation, null);
+            if (newDist) {
+              updates.latitude = newDist.latitude;
+              updates.longitude = newDist.longitude;
+              updates.distance_km = newDist.distance_km;
+              updates.distance_minutes = newDist.distance_minutes;
+              updates.distance_computed_at = new Date().toISOString();
+            }
+          }
+          await supabaseAdmin.from("vehicles").update(updates).eq("id", inserted_row.id);
+        }
+
+
 
 
         let analysis = computeAnalysis(

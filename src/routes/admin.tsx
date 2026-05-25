@@ -356,7 +356,7 @@ function RefreshAutoScoutCard() {
 function BackfillMwStCard() {
   const qc = useQueryClient();
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ checked: number; mwst_set: number; country_set: number; archived_non_de: number; errors: string[] } | null>(null);
+  const [result, setResult] = useState<{ checked: number; mwst_set: number; country_set: number; archived_non_de: number; location_improved: number; errors: string[] } | null>(null);
 
   const handleRun = async () => {
     setLoading(true);
@@ -368,8 +368,8 @@ function BackfillMwStCard() {
       });
       const r = await res.json();
       setResult(r);
-      toast.success(`${r.mwst_set + r.country_set} Felder aktualisiert`, {
-        description: `${r.mwst_set} MwSt · ${r.country_set} Land · ${r.archived_non_de} Nicht-DE archiviert`,
+      toast.success(`${r.mwst_set + r.country_set + (r.location_improved ?? 0)} Felder aktualisiert`, {
+        description: `🟢 ${r.mwst_set} MwSt · 🌍 ${r.country_set} Land · 📍 ${r.location_improved ?? 0} Standort · 📦 ${r.archived_non_de} Nicht-DE archiviert`,
       });
       qc.invalidateQueries({ queryKey: ["vehicles"] });
     } catch (e) {
@@ -382,11 +382,11 @@ function BackfillMwStCard() {
   return (
     <Card>
       <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-        Bestehende Inserate analysieren (MwSt + Land)
+        Bestehende Inserate analysieren (MwSt + Land + Standort)
       </h3>
       <p className="text-sm text-muted-foreground mb-3">
-        Liest den E-Mail-Text aller Fahrzeuge erneut und setzt MwSt-Status, Land und archiviert
-        Nicht-DE-Fahrzeuge automatisch.
+        Lädt mobile.de-Inserate über Jina Reader (gratis) und extrahiert MwSt-Status, Standort, Land.
+        15 Fahrzeuge pro Klick (Rate-Limit ~1min).
       </p>
       <Button onClick={handleRun} disabled={loading} variant="outline">
         <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
@@ -395,7 +395,7 @@ function BackfillMwStCard() {
       {result && (
         <div className="mt-3 space-y-1 text-sm text-muted-foreground">
           <div>✅ {result.checked} Fahrzeuge geprüft</div>
-          <div>🟢 {result.mwst_set} MwSt gesetzt · 🌍 {result.country_set} Land gesetzt · 📦 {result.archived_non_de} Nicht-DE archiviert</div>
+          <div>🟢 {result.mwst_set} MwSt · 🌍 {result.country_set} Land · 📍 {result.location_improved ?? 0} Standort verbessert · 📦 {result.archived_non_de} Nicht-DE archiviert</div>
           {result.errors.length > 0 && (
             <details className="text-xs">
               <summary className="cursor-pointer">{result.errors.length} Fehler</summary>
