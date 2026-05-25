@@ -47,14 +47,16 @@ function ArchivePage() {
 
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<"all" | DecisionValue>("all");
+  const [onlyWithMwst, setOnlyWithMwst] = useState(true);
 
   const rows = useMemo(() => {
     return vehicles
       .filter((v) => v.decision)
+      .filter((v) => (onlyWithMwst ? v.seller_has_mwst === true : true))
       .filter((v) => (q ? `${v.title} ${v.make ?? ""} ${v.model ?? ""}`.toLowerCase().includes(q.toLowerCase()) : true))
       .filter((v) => (filter === "all" ? true : v.decision?.decision === filter))
       .sort((a, b) => new Date(b.decision!.decided_at).getTime() - new Date(a.decision!.decided_at).getTime());
-  }, [vehicles, q, filter]);
+  }, [vehicles, q, filter, onlyWithMwst]);
 
   const stats = useMemo(() => {
     const decided = vehicles.filter((v) => v.decision);
