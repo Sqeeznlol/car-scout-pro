@@ -464,7 +464,6 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
 function CostBreakdown({ vehicle, total }: { vehicle: VehicleWithAnalysis; total: number }) {
   const a = vehicle.analysis;
   if (!a) return null;
-  const hasMwst = vehicle.seller_has_mwst === true;
   const priceEur = Number(vehicle.price_eur ?? 0);
   const priceChf = Number(a.price_chf ?? 0);
   const netto = Number(a.netto_kaufpreis_chf ?? 0);
