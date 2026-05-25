@@ -358,6 +358,8 @@ export function parseGmailMessage(message: {
 
     // Skip blocks that look like footer/header noise
     if (!price && !mileage && !year) continue;
+    const mwstInfo = detectMwStFromText(b.block);
+    const country_code = detectCountry(specsPart) ?? detectCountry(titlePart) ?? detectCountry(b.block);
     // Synthesize per-listing id from message id + URL
     const idSuffix = b.url ? b.url.replace(/\W+/g, "").slice(-24) : String(listings.length);
     listings.push({
@@ -383,6 +385,9 @@ export function parseGmailMessage(message: {
       seller_phone,
       seller_address,
       seller_website,
+      seller_has_mwst: mwstInfo.has_mwst,
+      price_eur_netto: mwstInfo.netto_eur,
+      country_code,
       image_url: b.image,
       raw_text: b.block.slice(0, 2000),
       received_at: internal,
