@@ -16,6 +16,7 @@ import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as VehicleIdRouteImport } from './routes/vehicle.$id'
+import { Route as ApiPublicHooksTestJinaRouteImport } from './routes/api/public/hooks/test-jina'
 import { Route as ApiPublicHooksSyncGmailRouteImport } from './routes/api/public/hooks/sync-gmail'
 import { Route as ApiPublicHooksBackfillMwstRouteImport } from './routes/api/public/hooks/backfill-mwst'
 
@@ -54,6 +55,11 @@ const VehicleIdRoute = VehicleIdRouteImport.update({
   path: '/vehicle/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksTestJinaRoute = ApiPublicHooksTestJinaRouteImport.update({
+  id: '/api/public/hooks/test-jina',
+  path: '/api/public/hooks/test-jina',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicHooksSyncGmailRoute = ApiPublicHooksSyncGmailRouteImport.update({
   id: '/api/public/hooks/sync-gmail',
   path: '/api/public/hooks/sync-gmail',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
+  '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
+  '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
+  '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/sync-gmail'
+    | '/api/public/hooks/test-jina'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -123,6 +133,7 @@ export interface FileRouteTypes {
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/sync-gmail'
+    | '/api/public/hooks/test-jina'
   id:
     | '__root__'
     | '/'
@@ -134,6 +145,7 @@ export interface FileRouteTypes {
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/sync-gmail'
+    | '/api/public/hooks/test-jina'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -146,6 +158,7 @@ export interface RootRouteChildren {
   VehicleIdRoute: typeof VehicleIdRoute
   ApiPublicHooksBackfillMwstRoute: typeof ApiPublicHooksBackfillMwstRoute
   ApiPublicHooksSyncGmailRoute: typeof ApiPublicHooksSyncGmailRoute
+  ApiPublicHooksTestJinaRoute: typeof ApiPublicHooksTestJinaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -199,6 +212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof VehicleIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/test-jina': {
+      id: '/api/public/hooks/test-jina'
+      path: '/api/public/hooks/test-jina'
+      fullPath: '/api/public/hooks/test-jina'
+      preLoaderRoute: typeof ApiPublicHooksTestJinaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/sync-gmail': {
       id: '/api/public/hooks/sync-gmail'
       path: '/api/public/hooks/sync-gmail'
@@ -226,6 +246,7 @@ const rootRouteChildren: RootRouteChildren = {
   VehicleIdRoute: VehicleIdRoute,
   ApiPublicHooksBackfillMwstRoute: ApiPublicHooksBackfillMwstRoute,
   ApiPublicHooksSyncGmailRoute: ApiPublicHooksSyncGmailRoute,
+  ApiPublicHooksTestJinaRoute: ApiPublicHooksTestJinaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
