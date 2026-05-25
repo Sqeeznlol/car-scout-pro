@@ -88,6 +88,33 @@ async function runSync(limit: number) {
       for (const L of listings) {
         if (!L.price_eur) continue;
 
+        // Nicht-DE Fahrzeuge: still abspeichern für Audit, aber als skipped markieren
+        if (L.country_code && L.country_code !== "DE") {
+          await supabaseAdmin.from("vehicles").upsert(
+            {
+              source: "mobile.de",
+              source_message_id: L.source_message_id,
+              listing_url: L.listing_url,
+              title: L.title,
+              make: L.make,
+              model: L.model,
+              year: L.year,
+              mileage_km: L.mileage_km,
+              price_eur: L.price_eur,
+              fuel: L.fuel,
+              image_url: L.image_url,
+              location: L.location,
+              country_code: L.country_code,
+              raw_text: L.raw_text,
+              received_at: L.received_at,
+              skip_reason: `country_${L.country_code}`,
+              telegram_sent: false,
+            },
+            { onConflict: "source_message_id" },
+          );
+          continue;
+        }
+
         // Hard-Filter: Elektro/Hybrid/Gas werden still abgespeichert (für Audit)
         // aber erscheinen nirgends im Tool und triggern keine Telegram-Nachricht.
         const fuelLow = (L.fuel ?? "").toLowerCase();
@@ -133,6 +160,9 @@ async function runSync(limit: number) {
               registration_month: L.registration_month,
               mileage_km: L.mileage_km,
               price_eur: L.price_eur,
+              price_eur_netto: L.price_eur_netto,
+              seller_has_mwst: L.seller_has_mwst,
+              country_code: L.country_code,
               fuel: L.fuel,
               transmission: L.transmission,
               power_kw: L.power_kw,
@@ -165,27 +195,6 @@ async function runSync(limit: number) {
         }
         inserted++;
 
-        // MwSt-Status aus Inserat ableiten (nur wenn noch unbekannt)
-        if (L.listing_url) {
-          try {
-            const { data: existing } = await supabaseAdmin
-              .from("vehicles")
-              .select("seller_has_mwst")
-              .eq("id", inserted_row.id)
-              .single();
-            if (existing?.seller_has_mwst == null) {
-              const mwst = await detectMwStFromListing(L.listing_url);
-              if (mwst.has_mwst !== null) {
-                await supabaseAdmin
-                  .from("vehicles")
-                  .update({ seller_has_mwst: mwst.has_mwst })
-                  .eq("id", inserted_row.id);
-              }
-            }
-          } catch (e) {
-            errors.push(`mwst-detect: ${e instanceof Error ? e.message : String(e)}`);
-          }
-        }
 
         let analysis = computeAnalysis(
           {
