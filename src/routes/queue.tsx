@@ -148,7 +148,7 @@ function QueuePage() {
         </div>
       </div>
 
-      <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar -mx-3 px-3 lg:mx-0 lg:px-0">
+      <div className="flex gap-2 mb-3 overflow-x-auto no-scrollbar -mx-3 px-3 lg:mx-0 lg:px-0">
         {([
           ["margin", "💰 Höchste Marge"],
           ["newest", "🕐 Neueste"],
@@ -167,6 +167,16 @@ function QueuePage() {
           </button>
         ))}
       </div>
+
+      <label className="flex items-center gap-2 mb-4 text-xs text-muted-foreground cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={onlyWithMwst}
+          onChange={(e) => setOnlyWithMwst(e.target.checked)}
+          className="h-4 w-4 accent-primary"
+        />
+        <span>Nur Fahrzeuge mit MwSt-Ausweis (Nettobetrag)</span>
+      </label>
 
       {queue.length === 0 ? (
         <EmptyState hasAny={vehicles.length > 0} />
