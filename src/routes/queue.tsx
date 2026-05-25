@@ -180,7 +180,7 @@ function QueuePage() {
       </label>
 
       {queue.length === 0 ? (
-        <EmptyState hasAny={vehicles.length > 0} />
+        <EmptyState hasAny={vehicles.length > 0} hiddenCount={hiddenCount} onClearFilter={() => setOnlyWithMwst(false)} />
       ) : (
         <div className="space-y-4">
           {queue.map((v) => (
@@ -192,7 +192,7 @@ function QueuePage() {
   );
 }
 
-function EmptyState({ hasAny }: { hasAny: boolean }) {
+function EmptyState({ hasAny, hiddenCount, onClearFilter }: { hasAny: boolean; hiddenCount: number; onClearFilter: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-6 text-center">
       <div className="h-20 w-20 rounded-2xl bg-gradient-success/20 flex items-center justify-center mb-6 shadow-glow-success">
@@ -206,7 +206,13 @@ function EmptyState({ hasAny }: { hasAny: boolean }) {
           ? "Gmail wird automatisch alle 5 Minuten synchronisiert. Neue Inserate erscheinen hier."
           : "Keine Fahrzeuge zur Entscheidung offen. Neue Mails erscheinen automatisch hier."}
       </p>
-      {hasAny && (
+      {hiddenCount > 0 && (
+        <div className="mt-6 p-4 rounded-xl bg-warning/10 border border-warning/30 text-sm max-w-sm">
+          <p className="text-warning font-medium">{hiddenCount} Fahrzeuge sind durch den MwSt-Filter ausgeblendet</p>
+          <Button size="sm" variant="outline" className="mt-2" onClick={onClearFilter}>Filter deaktivieren</Button>
+        </div>
+      )}
+      {hasAny && hiddenCount === 0 && (
         <div className="mt-6"><Button asChild variant="outline"><Link to="/archive">Archiv ansehen</Link></Button></div>
       )}
     </div>
@@ -464,7 +470,6 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
 function CostBreakdown({ vehicle, total }: { vehicle: VehicleWithAnalysis; total: number }) {
   const a = vehicle.analysis;
   if (!a) return null;
-  const hasMwst = vehicle.seller_has_mwst === true;
   const priceEur = Number(vehicle.price_eur ?? 0);
   const priceChf = Number(a.price_chf ?? 0);
   const netto = Number(a.netto_kaufpreis_chf ?? 0);
