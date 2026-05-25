@@ -510,6 +510,7 @@ export type Database = {
         Row: {
           co2_gkm: number | null
           consumption: string | null
+          country_code: string | null
           created_at: string
           distance_computed_at: string | null
           distance_km: number | null
@@ -528,6 +529,7 @@ export type Database = {
           power_kw: number | null
           power_ps: number | null
           price_eur: number | null
+          price_eur_netto: number | null
           raw_text: string | null
           received_at: string | null
           registration_month: number | null
@@ -550,6 +552,7 @@ export type Database = {
         Insert: {
           co2_gkm?: number | null
           consumption?: string | null
+          country_code?: string | null
           created_at?: string
           distance_computed_at?: string | null
           distance_km?: number | null
@@ -568,6 +571,7 @@ export type Database = {
           power_kw?: number | null
           power_ps?: number | null
           price_eur?: number | null
+          price_eur_netto?: number | null
           raw_text?: string | null
           received_at?: string | null
           registration_month?: number | null
@@ -590,6 +594,7 @@ export type Database = {
         Update: {
           co2_gkm?: number | null
           consumption?: string | null
+          country_code?: string | null
           created_at?: string
           distance_computed_at?: string | null
           distance_km?: number | null
@@ -608,6 +613,7 @@ export type Database = {
           power_kw?: number | null
           power_ps?: number | null
           price_eur?: number | null
+          price_eur_netto?: number | null
           raw_text?: string | null
           received_at?: string | null
           registration_month?: number | null
