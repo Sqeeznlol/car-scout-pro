@@ -26,6 +26,9 @@ export interface ParsedListing {
   seller_phone: string | null;
   seller_address: string | null;
   seller_website: string | null;
+  seller_has_mwst: boolean | null;
+  price_eur_netto: number | null;
+  country_code: string | null;
   raw_text: string;
   received_at: string | null;
 }
@@ -150,6 +153,34 @@ function detectLocation(text: string): string | null {
   // Priority 3: "Standort: X"
   const mStd = /Standort[:\s]+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-.\s]{2,40})/.exec(text);
   if (mStd) return mStd[1].trim().replace(/\s+/g, " ");
+  return null;
+}
+
+export function detectMwStFromText(block: string): { has_mwst: boolean | null; netto_eur: number | null } {
+  // Pattern 1: "54.538 € (Netto), 19% MwSt."
+  const m1 = /([\d.]+(?:[.,]\d{2})?)\s*€\s*\(Netto\)(?:[,\s]*\d+\s*%\s*MwSt)?/i.exec(block);
+  if (m1) {
+    const netto = parseInt(m1[1].replace(/\D/g, ""), 10);
+    if (netto >= 1000 && netto <= 500000) return { has_mwst: true, netto_eur: netto };
+  }
+  if (/zzgl\.?\s*\d+\s*%?\s*MwSt|exkl\.?\s*MwSt|Nettopreis|MwSt\.?\s*ausweisbar|MwSt\.?\s*ausgewiesen|netto\s*(?:zzgl|exkl|\+)|Brutto.*Netto/i.test(block)) {
+    return { has_mwst: true, netto_eur: null };
+  }
+  if (/§\s*25\s*a|Differenzbesteu/i.test(block)) {
+    return { has_mwst: false, netto_eur: null };
+  }
+  return { has_mwst: null, netto_eur: null };
+}
+
+export function detectCountry(text: string): string | null {
+  const m = /\b(DE|AT|CH|IT|FR|NL|BE|LU|DK|PL|CZ|ES|PT|SE|NO|FI|HU|SK|SI|HR)-\d{4,5}\s+[A-ZÄÖÜ]/.exec(text);
+  if (m) return m[1];
+  if (/\bÖsterreich\b/i.test(text)) return "AT";
+  if (/\bSchweiz\b/i.test(text)) return "CH";
+  if (/\bItalien\b/i.test(text)) return "IT";
+  if (/\bFrankreich\b/i.test(text)) return "FR";
+  if (/\bNiederlande/i.test(text)) return "NL";
+  if (/\bBelgien\b/i.test(text)) return "BE";
   return null;
 }
 
@@ -327,6 +358,8 @@ export function parseGmailMessage(message: {
 
     // Skip blocks that look like footer/header noise
     if (!price && !mileage && !year) continue;
+    const mwstInfo = detectMwStFromText(b.block);
+    const country_code = detectCountry(specsPart) ?? detectCountry(titlePart) ?? detectCountry(b.block);
     // Synthesize per-listing id from message id + URL
     const idSuffix = b.url ? b.url.replace(/\W+/g, "").slice(-24) : String(listings.length);
     listings.push({
@@ -352,6 +385,9 @@ export function parseGmailMessage(message: {
       seller_phone,
       seller_address,
       seller_website,
+      seller_has_mwst: mwstInfo.has_mwst,
+      price_eur_netto: mwstInfo.netto_eur,
+      country_code,
       image_url: b.image,
       raw_text: b.block.slice(0, 2000),
       received_at: internal,
