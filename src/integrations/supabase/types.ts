@@ -508,24 +508,35 @@ export type Database = {
       }
       vehicles: {
         Row: {
+          body_type: string | null
           co2_gkm: number | null
+          color: string | null
           consumption: string | null
           country_code: string | null
           created_at: string
+          description: string | null
           distance_computed_at: string | null
           distance_km: number | null
           distance_minutes: number | null
+          doors: number | null
           emission_class: string | null
+          equipment: Json | null
+          extension_synced_at: string | null
           fuel: string | null
+          hu_until: string | null
           id: string
           image_url: string | null
+          image_urls: Json | null
+          interior_color: string | null
           latitude: number | null
           listing_url: string | null
           location: string | null
           longitude: number | null
           make: string | null
           mileage_km: number | null
+          mobile_de_listing_id: string | null
           model: string | null
+          owner_count: number | null
           power_kw: number | null
           power_ps: number | null
           price_eur: number | null
@@ -533,6 +544,7 @@ export type Database = {
           raw_text: string | null
           received_at: string | null
           registration_month: number | null
+          seats: number | null
           seller_address: string | null
           seller_has_mwst: boolean | null
           seller_name: string | null
@@ -550,24 +562,35 @@ export type Database = {
           year: number | null
         }
         Insert: {
+          body_type?: string | null
           co2_gkm?: number | null
+          color?: string | null
           consumption?: string | null
           country_code?: string | null
           created_at?: string
+          description?: string | null
           distance_computed_at?: string | null
           distance_km?: number | null
           distance_minutes?: number | null
+          doors?: number | null
           emission_class?: string | null
+          equipment?: Json | null
+          extension_synced_at?: string | null
           fuel?: string | null
+          hu_until?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: Json | null
+          interior_color?: string | null
           latitude?: number | null
           listing_url?: string | null
           location?: string | null
           longitude?: number | null
           make?: string | null
           mileage_km?: number | null
+          mobile_de_listing_id?: string | null
           model?: string | null
+          owner_count?: number | null
           power_kw?: number | null
           power_ps?: number | null
           price_eur?: number | null
@@ -575,6 +598,7 @@ export type Database = {
           raw_text?: string | null
           received_at?: string | null
           registration_month?: number | null
+          seats?: number | null
           seller_address?: string | null
           seller_has_mwst?: boolean | null
           seller_name?: string | null
@@ -592,24 +616,35 @@ export type Database = {
           year?: number | null
         }
         Update: {
+          body_type?: string | null
           co2_gkm?: number | null
+          color?: string | null
           consumption?: string | null
           country_code?: string | null
           created_at?: string
+          description?: string | null
           distance_computed_at?: string | null
           distance_km?: number | null
           distance_minutes?: number | null
+          doors?: number | null
           emission_class?: string | null
+          equipment?: Json | null
+          extension_synced_at?: string | null
           fuel?: string | null
+          hu_until?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: Json | null
+          interior_color?: string | null
           latitude?: number | null
           listing_url?: string | null
           location?: string | null
           longitude?: number | null
           make?: string | null
           mileage_km?: number | null
+          mobile_de_listing_id?: string | null
           model?: string | null
+          owner_count?: number | null
           power_kw?: number | null
           power_ps?: number | null
           price_eur?: number | null
@@ -617,6 +652,7 @@ export type Database = {
           raw_text?: string | null
           received_at?: string | null
           registration_month?: number | null
+          seats?: number | null
           seller_address?: string | null
           seller_has_mwst?: boolean | null
           seller_name?: string | null

@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Autosnipe — Mobile.de Sync",
+  "version": "1.0.0",
+  "description": "Sendet mobile.de Inserate automatisch an Autosnipe (MwSt, Standort, Preise, Bilder).",
+  "permissions": ["storage", "activeTab", "scripting", "notifications"],
+  "host_permissions": [
+    "https://*.mobile.de/*",
+    "https://autosnipe.shop/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://suchen.mobile.de/fahrzeuge/details.html*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}
