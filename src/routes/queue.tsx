@@ -72,15 +72,17 @@ function QueuePage() {
 
   const [sortKey, setSortKey] = useState<SortKey>("margin");
   const [lastDecided, setLastDecided] = useState<string | null>(null);
+  const [onlyWithMwst, setOnlyWithMwst] = useState(true);
 
   const filteredVehicles = useMemo(() => {
     return vehicles.filter((v) => {
       if (v.decision) return false;
       if (v.year == null || v.year < 2021) return false;
       if (v.mileage_km != null && v.mileage_km > 100000) return false;
+      if (onlyWithMwst && v.seller_has_mwst !== true) return false;
       return true;
     });
-  }, [vehicles]);
+  }, [vehicles, onlyWithMwst]);
 
   const queue = useMemo(() => {
     const ts = (v: VehicleWithAnalysis) => new Date(v.received_at ?? v.created_at).getTime();
