@@ -147,6 +147,36 @@ function detectLocation(text: string): string | null {
   const mDe = /DE-(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-\s]{2,40}?)(?=\s{2,}|\s*$|\s*[<•|·,])/.exec(text)
     ?? /DE-(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]{2,40})/.exec(text);
   if (mDe) return `${mDe[1]} ${mDe[2].trim()}`.replace(/\s+/g, " ");
+
+export function detectMwStFromText(block: string): { has_mwst: boolean | null; netto_eur: number | null } {
+  // Pattern 1: "54.538 € (Netto), 19% MwSt."
+  const m1 = /([\d.]+(?:[.,]\d{2})?)\s*€\s*\(Netto\)(?:[,\s]*\d+\s*%\s*MwSt)?/i.exec(block);
+  if (m1) {
+    const netto = parseInt(m1[1].replace(/\D/g, ""), 10);
+    if (netto >= 1000 && netto <= 500000) return { has_mwst: true, netto_eur: netto };
+  }
+  if (/zzgl\.?\s*\d+\s*%?\s*MwSt|exkl\.?\s*MwSt|Nettopreis|MwSt\.?\s*ausweisbar|MwSt\.?\s*ausgewiesen|netto\s*(?:zzgl|exkl|\+)|Brutto.*Netto/i.test(block)) {
+    return { has_mwst: true, netto_eur: null };
+  }
+  if (/§\s*25\s*a|Differenzbesteu/i.test(block)) {
+    return { has_mwst: false, netto_eur: null };
+  }
+  return { has_mwst: null, netto_eur: null };
+}
+
+export function detectCountry(text: string): string | null {
+  const m = /\b(DE|AT|CH|IT|FR|NL|BE|LU|DK|PL|CZ|ES|PT|SE|NO|FI|HU|SK|SI|HR)-\d{4,5}\s+[A-ZÄÖÜ]/.exec(text);
+  if (m) return m[1];
+  if (/\bÖsterreich\b/i.test(text)) return "AT";
+  if (/\bSchweiz\b/i.test(text)) return "CH";
+  if (/\bItalien\b/i.test(text)) return "IT";
+  if (/\bFrankreich\b/i.test(text)) return "FR";
+  if (/\bNiederlande/i.test(text)) return "NL";
+  if (/\bBelgien\b/i.test(text)) return "BE";
+  return null;
+}
+
+function _detectLocationContinued(text: string): string | null {
   // Priority 2: plain "XXXXX Stadtname"
   const mPlz = /\b(\d{5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-]{2,30})/.exec(text);
   if (mPlz) return `${mPlz[1]} ${mPlz[2]}`;
