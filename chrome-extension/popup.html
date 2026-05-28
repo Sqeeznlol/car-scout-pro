@@ -3,27 +3,69 @@
 <head>
   <meta charset="utf-8" />
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; width: 320px; padding: 16px; margin: 0; background: #f9fafb; }
-    h1 { font-size: 16px; margin: 0 0 12px; color: #111827; }
-    .status { padding: 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
-    .status.ok { background: #d1fae5; color: #065f46; }
-    .status.empty { background: #fef3c7; color: #92400e; }
-    .row { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid #e5e7eb; }
-    .row:last-child { border-bottom: none; }
+    body { font-family: system-ui, -apple-system, sans-serif; width: 340px; padding: 16px; margin: 0; background: #f9fafb; color: #111827; }
+    h1 { font-size: 16px; margin: 0 0 4px; }
+    .sub { font-size: 11px; color: #6b7280; margin-bottom: 14px; }
+    .card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+    .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; margin: 0 0 8px; }
+    .row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
     .label { color: #6b7280; }
-    .value { font-weight: 600; color: #111827; }
-    a { color: #6366f1; text-decoration: none; font-size: 13px; }
-    a:hover { text-decoration: underline; }
-    .footer { margin-top: 12px; text-align: center; }
+    .value { font-weight: 600; }
+    .toggle { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
+    .switch { position: relative; width: 44px; height: 24px; background: #d1d5db; border-radius: 12px; cursor: pointer; transition: .2s; }
+    .switch.on { background: #10b981; }
+    .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: .2s; }
+    .switch.on::after { left: 22px; }
+    button { width: 100%; padding: 10px; border-radius: 8px; border: none; cursor: pointer; background: #6366f1; color: white; font-weight: 600; font-size: 13px; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .status { padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 10px; }
+    .status.ok { background: #d1fae5; color: #065f46; }
+    .status.idle { background: #fef3c7; color: #92400e; }
+    .status.run { background: #dbeafe; color: #1e40af; }
+    select { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 13px; }
+    a { color: #6366f1; text-decoration: none; font-size: 12px; }
+    .footer { text-align: center; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h1>Autosnipe Sync</h1>
-  <div id="status" class="status empty">Öffne ein mobile.de Inserat um zu synchronisieren.</div>
-  <div id="details"></div>
+  <h1>Autosnipe Auto-Worker</h1>
+  <div class="sub">Holt Inserate automatisch von Autosnipe und scraped sie nebenbei.</div>
+
+  <div id="status" class="status idle">Lade Status…</div>
+
+  <div class="card">
+    <div class="toggle">
+      <span><strong>Auto-Worker</strong><br><span style="font-size:11px;color:#6b7280">Läuft im Hintergrund</span></span>
+      <div id="toggle" class="switch"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Intervall</h2>
+    <select id="interval">
+      <option value="1">Alle 1 Minute</option>
+      <option value="2" selected>Alle 2 Minuten</option>
+      <option value="5">Alle 5 Minuten</option>
+      <option value="10">Alle 10 Minuten</option>
+      <option value="30">Alle 30 Minuten</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <h2>Statistik</h2>
+    <div class="row"><span class="label">Läufe gesamt</span><span class="value" id="s-runs">0</span></div>
+    <div class="row"><span class="label">Verarbeitet</span><span class="value" id="s-proc">0</span></div>
+    <div class="row"><span class="label">Fehler</span><span class="value" id="s-err">0</span></div>
+    <div class="row"><span class="label">Letzter Lauf</span><span class="value" id="s-last">—</span></div>
+    <div class="row"><span class="label">Letzter Batch</span><span class="value" id="s-batch">—</span></div>
+  </div>
+
+  <button id="runNow">▶ Jetzt einen Lauf starten</button>
+
   <div class="footer">
     <a href="https://autosnipe.shop/queue" target="_blank">→ Queue öffnen</a>
   </div>
+
   <script src="popup.js"></script>
 </body>
 </html>

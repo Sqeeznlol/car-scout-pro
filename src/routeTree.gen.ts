@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as VehicleIdRouteImport } from './routes/vehicle.$id'
 import { Route as ApiPublicHooksTestJinaRouteImport } from './routes/api/public/hooks/test-jina'
 import { Route as ApiPublicHooksSyncGmailRouteImport } from './routes/api/public/hooks/sync-gmail'
+import { Route as ApiPublicHooksExtensionQueueRouteImport } from './routes/api/public/hooks/extension-queue'
 import { Route as ApiPublicHooksExtensionIngestRouteImport } from './routes/api/public/hooks/extension-ingest'
 import { Route as ApiPublicHooksBackfillMwstRouteImport } from './routes/api/public/hooks/backfill-mwst'
 
@@ -66,6 +67,12 @@ const ApiPublicHooksSyncGmailRoute = ApiPublicHooksSyncGmailRouteImport.update({
   path: '/api/public/hooks/sync-gmail',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksExtensionQueueRoute =
+  ApiPublicHooksExtensionQueueRouteImport.update({
+    id: '/api/public/hooks/extension-queue',
+    path: '/api/public/hooks/extension-queue',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksExtensionIngestRoute =
   ApiPublicHooksExtensionIngestRouteImport.update({
     id: '/api/public/hooks/extension-ingest',
@@ -89,6 +96,7 @@ export interface FileRoutesByFullPath {
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
+  '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
@@ -102,6 +110,7 @@ export interface FileRoutesByTo {
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
+  '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
@@ -116,6 +125,7 @@ export interface FileRoutesById {
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
+  '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/extension-ingest'
+    | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
   fileRoutesByTo: FileRoutesByTo
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/extension-ingest'
+    | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
   id:
@@ -157,6 +169,7 @@ export interface FileRouteTypes {
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/extension-ingest'
+    | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
   fileRoutesById: FileRoutesById
@@ -171,6 +184,7 @@ export interface RootRouteChildren {
   VehicleIdRoute: typeof VehicleIdRoute
   ApiPublicHooksBackfillMwstRoute: typeof ApiPublicHooksBackfillMwstRoute
   ApiPublicHooksExtensionIngestRoute: typeof ApiPublicHooksExtensionIngestRoute
+  ApiPublicHooksExtensionQueueRoute: typeof ApiPublicHooksExtensionQueueRoute
   ApiPublicHooksSyncGmailRoute: typeof ApiPublicHooksSyncGmailRoute
   ApiPublicHooksTestJinaRoute: typeof ApiPublicHooksTestJinaRoute
 }
@@ -240,6 +254,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSyncGmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/extension-queue': {
+      id: '/api/public/hooks/extension-queue'
+      path: '/api/public/hooks/extension-queue'
+      fullPath: '/api/public/hooks/extension-queue'
+      preLoaderRoute: typeof ApiPublicHooksExtensionQueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/extension-ingest': {
       id: '/api/public/hooks/extension-ingest'
       path: '/api/public/hooks/extension-ingest'
@@ -267,6 +288,7 @@ const rootRouteChildren: RootRouteChildren = {
   VehicleIdRoute: VehicleIdRoute,
   ApiPublicHooksBackfillMwstRoute: ApiPublicHooksBackfillMwstRoute,
   ApiPublicHooksExtensionIngestRoute: ApiPublicHooksExtensionIngestRoute,
+  ApiPublicHooksExtensionQueueRoute: ApiPublicHooksExtensionQueueRoute,
   ApiPublicHooksSyncGmailRoute: ApiPublicHooksSyncGmailRoute,
   ApiPublicHooksTestJinaRoute: ApiPublicHooksTestJinaRoute,
 }
