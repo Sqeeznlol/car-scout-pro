@@ -136,9 +136,27 @@ function finishTab(tabId, success) {
   if (!p) return;
   clearTimeout(p.timeoutId);
   pending.delete(tabId);
+  if (!success) reportError(p.url, "Timeout: kein sync-result innerhalb der Frist (Bot-Schutz / Login / langsam?)");
   try { chrome.tabs.remove(tabId, () => void chrome.runtime.lastError); } catch (_) {}
   p.resolve?.(success);
 }
+
+function reportError(url, message) {
+  try {
+    const idMatch = /[?&]id=(\d+)/.exec(url || "");
+    fetch("https://autosnipe.shop/api/public/hooks/extension-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url,
+        mobile_de_id: idMatch?.[1] ?? null,
+        error_message: message,
+        context: { source: "worker" },
+      }),
+    }).catch(() => {});
+  } catch (_) {}
+}
+
 
 async function persistStats() {
   await chrome.storage.local.set({ worker_stats: stats });
