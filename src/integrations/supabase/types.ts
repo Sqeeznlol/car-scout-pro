@@ -321,6 +321,39 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_errors: {
+        Row: {
+          context: Json | null
+          created_at: string
+          error_message: string
+          id: string
+          mobile_de_id: string | null
+          resolved: boolean
+          source: string
+          url: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          error_message: string
+          id?: string
+          mobile_de_id?: string | null
+          resolved?: boolean
+          source?: string
+          url?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          error_message?: string
+          id?: string
+          mobile_de_id?: string | null
+          resolved?: boolean
+          source?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       user_sessions: {
         Row: {
           browser: string | null

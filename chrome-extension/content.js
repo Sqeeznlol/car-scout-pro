@@ -262,7 +262,41 @@
     document.body.appendChild(btn);
   }
 
+  const UNAVAILABLE_API = "https://autosnipe.shop/api/public/hooks/extension-unavailable";
+
+  function detectUnavailable() {
+    const txt = (document.body.innerText || "").toLowerCase();
+    const patterns = [
+      "ist nicht mehr verfügbar",
+      "fahrzeug ist nicht mehr verfügbar",
+      "dieses inserat ist nicht mehr verfügbar",
+      "inserat wurde gelöscht",
+      "anzeige ist nicht mehr verfügbar",
+    ];
+    return patterns.some((p) => txt.includes(p));
+  }
+
+  async function reportUnavailable(id) {
+    try {
+      const res = await fetch(UNAVAILABLE_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mobile_de_id: id, url: location.href }),
+      });
+      const json = await res.json().catch(() => ({}));
+      showBanner("📦 Nicht mehr verfügbar → archiviert", "warn");
+      chrome.runtime.sendMessage({ type: "sync-result", data: { ok: true, archived: true, reason: "unavailable", ...json } });
+    } catch (e) {
+      showBanner(`❌ ${e.message}`, "err");
+    }
+  }
+
   function init() {
+    const id = getListingId();
+    if (id && detectUnavailable()) {
+      reportUnavailable(id);
+      return;
+    }
     const data = parse();
     if (!data) return;
     send(data);
@@ -271,3 +305,4 @@
 
   setTimeout(init, 1500);
 })();
+
