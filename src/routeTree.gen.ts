@@ -21,6 +21,7 @@ import { Route as ApiPublicHooksSyncGmailRouteImport } from './routes/api/public
 import { Route as ApiPublicHooksExtensionUnavailableRouteImport } from './routes/api/public/hooks/extension-unavailable'
 import { Route as ApiPublicHooksExtensionQueueRouteImport } from './routes/api/public/hooks/extension-queue'
 import { Route as ApiPublicHooksExtensionIngestRouteImport } from './routes/api/public/hooks/extension-ingest'
+import { Route as ApiPublicHooksExtensionErrorRouteImport } from './routes/api/public/hooks/extension-error'
 import { Route as ApiPublicHooksBackfillMwstRouteImport } from './routes/api/public/hooks/backfill-mwst'
 
 const RechnerRoute = RechnerRouteImport.update({
@@ -86,6 +87,12 @@ const ApiPublicHooksExtensionIngestRoute =
     path: '/api/public/hooks/extension-ingest',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksExtensionErrorRoute =
+  ApiPublicHooksExtensionErrorRouteImport.update({
+    id: '/api/public/hooks/extension-error',
+    path: '/api/public/hooks/extension-error',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksBackfillMwstRoute =
   ApiPublicHooksBackfillMwstRouteImport.update({
     id: '/api/public/hooks/backfill-mwst',
@@ -102,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
+  '/api/public/hooks/extension-error': typeof ApiPublicHooksExtensionErrorRoute
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
@@ -117,6 +125,7 @@ export interface FileRoutesByTo {
   '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
+  '/api/public/hooks/extension-error': typeof ApiPublicHooksExtensionErrorRoute
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
@@ -133,6 +142,7 @@ export interface FileRoutesById {
   '/rechner': typeof RechnerRoute
   '/vehicle/$id': typeof VehicleIdRoute
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
+  '/api/public/hooks/extension-error': typeof ApiPublicHooksExtensionErrorRoute
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
@@ -150,6 +160,7 @@ export interface FileRouteTypes {
     | '/rechner'
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
+    | '/api/public/hooks/extension-error'
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/extension-unavailable'
@@ -165,6 +176,7 @@ export interface FileRouteTypes {
     | '/rechner'
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
+    | '/api/public/hooks/extension-error'
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/extension-unavailable'
@@ -180,6 +192,7 @@ export interface FileRouteTypes {
     | '/rechner'
     | '/vehicle/$id'
     | '/api/public/hooks/backfill-mwst'
+    | '/api/public/hooks/extension-error'
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/extension-unavailable'
@@ -196,6 +209,7 @@ export interface RootRouteChildren {
   RechnerRoute: typeof RechnerRoute
   VehicleIdRoute: typeof VehicleIdRoute
   ApiPublicHooksBackfillMwstRoute: typeof ApiPublicHooksBackfillMwstRoute
+  ApiPublicHooksExtensionErrorRoute: typeof ApiPublicHooksExtensionErrorRoute
   ApiPublicHooksExtensionIngestRoute: typeof ApiPublicHooksExtensionIngestRoute
   ApiPublicHooksExtensionQueueRoute: typeof ApiPublicHooksExtensionQueueRoute
   ApiPublicHooksExtensionUnavailableRoute: typeof ApiPublicHooksExtensionUnavailableRoute
@@ -289,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksExtensionIngestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/extension-error': {
+      id: '/api/public/hooks/extension-error'
+      path: '/api/public/hooks/extension-error'
+      fullPath: '/api/public/hooks/extension-error'
+      preLoaderRoute: typeof ApiPublicHooksExtensionErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/backfill-mwst': {
       id: '/api/public/hooks/backfill-mwst'
       path: '/api/public/hooks/backfill-mwst'
@@ -308,6 +329,7 @@ const rootRouteChildren: RootRouteChildren = {
   RechnerRoute: RechnerRoute,
   VehicleIdRoute: VehicleIdRoute,
   ApiPublicHooksBackfillMwstRoute: ApiPublicHooksBackfillMwstRoute,
+  ApiPublicHooksExtensionErrorRoute: ApiPublicHooksExtensionErrorRoute,
   ApiPublicHooksExtensionIngestRoute: ApiPublicHooksExtensionIngestRoute,
   ApiPublicHooksExtensionQueueRoute: ApiPublicHooksExtensionQueueRoute,
   ApiPublicHooksExtensionUnavailableRoute:
