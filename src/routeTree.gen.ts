@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as VehicleIdRouteImport } from './routes/vehicle.$id'
 import { Route as ApiPublicHooksTestJinaRouteImport } from './routes/api/public/hooks/test-jina'
 import { Route as ApiPublicHooksSyncGmailRouteImport } from './routes/api/public/hooks/sync-gmail'
+import { Route as ApiPublicHooksExtensionUnavailableRouteImport } from './routes/api/public/hooks/extension-unavailable'
 import { Route as ApiPublicHooksExtensionQueueRouteImport } from './routes/api/public/hooks/extension-queue'
 import { Route as ApiPublicHooksExtensionIngestRouteImport } from './routes/api/public/hooks/extension-ingest'
 import { Route as ApiPublicHooksBackfillMwstRouteImport } from './routes/api/public/hooks/backfill-mwst'
@@ -67,6 +68,12 @@ const ApiPublicHooksSyncGmailRoute = ApiPublicHooksSyncGmailRouteImport.update({
   path: '/api/public/hooks/sync-gmail',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicHooksExtensionUnavailableRoute =
+  ApiPublicHooksExtensionUnavailableRouteImport.update({
+    id: '/api/public/hooks/extension-unavailable',
+    path: '/api/public/hooks/extension-unavailable',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksExtensionQueueRoute =
   ApiPublicHooksExtensionQueueRouteImport.update({
     id: '/api/public/hooks/extension-queue',
@@ -97,6 +104,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
+  '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
@@ -111,6 +119,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
+  '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
@@ -126,6 +135,7 @@ export interface FileRoutesById {
   '/api/public/hooks/backfill-mwst': typeof ApiPublicHooksBackfillMwstRoute
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
+  '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
 }
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
+    | '/api/public/hooks/extension-unavailable'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
   fileRoutesByTo: FileRoutesByTo
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
+    | '/api/public/hooks/extension-unavailable'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
   id:
@@ -170,6 +182,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/backfill-mwst'
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
+    | '/api/public/hooks/extension-unavailable'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
   fileRoutesById: FileRoutesById
@@ -185,6 +198,7 @@ export interface RootRouteChildren {
   ApiPublicHooksBackfillMwstRoute: typeof ApiPublicHooksBackfillMwstRoute
   ApiPublicHooksExtensionIngestRoute: typeof ApiPublicHooksExtensionIngestRoute
   ApiPublicHooksExtensionQueueRoute: typeof ApiPublicHooksExtensionQueueRoute
+  ApiPublicHooksExtensionUnavailableRoute: typeof ApiPublicHooksExtensionUnavailableRoute
   ApiPublicHooksSyncGmailRoute: typeof ApiPublicHooksSyncGmailRoute
   ApiPublicHooksTestJinaRoute: typeof ApiPublicHooksTestJinaRoute
 }
@@ -254,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksSyncGmailRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/extension-unavailable': {
+      id: '/api/public/hooks/extension-unavailable'
+      path: '/api/public/hooks/extension-unavailable'
+      fullPath: '/api/public/hooks/extension-unavailable'
+      preLoaderRoute: typeof ApiPublicHooksExtensionUnavailableRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/extension-queue': {
       id: '/api/public/hooks/extension-queue'
       path: '/api/public/hooks/extension-queue'
@@ -289,9 +310,21 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksBackfillMwstRoute: ApiPublicHooksBackfillMwstRoute,
   ApiPublicHooksExtensionIngestRoute: ApiPublicHooksExtensionIngestRoute,
   ApiPublicHooksExtensionQueueRoute: ApiPublicHooksExtensionQueueRoute,
+  ApiPublicHooksExtensionUnavailableRoute:
+    ApiPublicHooksExtensionUnavailableRoute,
   ApiPublicHooksSyncGmailRoute: ApiPublicHooksSyncGmailRoute,
   ApiPublicHooksTestJinaRoute: ApiPublicHooksTestJinaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
