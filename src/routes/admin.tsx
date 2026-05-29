@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchConfig, saveConfig, fetchVehicles, type DbConfig } from "@/lib/db";
+import { fetchConfig, saveConfig, fetchVehicles, type DbConfig, type VehicleWithAnalysis } from "@/lib/db";
+
 import { supabase } from "@/integrations/supabase/client";
 import { calculateInsights } from "@/lib/insights.functions";
 import { recalculateAllVehicles } from "@/lib/recalculate.functions";
