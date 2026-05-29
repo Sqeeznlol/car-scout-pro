@@ -940,3 +940,264 @@ function ActivityRowItem({ event, isLast }: { event: ActivityRow; isLast: boolea
     </div>
   );
 }
+
+// ===== Errors Tab =====
+function ErrorsTab() {
+  const qc = useQueryClient();
+  const { data: errors = [], isLoading } = useQuery({
+    queryKey: ["sync_errors"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sync_errors")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 15000,
+  });
+
+  const resolveMut = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("sync_errors").update({ resolved: true }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sync_errors"] }),
+  });
+
+  const clearMut = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("sync_errors").delete().eq("resolved", true);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sync_errors"] }),
+  });
+
+  const open = errors.filter((e) => !e.resolved);
+  const done = errors.filter((e) => e.resolved);
+
+  return (
+    <Card>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+            Extension-Fehler
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            {open.length} offen · {done.length} erledigt · auto-refresh 15s
+          </p>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => clearMut.mutate()} disabled={done.length === 0}>
+          Erledigte löschen
+        </Button>
+      </div>
+      {isLoading ? (
+        <div className="text-sm text-muted-foreground">Lade…</div>
+      ) : errors.length === 0 ? (
+        <div className="text-sm text-muted-foreground py-8 text-center">Keine Fehler 🎉</div>
+      ) : (
+        <div className="space-y-2 max-h-[500px] overflow-y-auto">
+          {errors.map((e) => (
+            <div
+              key={e.id}
+              className={cn(
+                "border rounded-md p-3 text-sm",
+                e.resolved ? "bg-muted/30 border-border opacity-60" : "bg-destructive/5 border-destructive/30",
+              )}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-foreground break-words">{e.error_message}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {new Date(e.created_at).toLocaleString("de-CH")} · {e.source}
+                    {e.mobile_de_id && ` · ID ${e.mobile_de_id}`}
+                  </div>
+                  {e.url && (
+                    <a
+                      href={e.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-primary hover:underline truncate block mt-1"
+                    >
+                      {e.url}
+                    </a>
+                  )}
+                </div>
+                {!e.resolved && (
+                  <Button size="sm" variant="ghost" onClick={() => resolveMut.mutate(e.id)}>
+                    ✓
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+// ===== Manual Edit Tab =====
+import { updateVehicleManual } from "@/lib/manual-edit.functions";
+
+function ManualEditTab({ vehicles }: { vehicles: VehicleWithAnalysis[] }) {
+  const qc = useQueryClient();
+  const [selectedId, setSelectedId] = useState<string>("");
+  const [search, setSearch] = useState("");
+  const updateFn = useServerFn(updateVehicleManual);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    if (!q) return vehicles.slice(0, 50);
+    return vehicles.filter((v) =>
+      [v.title, v.make, v.model, v.location, v.mobile_de_listing_id].some((x) =>
+        (x ?? "").toString().toLowerCase().includes(q),
+      ),
+    ).slice(0, 50);
+  }, [vehicles, search]);
+
+  const selected = vehicles.find((v) => v.id === selectedId) ?? null;
+  const [draft, setDraft] = useState<{
+    price_eur: string;
+    price_eur_netto: string;
+    seller_has_mwst: "true" | "false" | "null";
+    country_code: string;
+    location: string;
+    seller_address: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!selected) { setDraft(null); return; }
+    setDraft({
+      price_eur: selected.price_eur?.toString() ?? "",
+      price_eur_netto: selected.price_eur_netto?.toString() ?? "",
+      seller_has_mwst: selected.seller_has_mwst === null || selected.seller_has_mwst === undefined ? "null" : selected.seller_has_mwst ? "true" : "false",
+      country_code: selected.country_code ?? "DE",
+      location: selected.location ?? "",
+      seller_address: selected.seller_address ?? "",
+    });
+  }, [selectedId, selected]);
+
+  const saveMut = useMutation({
+    mutationFn: async () => {
+      if (!selected || !draft) return;
+      return await updateFn({
+        data: {
+          vehicle_id: selected.id,
+          price_eur: draft.price_eur ? parseFloat(draft.price_eur) : null,
+          price_eur_netto: draft.price_eur_netto ? parseFloat(draft.price_eur_netto) : null,
+          seller_has_mwst: draft.seller_has_mwst === "null" ? null : draft.seller_has_mwst === "true",
+          country_code: draft.country_code || null,
+          location: draft.location || null,
+          seller_address: draft.seller_address || null,
+        },
+      });
+    },
+    onSuccess: (r) => {
+      toast.success("Gespeichert", { description: r?.distance_km ? `Distanz nach Kloten: ${Math.round(Number(r.distance_km))} km` : undefined });
+      qc.invalidateQueries({ queryKey: ["vehicles"] });
+    },
+    onError: (e: Error) => toast.error("Fehler", { description: e.message }),
+  });
+
+  return (
+    <div className="grid lg:grid-cols-[300px_1fr] gap-4">
+      <Card>
+        <div className="space-y-3">
+          <Input
+            placeholder="Suche (Titel, ID, Ort…)"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <div className="space-y-1 max-h-[500px] overflow-y-auto">
+            {filtered.map((v) => (
+              <button
+                key={v.id}
+                onClick={() => setSelectedId(v.id)}
+                className={cn(
+                  "w-full text-left px-2 py-2 rounded text-xs hover:bg-accent",
+                  selectedId === v.id && "bg-accent",
+                )}
+              >
+                <div className="font-medium truncate">{v.title}</div>
+                <div className="text-muted-foreground truncate">
+                  {v.country_code ?? "?"} · {v.location ?? "–"} · {fmtNum(Number(v.price_eur ?? 0))} €
+                </div>
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <div className="text-xs text-muted-foreground py-4 text-center">Nichts gefunden</div>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      <Card>
+        {!selected || !draft ? (
+          <div className="text-sm text-muted-foreground py-8 text-center">
+            Wähle links ein Fahrzeug zum manuellen Bearbeiten.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <div className="text-xs text-muted-foreground">Fahrzeug</div>
+              <div className="font-semibold">{selected.title}</div>
+              {selected.listing_url && (
+                <a href={selected.listing_url} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+                  Mobile.de öffnen ↗
+                </a>
+              )}
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <Field label="Kaufpreis Brutto DE (€)">
+                <Input type="number" value={draft.price_eur}
+                  onChange={(e) => setDraft({ ...draft, price_eur: e.target.value })} />
+              </Field>
+              <Field label="Kaufpreis Netto DE (€)">
+                <Input type="number" value={draft.price_eur_netto} placeholder="leer = kein Netto"
+                  onChange={(e) => setDraft({ ...draft, price_eur_netto: e.target.value })} />
+              </Field>
+              <Field label="MwSt-ausweisbar">
+                <select
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={draft.seller_has_mwst}
+                  onChange={(e) => setDraft({ ...draft, seller_has_mwst: e.target.value as "true" | "false" | "null" })}
+                >
+                  <option value="null">unbekannt</option>
+                  <option value="true">Ja (19 % erstattbar)</option>
+                  <option value="false">Nein (§ 25a / Privat)</option>
+                </select>
+              </Field>
+              <Field label="Land (ISO, z. B. DE, AT, IT)">
+                <Input value={draft.country_code} maxLength={2}
+                  onChange={(e) => setDraft({ ...draft, country_code: e.target.value.toUpperCase() })} />
+              </Field>
+              <Field label="Standort (PLZ + Ort)">
+                <Input value={draft.location} placeholder="z. B. 80331 München"
+                  onChange={(e) => setDraft({ ...draft, location: e.target.value })} />
+              </Field>
+              <Field label="Vollständige Adresse (Händler)">
+                <Input value={draft.seller_address} placeholder="DE-80331 München"
+                  onChange={(e) => setDraft({ ...draft, seller_address: e.target.value })} />
+              </Field>
+            </div>
+
+            <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
+              Aktuelle Distanz nach Kloten: <span className="font-medium text-foreground">{selected.distance_km ? `${Math.round(selected.distance_km)} km` : "–"}</span>
+              {" · "}Wird bei Standort-Änderung automatisch neu berechnet.
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setSelectedId("")}>Abbrechen</Button>
+              <Button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}>
+                <Save className="h-4 w-4" /> {saveMut.isPending ? "Speichere…" : "Speichern & neu rechnen"}
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
