@@ -52,7 +52,8 @@ export const updateVehicleManual = createServerFn({ method: "POST" })
       }
     }
 
-    const { error: upErr } = await supabaseAdmin.from("vehicles").update(patch).eq("id", data.vehicle_id);
+    const { error: upErr } = await supabaseAdmin.from("vehicles").update(patch as never).eq("id", data.vehicle_id);
+
     if (upErr) throw new Error(upErr.message);
 
     // Recompute analysis
