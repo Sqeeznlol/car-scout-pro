@@ -247,7 +247,16 @@ function AdminPage() {
         <TabsContent value="algo" className="mt-4">
           <AlgorithmTab />
         </TabsContent>
+
+        <TabsContent value="errors" className="mt-4">
+          <ErrorsTab />
+        </TabsContent>
+
+        <TabsContent value="edit" className="mt-4">
+          <ManualEditTab vehicles={vehicles} />
+        </TabsContent>
       </Tabs>
+
 
       <div className="flex justify-end sticky bottom-20 lg:bottom-4">
         <Button onClick={save} disabled={saveMut.isPending} className="bg-gradient-primary text-primary-foreground shadow-card">
