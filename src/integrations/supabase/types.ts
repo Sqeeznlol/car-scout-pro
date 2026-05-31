@@ -566,6 +566,7 @@ export type Database = {
           image_urls: Json | null
           interior_color: string | null
           last_extension_attempt_at: string | null
+          last_review_resolve_at: string | null
           latitude: number | null
           listing_url: string | null
           location: string | null
@@ -584,6 +585,8 @@ export type Database = {
           raw_text: string | null
           received_at: string | null
           registration_month: number | null
+          review_reason: string | null
+          review_resolve_attempts: number
           reviewed_at: string | null
           seats: number | null
           seller_address: string | null
@@ -628,6 +631,7 @@ export type Database = {
           image_urls?: Json | null
           interior_color?: string | null
           last_extension_attempt_at?: string | null
+          last_review_resolve_at?: string | null
           latitude?: number | null
           listing_url?: string | null
           location?: string | null
@@ -646,6 +650,8 @@ export type Database = {
           raw_text?: string | null
           received_at?: string | null
           registration_month?: number | null
+          review_reason?: string | null
+          review_resolve_attempts?: number
           reviewed_at?: string | null
           seats?: number | null
           seller_address?: string | null
@@ -690,6 +696,7 @@ export type Database = {
           image_urls?: Json | null
           interior_color?: string | null
           last_extension_attempt_at?: string | null
+          last_review_resolve_at?: string | null
           latitude?: number | null
           listing_url?: string | null
           location?: string | null
@@ -708,6 +715,8 @@ export type Database = {
           raw_text?: string | null
           received_at?: string | null
           registration_month?: number | null
+          review_reason?: string | null
+          review_resolve_attempts?: number
           reviewed_at?: string | null
           seats?: number | null
           seller_address?: string | null
