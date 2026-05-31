@@ -134,6 +134,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  tabVehicleId.delete(tabId);
   if (pending.has(tabId)) {
     const p = pending.get(tabId);
     clearTimeout(p.timeoutId);
