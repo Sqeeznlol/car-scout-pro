@@ -328,7 +328,12 @@
       return;
     }
     const data = parse();
-    if (!data) return;
+    if (!data) {
+      // Fallback: ohne Daten trotzdem ingest pingen, damit das Inserat
+      // aus der Queue rauskommt und nicht endlos wiederholt wird.
+      send({ mobile_de_id: id, url: location.href, country_code: "DE" });
+      return;
+    }
     send(data);
     addReSyncButton();
   }

@@ -555,6 +555,9 @@ export type Database = {
           doors: number | null
           emission_class: string | null
           equipment: Json | null
+          extension_archived: boolean
+          extension_attempts: number
+          extension_scraped_at: string | null
           extension_synced_at: string | null
           fuel: string | null
           hu_until: string | null
@@ -562,6 +565,7 @@ export type Database = {
           image_url: string | null
           image_urls: Json | null
           interior_color: string | null
+          last_extension_attempt_at: string | null
           latitude: number | null
           listing_url: string | null
           location: string | null
@@ -613,6 +617,9 @@ export type Database = {
           doors?: number | null
           emission_class?: string | null
           equipment?: Json | null
+          extension_archived?: boolean
+          extension_attempts?: number
+          extension_scraped_at?: string | null
           extension_synced_at?: string | null
           fuel?: string | null
           hu_until?: string | null
@@ -620,6 +627,7 @@ export type Database = {
           image_url?: string | null
           image_urls?: Json | null
           interior_color?: string | null
+          last_extension_attempt_at?: string | null
           latitude?: number | null
           listing_url?: string | null
           location?: string | null
@@ -671,6 +679,9 @@ export type Database = {
           doors?: number | null
           emission_class?: string | null
           equipment?: Json | null
+          extension_archived?: boolean
+          extension_attempts?: number
+          extension_scraped_at?: string | null
           extension_synced_at?: string | null
           fuel?: string | null
           hu_until?: string | null
@@ -678,6 +689,7 @@ export type Database = {
           image_url?: string | null
           image_urls?: Json | null
           interior_color?: string | null
+          last_extension_attempt_at?: string | null
           latitude?: number | null
           listing_url?: string | null
           location?: string | null
@@ -750,6 +762,10 @@ export type Database = {
       }
     }
     Functions: {
+      increment_extension_attempts: {
+        Args: { vehicle_ids: string[] }
+        Returns: undefined
+      }
       increment_session_decisions: {
         Args: { p_interesting: number; p_session_id: string }
         Returns: undefined

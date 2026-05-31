@@ -18,6 +18,7 @@ export const applyManualNetto = createServerFn({ method: "POST" })
         seller_has_mwst: true,
         netto_manually_set: true,
         pending_review: false,
+        extension_archived: false,
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", data.vehicle_id)
@@ -73,6 +74,7 @@ export const confirmNoNetto = createServerFn({ method: "POST" })
       .update({
         confirmed_no_netto: true,
         pending_review: false,
+        extension_archived: true,
         skip_reason: "no_netto_price",
         reviewed_at: new Date().toISOString(),
         seller_has_mwst: false,
@@ -81,3 +83,14 @@ export const confirmNoNetto = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// Reset extension queue — unblock vehicles that failed to scrape 3+ times
+export const resetExtensionQueue = createServerFn({ method: "POST" }).handler(async () => {
+  const { error, count } = await supabaseAdmin
+    .from("vehicles")
+    .update({ extension_attempts: 0, last_extension_attempt_at: null }, { count: "exact" })
+    .gte("extension_attempts", 3)
+    .is("extension_scraped_at", null);
+  if (error) throw new Error(error.message);
+  return { ok: true, reset: count ?? 0 };
+});

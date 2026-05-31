@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchConfig, saveConfig, fetchVehicles, fetchPendingReview, type DbConfig, type VehicleWithAnalysis } from "@/lib/db";
 import { ReviewTab } from "@/components/ReviewTab";
+import { resetExtensionQueue } from "@/lib/review.functions";
 
 import { supabase } from "@/integrations/supabase/client";
 import { calculateInsights } from "@/lib/insights.functions";
@@ -90,6 +91,9 @@ function AdminPage() {
           Gmail Sync
         </Button>
       </div>
+
+      <ExtensionStatusPanel />
+
 
       <Tabs defaultValue="costs">
         <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-10">
@@ -1218,3 +1222,87 @@ function ManualEditTab({ vehicles }: { vehicles: VehicleWithAnalysis[] }) {
     </div>
   );
 }
+
+function ExtensionStatusPanel() {
+  const { data: stats, refetch } = useQuery({
+    queryKey: ["extension-stats"],
+    refetchInterval: 10_000,
+    queryFn: async () => {
+      const [toScrapeRes, inQueueRes, pendingRes, scrapedRes, nonDeRes, noNettoRes, unavailableRes, stuckRes] = await Promise.all([
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .is("extension_scraped_at", null).is("skip_reason", null)
+          .eq("extension_archived", false).not("listing_url", "is", null).lt("extension_attempts", 3),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .is("skip_reason", null).eq("extension_archived", false)
+          .eq("pending_review", false).eq("seller_has_mwst", true)
+          .or("country_code.eq.DE,country_code.is.null"),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .eq("pending_review", true).eq("confirmed_no_netto", false),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .not("extension_scraped_at", "is", null),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .like("skip_reason", "non_de_dealer_%"),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .eq("skip_reason", "no_netto_price"),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .eq("skip_reason", "unavailable"),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .gte("extension_attempts", 3).is("extension_scraped_at", null),
+      ]);
+      return {
+        toScrape: toScrapeRes.count ?? 0,
+        inQueue: inQueueRes.count ?? 0,
+        pending: pendingRes.count ?? 0,
+        scraped: scrapedRes.count ?? 0,
+        nonDe: nonDeRes.count ?? 0,
+        noNetto: noNettoRes.count ?? 0,
+        unavailable: unavailableRes.count ?? 0,
+        stuck: stuckRes.count ?? 0,
+      };
+    },
+  });
+
+  const resetFn = useServerFn(resetExtensionQueue);
+  const handleReset = async () => {
+    try {
+      const result = await resetFn();
+      toast.success(`♻️ ${result.reset} Inserate zurückgesetzt`);
+      refetch();
+    } catch {
+      toast.error("Fehler beim Reset");
+    }
+  };
+
+  const cell = (label: string, value: number | undefined, tone?: string) => (
+    <div className="rounded-lg border border-border bg-card p-3">
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className={cn("text-xl font-bold tabular-nums mt-0.5", tone)}>{value ?? "—"}</div>
+    </div>
+  );
+
+  return (
+    <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <h2 className="text-sm font-semibold flex items-center gap-2">🧩 Chrome Extension</h2>
+        {(stats?.stuck ?? 0) > 0 && (
+          <Button variant="outline" size="sm" onClick={handleReset}>
+            ♻️ {stats?.stuck} steckengebliebene zurücksetzen
+          </Button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {cell("Zu scrapen", stats?.toScrape)}
+        {cell("In Swipe Queue", stats?.inQueue, "text-success")}
+        {cell("Zur Prüfung", stats?.pending, "text-amber-500")}
+        {cell("Verarbeitet", stats?.scraped)}
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {cell("🌍 Nicht DE", stats?.nonDe)}
+        {cell("💶 Kein Netto", stats?.noNetto)}
+        {cell("📦 Nicht verfügbar", stats?.unavailable)}
+        {cell("🚫 Steckengeblieben", stats?.stuck, (stats?.stuck ?? 0) > 0 ? "text-danger" : "")}
+      </div>
+    </div>
+  );
+}
+

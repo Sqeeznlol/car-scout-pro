@@ -43,6 +43,8 @@ interface VehicleLite {
   listing_url: string | null;
   distance_km: number | null;
   image_url?: string | null;
+  country_code?: string | null;
+  seller_has_mwst?: boolean | null;
 }
 
 interface AnalysisLite {
@@ -60,6 +62,9 @@ export function vehicleMatchesFilter(
   f: TelegramFilter,
 ): boolean {
   if (!f.is_active || !f.telegram_chat_id) return false;
+  // Hard filter: only DE + ausweisbare MwSt relevant
+  if (v.country_code && v.country_code !== "DE") return false;
+  if (v.seller_has_mwst !== true) return false;
   if (f.makes.length > 0) {
     const make = (v.make ?? "").toLowerCase();
     if (!f.makes.some((m) => make.includes(m.toLowerCase()))) return false;
