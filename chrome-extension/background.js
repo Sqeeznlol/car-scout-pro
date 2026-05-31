@@ -234,6 +234,7 @@ function processOne(item) {
     chrome.tabs.create({ url: item.url, active: false, pinned: true }, (tab) => {
       if (!tab?.id) return resolve({ ok: false, message: "Tab konnte nicht geöffnet werden" });
       const tabId = tab.id;
+      if (item.id) tabVehicleId.set(tabId, item.id);
       const timeoutId = setTimeout(() => finishTab(tabId, false, "Timeout (Bot-Schutz / langsam)"), TAB_TIMEOUT_MS);
       pending.set(tabId, { item, timeoutId, resolve });
     });
