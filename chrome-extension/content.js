@@ -276,6 +276,30 @@
     return patterns.some((p) => txt.includes(p));
   }
 
+  // Erkennt Bot-Schutz / Captcha / Rate-Limit Seiten von mobile.de
+  function detectBlocked() {
+    const txt = (document.body.innerText || "").toLowerCase();
+    const title = (document.title || "").toLowerCase();
+    const hasCaptchaEl =
+      !!document.querySelector(
+        'iframe[src*="captcha"], iframe[src*="recaptcha"], iframe[src*="hcaptcha"], iframe[src*="datadome"], #px-captcha, [class*="captcha"]'
+      );
+    const patterns = [
+      "zugriff verweigert",
+      "access denied",
+      "ungewöhnliche aktivität",
+      "unusual traffic",
+      "bitte bestätigen sie, dass sie kein roboter",
+      "please verify you are a human",
+      "are you a robot",
+      "too many requests",
+      "rate limit",
+      "blocked",
+      "ihre anfrage konnte nicht verarbeitet werden",
+    ];
+    return hasCaptchaEl || patterns.some((p) => txt.includes(p) || title.includes(p));
+  }
+
   async function reportUnavailable(id) {
     try {
       const res = await fetch(UNAVAILABLE_API, {
@@ -292,6 +316,12 @@
   }
 
   function init() {
+    // 1) Bot-Schutz erkannt → Worker stoppen, KEIN weiterer Request
+    if (detectBlocked()) {
+      showBanner("🛑 Bot-Schutz erkannt — Worker pausiert", "err");
+      chrome.runtime.sendMessage({ type: "blocked-detected", url: location.href });
+      return;
+    }
     const id = getListingId();
     if (id && detectUnavailable()) {
       reportUnavailable(id);
@@ -303,6 +333,7 @@
     addReSyncButton();
   }
 
-  setTimeout(init, 1500);
+  // Zufällige Wartezeit (1.5-3s) bevor wir anfangen — wirkt menschlicher
+  setTimeout(init, 1500 + Math.random() * 1500);
 })();
 
