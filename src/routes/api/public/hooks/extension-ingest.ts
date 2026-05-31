@@ -50,8 +50,8 @@ const CORS_HEADERS = {
 };
 
 async function ingest(payload: IngestPayload) {
-  if (!payload.mobile_de_id && !payload.url) {
-    throw new Error("Missing mobile_de_id or url");
+  if (!payload.vehicle_id && !payload.mobile_de_id && !payload.url) {
+    throw new Error("Missing vehicle_id / mobile_de_id / url");
   }
 
   const idFromUrl = payload.url?.match(/[?&]id=(\d+)/)?.[1] ?? null;
@@ -62,8 +62,10 @@ async function ingest(payload: IngestPayload) {
     .select("id, listing_url, source_message_id, make, model, year, mileage_km, location, fuel, seller_type, distance_km, price_eur")
     .limit(1);
 
-  if (idMatch) {
-    query = query.ilike("source_message_id", `%${idMatch}%`);
+  if (payload.vehicle_id) {
+    query = query.eq("id", payload.vehicle_id);
+  } else if (idMatch) {
+    query = query.or(`mobile_de_listing_id.eq.${idMatch},source_message_id.ilike.%${idMatch}%`);
   } else if (payload.url) {
     query = query.eq("listing_url", payload.url);
   }
@@ -77,7 +79,11 @@ async function ingest(payload: IngestPayload) {
   // Ohne das würde die Extension dieselben Inserate ewig wiederholen.
   await supabaseAdmin
     .from("vehicles")
-    .update({ extension_scraped_at: new Date().toISOString(), extension_synced_at: new Date().toISOString() })
+    .update({
+      extension_scraped_at: new Date().toISOString(),
+      extension_synced_at: new Date().toISOString(),
+      ...(idFromUrl ? { mobile_de_listing_id: idFromUrl } : {}),
+    })
     .eq("id", existing.id);
 
   const country = (payload.country_code ?? "DE").toUpperCase();
