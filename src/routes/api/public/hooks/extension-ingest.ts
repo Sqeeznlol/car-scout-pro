@@ -122,9 +122,23 @@ async function ingest(payload: IngestPayload) {
       .select(SELECT_COLS)
       .single();
     if (insErr || !inserted) {
-      return { ok: false, error: `auto-create failed: ${insErr?.message ?? "unknown"}`, archived: false };
+      // Race / Duplikat: ein paralleler Ingest hat den Eintrag schon angelegt
+      // (unique partial index auf mobile_de_listing_id). Wir holen ihn nach.
+      const isDup = insErr?.code === "23505" || /duplicate key|unique/i.test(insErr?.message ?? "");
+      if (isDup && idMatch) {
+        const { data: dup } = await supabaseAdmin
+          .from("vehicles").select(SELECT_COLS)
+          .eq("mobile_de_listing_id", idMatch).limit(1).maybeSingle();
+        if (dup) {
+          existing = dup as ExistingRow;
+        }
+      }
+      if (!existing) {
+        return { ok: false, error: `auto-create failed: ${insErr?.message ?? "unknown"}`, archived: false };
+      }
+    } else {
+      existing = inserted as ExistingRow;
     }
-    existing = inserted as ExistingRow;
   }
 
   // CRITICAL: scraped_at SOFORT stempeln — egal was danach passiert.
