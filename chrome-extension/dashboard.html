@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Autosnipe Dashboard</title>
+  <link rel="icon" href="icon48.png" />
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 24px; background: #0f172a; color: #e5e7eb; min-height: 100vh; }
+    .wrap { max-width: 1200px; margin: 0 auto; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; flex-wrap: wrap; gap: 12px; }
+    h1 { font-size: 22px; margin: 0; display: flex; align-items: center; gap: 10px; }
+    h1 .pulse { width: 10px; height: 10px; border-radius: 50%; background: #6b7280; }
+    h1 .pulse.run { background: #10b981; animation: pulse 1s infinite; }
+    h1 .pulse.err { background: #ef4444; }
+    .sub { font-size: 12px; color: #94a3b8; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    .controls { display: flex; gap: 8px; align-items: center; }
+    button { padding: 10px 18px; border-radius: 8px; border: none; cursor: pointer; color: white; font-weight: 600; font-size: 13px; }
+    .btn-start { background: #10b981; }
+    .btn-stop { background: #ef4444; }
+    .btn-ghost { background: #334155; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+
+    .status { padding: 12px 16px; border-radius: 10px; font-size: 14px; margin-bottom: 18px; font-weight: 500; background: #1e293b; border: 1px solid #334155; }
+    .status.run { background: #1e3a8a; border-color: #3b82f6; color: #dbeafe; }
+    .status.done { background: #064e3b; border-color: #10b981; color: #d1fae5; }
+    .status.err { background: #7f1d1d; border-color: #ef4444; color: #fecaca; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 14px 16px; }
+    .card h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin: 0 0 10px; display:flex; justify-content:space-between; align-items:center; }
+    .row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
+    .label { color: #94a3b8; }
+    .value { font-weight: 600; color: #f1f5f9; }
+
+    .list { max-height: 380px; overflow-y: auto; font-size: 12px; }
+    .list-item { padding: 8px 6px; border-bottom: 1px solid #334155; display:flex; gap:8px; align-items:center; }
+    .list-item:last-child { border-bottom: none; }
+    .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+    .dot.ok { background:#10b981; } .dot.err { background:#ef4444; } .dot.curr { background:#3b82f6; animation:pulse 1s infinite; } .dot.wait { background:#475569; }
+    .list-item a { color: #93c5fd; text-decoration: none; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .list-item a:hover { text-decoration: underline; }
+    .list-item .ts { color:#64748b; font-size:11px; flex-shrink:0; }
+    .clearbtn { background:#334155; color:#cbd5e1; padding:3px 10px; width:auto; font-size:11px; font-weight:500; cursor:pointer; border-radius:6px; }
+    .empty { padding: 20px; text-align:center; color:#64748b; font-size:12px; }
+
+    .now { background: linear-gradient(135deg, #1e40af, #1e3a8a); border: 1px solid #3b82f6; padding: 16px; border-radius: 12px; margin-bottom: 18px; }
+    .now h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: #bfdbfe; margin: 0 0 8px; }
+    .now .url { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 13px; color: #fff; word-break: break-all; }
+    .now .meta { display:flex; gap: 14px; margin-top: 8px; font-size: 12px; color: #dbeafe; flex-wrap: wrap; }
+    .now.idle { background: #1e293b; border-color: #334155; }
+    .now.idle .url { color: #94a3b8; }
+
+    .footer { text-align: center; margin-top: 20px; }
+    .footer a { color: #93c5fd; text-decoration: none; font-size: 12px; margin: 0 10px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1><span id="pulse" class="pulse"></span> Autosnipe Live-Dashboard</h1>
+        <div class="sub">Anti-Ban: 8–18s zwischen Inseraten · Pause nach 12 · max 50/h, 250/Tag</div>
+      </div>
+      <div class="controls">
+        <button id="ctrlBtn" class="btn-start">▶ Start</button>
+      </div>
+    </header>
+
+    <div id="status" class="status">Bereit.</div>
+
+    <div id="now" class="now idle">
+      <h2>Aktuell</h2>
+      <div class="url" id="now-url">— nichts aktiv —</div>
+      <div class="meta">
+        <span id="now-step">Schritt: —</span>
+        <span id="now-elapsed">Dauer: —</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Schutz-Limits</h2>
+        <div class="row"><span class="label">Letzte Stunde</span><span class="value" id="s-hour">0 / 50</span></div>
+        <div class="row"><span class="label">Letzte 24h</span><span class="value" id="s-day">0 / 250</span></div>
+        <div class="row"><span class="label">Cooldown</span><span class="value" id="s-cool">—</span></div>
+        <button id="clearCooldown" class="clearbtn" style="margin-top:10px;background:#7f1d1d;color:#fecaca">Cooldown aufheben</button>
+      </div>
+      <div class="card">
+        <h2>Statistik</h2>
+        <div class="row"><span class="label">In Warteschlange</span><span class="value" id="s-queue">0</span></div>
+        <div class="row"><span class="label">Verarbeitet</span><span class="value" id="s-proc">0</span></div>
+        <div class="row"><span class="label">Fehler</span><span class="value" id="s-err">0</span></div>
+        <div class="row"><span class="label">Bot-Blocks</span><span class="value" id="s-blk">0</span></div>
+      </div>
+
+      <div class="card">
+        <h2>Warteschlange <span id="qcount" style="color:#64748b">0</span></h2>
+        <div id="queueList" class="list"></div>
+      </div>
+
+      <div class="card">
+        <h2>Verlauf <button id="clearHist" class="clearbtn">leeren</button></h2>
+        <div id="historyList" class="list"></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <a href="https://autosnipe.shop/queue" target="_blank">→ Swipe Queue</a>
+      <a href="https://autosnipe.shop/admin" target="_blank">→ Admin</a>
+    </div>
+  </div>
+
+  <script src="dashboard.js"></script>
+</body>
+</html>
