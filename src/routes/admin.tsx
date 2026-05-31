@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { fetchConfig, saveConfig, fetchVehicles, fetchPendingReview, type DbConfig, type VehicleWithAnalysis } from "@/lib/db";
 import { ReviewTab } from "@/components/ReviewTab";
+import { resetExtensionQueue } from "@/lib/review.functions";
 
 import { supabase } from "@/integrations/supabase/client";
 import { calculateInsights } from "@/lib/insights.functions";
@@ -90,6 +91,9 @@ function AdminPage() {
           Gmail Sync
         </Button>
       </div>
+
+      <ExtensionStatusPanel />
+
 
       <Tabs defaultValue="costs">
         <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-10">
