@@ -107,5 +107,9 @@ $("clearHist").addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "worker-clear-history" }, () => refresh());
 });
 
+$("clearCooldown").addEventListener("click", () => {
+  chrome.runtime.sendMessage({ type: "worker-clear-cooldown" }, () => refresh());
+});
+
 refresh();
 setInterval(refresh, 1500);
