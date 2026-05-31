@@ -17,15 +17,33 @@ export async function fetchVehicles(): Promise<VehicleWithAnalysis[]> {
     .from("vehicles")
     .select("*, analysis:vehicle_analyses(*), decision:decisions(*)")
     .is("skip_reason", null)
+    .eq("pending_review", false)
+    .eq("seller_has_mwst", true)
+    .or("country_code.eq.DE,country_code.is.null")
     .order("received_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
-  // Supabase nests joined relations as arrays in some cases; normalize.
   return (data ?? []).map((row) => {
     const r = row as unknown as Record<string, unknown>;
     const analysis = Array.isArray(r.analysis) ? (r.analysis[0] ?? null) : (r.analysis ?? null);
     const decision = Array.isArray(r.decision) ? (r.decision[0] ?? null) : (r.decision ?? null);
     return { ...(row as DbVehicle), analysis: analysis as DbAnalysis | null, decision: decision as DbDecision | null };
+  });
+}
+
+export async function fetchPendingReview(): Promise<VehicleWithAnalysis[]> {
+  const { data, error } = await supabase
+    .from("vehicles")
+    .select("*, analysis:vehicle_analyses(*)")
+    .eq("pending_review", true)
+    .eq("confirmed_no_netto", false)
+    .is("skip_reason", null)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((row) => {
+    const r = row as unknown as Record<string, unknown>;
+    const analysis = Array.isArray(r.analysis) ? (r.analysis[0] ?? null) : (r.analysis ?? null);
+    return { ...(row as DbVehicle), analysis: analysis as DbAnalysis | null, decision: null };
   });
 }
 

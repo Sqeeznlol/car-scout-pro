@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Save, Sliders, Mail, Sparkles, Ban, RefreshCw, Users, Brain, Smartphone, Monitor, Tablet, ListChecks, ChevronDown, ChevronUp, Car as CarIcon } from "lucide-react";
+import { Save, Sliders, Mail, Sparkles, Ban, RefreshCw, Users, Brain, Smartphone, Monitor, Tablet, ListChecks, ChevronDown, ChevronUp, Car as CarIcon, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchConfig, saveConfig, fetchVehicles, type DbConfig, type VehicleWithAnalysis } from "@/lib/db";
+import { fetchConfig, saveConfig, fetchVehicles, fetchPendingReview, type DbConfig, type VehicleWithAnalysis } from "@/lib/db";
+import { ReviewTab } from "@/components/ReviewTab";
 
 import { supabase } from "@/integrations/supabase/client";
 import { calculateInsights } from "@/lib/insights.functions";
@@ -30,6 +31,8 @@ function AdminPage() {
   const qc = useQueryClient();
   const { data: config } = useQuery({ queryKey: ["config"], queryFn: fetchConfig });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: fetchVehicles });
+  const { data: pendingList = [] } = useQuery({ queryKey: ["pending-review"], queryFn: fetchPendingReview, refetchInterval: 15_000 });
+  const pendingCount = pendingList.length;
   const [draft, setDraft] = useState<DbConfig | null>(null);
 
   useEffect(() => { if (config && !draft) setDraft(config); }, [config, draft]);
@@ -89,8 +92,16 @@ function AdminPage() {
       </div>
 
       <Tabs defaultValue="costs">
-        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-9">
+        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-10">
           <TabsTrigger value="costs"><Sliders className="h-4 w-4" /> Kosten</TabsTrigger>
+          <TabsTrigger value="review" className="relative">
+            <AlertTriangle className="h-4 w-4" /> Prüfung
+            {pendingCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-[10px] font-bold text-white">
+                {pendingCount}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="email"><Mail className="h-4 w-4" /> E-Mail</TabsTrigger>
           <TabsTrigger value="insights"><Sparkles className="h-4 w-4" /> Insights</TabsTrigger>
           <TabsTrigger value="visitors"><Users className="h-4 w-4" /> Besucher</TabsTrigger>
@@ -100,6 +111,11 @@ function AdminPage() {
           <TabsTrigger value="errors"><Ban className="h-4 w-4" /> Fehler</TabsTrigger>
           <TabsTrigger value="edit"><CarIcon className="h-4 w-4" /> Bearbeiten</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="review" className="mt-4">
+          <ReviewTab />
+        </TabsContent>
+
 
 
         <TabsContent value="costs" className="space-y-4 mt-4">
