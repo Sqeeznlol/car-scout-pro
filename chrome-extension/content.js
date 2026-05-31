@@ -318,13 +318,27 @@
     }
   }
 
-  function init() {
+  function getVehicleId() {
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage({ type: "get-vehicle-id" }, (resp) => {
+          if (chrome.runtime.lastError) return resolve(null);
+          resolve(resp?.vehicle_id ?? null);
+        });
+      } catch (_) {
+        resolve(null);
+      }
+    });
+  }
+
+  async function init() {
     // 1) Bot-Schutz erkannt → Worker stoppen, KEIN weiterer Request
     if (detectBlocked()) {
       showBanner("🛑 Bot-Schutz erkannt — Worker pausiert", "err");
       chrome.runtime.sendMessage({ type: "blocked-detected", url: location.href });
       return;
     }
+    const vehicle_id = await getVehicleId();
     const id = getListingId();
     if (id && detectUnavailable()) {
       reportUnavailable(id);
@@ -334,9 +348,10 @@
     if (!data) {
       // Fallback: ohne Daten trotzdem ingest pingen, damit das Inserat
       // aus der Queue rauskommt und nicht endlos wiederholt wird.
-      send({ mobile_de_id: id, url: location.href, country_code: "DE" });
+      send({ vehicle_id, mobile_de_id: id, url: location.href, country_code: "DE" });
       return;
     }
+    if (vehicle_id) data.vehicle_id = vehicle_id;
     send(data);
     addReSyncButton();
   }
