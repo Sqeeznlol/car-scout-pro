@@ -544,6 +544,7 @@ export type Database = {
           body_type: string | null
           co2_gkm: number | null
           color: string | null
+          confirmed_no_netto: boolean
           consumption: string | null
           country_code: string | null
           created_at: string
@@ -569,7 +570,9 @@ export type Database = {
           mileage_km: number | null
           mobile_de_listing_id: string | null
           model: string | null
+          netto_manually_set: boolean
           owner_count: number | null
+          pending_review: boolean
           power_kw: number | null
           power_ps: number | null
           price_eur: number | null
@@ -577,6 +580,7 @@ export type Database = {
           raw_text: string | null
           received_at: string | null
           registration_month: number | null
+          reviewed_at: string | null
           seats: number | null
           seller_address: string | null
           seller_has_mwst: boolean | null
@@ -598,6 +602,7 @@ export type Database = {
           body_type?: string | null
           co2_gkm?: number | null
           color?: string | null
+          confirmed_no_netto?: boolean
           consumption?: string | null
           country_code?: string | null
           created_at?: string
@@ -623,7 +628,9 @@ export type Database = {
           mileage_km?: number | null
           mobile_de_listing_id?: string | null
           model?: string | null
+          netto_manually_set?: boolean
           owner_count?: number | null
+          pending_review?: boolean
           power_kw?: number | null
           power_ps?: number | null
           price_eur?: number | null
@@ -631,6 +638,7 @@ export type Database = {
           raw_text?: string | null
           received_at?: string | null
           registration_month?: number | null
+          reviewed_at?: string | null
           seats?: number | null
           seller_address?: string | null
           seller_has_mwst?: boolean | null
@@ -652,6 +660,7 @@ export type Database = {
           body_type?: string | null
           co2_gkm?: number | null
           color?: string | null
+          confirmed_no_netto?: boolean
           consumption?: string | null
           country_code?: string | null
           created_at?: string
@@ -677,7 +686,9 @@ export type Database = {
           mileage_km?: number | null
           mobile_de_listing_id?: string | null
           model?: string | null
+          netto_manually_set?: boolean
           owner_count?: number | null
+          pending_review?: boolean
           power_kw?: number | null
           power_ps?: number | null
           price_eur?: number | null
@@ -685,6 +696,7 @@ export type Database = {
           raw_text?: string | null
           received_at?: string | null
           registration_month?: number | null
+          reviewed_at?: string | null
           seats?: number | null
           seller_address?: string | null
           seller_has_mwst?: boolean | null
