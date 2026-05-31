@@ -444,6 +444,84 @@ function BackfillMwStCard() {
   );
 }
 
+interface ResolveSummary {
+  checked: number;
+  resolved_netto: number;
+  kept_mwst_only: number;
+  archived_25a: number;
+  archived_non_de: number;
+  unresolved: number;
+  remaining: number;
+  errors: string[];
+}
+
+function ResolveReviewQueueCard() {
+  const qc = useQueryClient();
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<ResolveSummary | null>(null);
+
+  const handleRun = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/public/hooks/resolve-review-queue", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      });
+      const r: ResolveSummary = await res.json();
+      setResult(r);
+      toast.success(
+        `✅ ${r.resolved_netto} Netto · 📦 ${r.archived_25a + r.archived_non_de} archiviert`,
+        {
+          description: `${r.checked} geprüft · ${r.kept_mwst_only} nur MwSt · ${r.unresolved} unklar · ${r.remaining} verbleibend`,
+        },
+      );
+      qc.invalidateQueries({ queryKey: ["pending-review"] });
+      qc.invalidateQueries({ queryKey: ["vehicles"] });
+    } catch (e) {
+      toast.error("Fehler", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Card>
+      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+        Prüf-Queue automatisch auflösen (Jina Reader)
+      </h3>
+      <p className="text-sm text-muted-foreground mb-3">
+        Lädt bis zu 15 Inserate pro Lauf über Jina Reader, erkennt Netto-Preis / §25a / Nicht-DE automatisch
+        und verschiebt sie in die Swipe-Queue oder ins Archiv. Ca. 1 Min pro Lauf.
+      </p>
+      <Button onClick={handleRun} disabled={loading} variant="outline">
+        <RefreshCw className={cn("h-4 w-4", loading && "animate-spin")} />
+        {loading ? "Löse auf…" : "Prüf-Queue automatisch auflösen"}
+      </Button>
+      {result && (
+        <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+          <div>
+            ✅ {result.resolved_netto} Netto erkannt · 🔁 {result.kept_mwst_only} nur MwSt (manuell) ·
+            📦 {result.archived_25a} §25a · 🌍 {result.archived_non_de} Nicht-DE · ❓ {result.unresolved} unklar
+          </div>
+          <div className="font-medium text-foreground">
+            {result.remaining > 0
+              ? `🔄 Noch ${result.remaining} Inserate verbleibend — Button erneut klicken.`
+              : "🎉 Queue vollständig abgearbeitet."}
+          </div>
+          {result.errors.length > 0 && (
+            <details className="text-xs">
+              <summary className="cursor-pointer">{result.errors.length} Fehler</summary>
+              <ul className="mt-2 space-y-1 max-h-40 overflow-auto">
+                {result.errors.map((e, i) => <li key={i} className="font-mono">{e}</li>)}
+              </ul>
+            </details>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
