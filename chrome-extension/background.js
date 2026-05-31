@@ -247,6 +247,7 @@ function finishTab(tabId, success, message) {
   clearTimeout(p.timeoutId);
   pending.delete(tabId);
   if (!success) reportError(p.item.url, message);
+  tabVehicleId.delete(tabId);
   try { chrome.tabs.remove(tabId, () => void chrome.runtime.lastError); } catch (_) {}
   p.resolve?.({ ok: success, message });
 }
