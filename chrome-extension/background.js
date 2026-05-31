@@ -281,3 +281,17 @@ async function persist() {
     worker_current: currentItem,
   });
 }
+
+// === Dashboard-Tab: Icon-Klick öffnet/fokussiert dashboard.html ===
+chrome.action.onClicked.addListener(async () => {
+  const dashUrl = chrome.runtime.getURL("dashboard.html");
+  const tabs = await chrome.tabs.query({ url: dashUrl });
+  if (tabs && tabs.length > 0) {
+    await chrome.tabs.update(tabs[0].id, { active: true });
+    if (tabs[0].windowId != null) {
+      try { await chrome.windows.update(tabs[0].windowId, { focused: true }); } catch (_) {}
+    }
+  } else {
+    await chrome.tabs.create({ url: dashUrl });
+  }
+});

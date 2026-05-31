@@ -8,10 +8,17 @@ function timeAgo(ts) {
   return `vor ${Math.floor(s / 3600)}h`;
 }
 
+function fmtDuration(ms) {
+  if (!ms || ms < 0) return "—";
+  const s = Math.floor(ms / 1000);
+  if (s < 60) return `${s}s`;
+  return `${Math.floor(s / 60)}m ${s % 60}s`;
+}
+
 function shortUrl(u) {
   try {
     const id = /[?&]id=(\d+)/.exec(u || "")?.[1];
-    return id ? `mobile.de #${id}` : (u || "").slice(0, 50);
+    return id ? `mobile.de #${id}` : (u || "").slice(0, 80);
   } catch { return u; }
 }
 
@@ -21,6 +28,8 @@ function render(resp) {
   const current = resp?.current;
   const history = resp?.history ?? [];
   const stats = resp?.stats ?? {};
+  const cd = resp?.blockedUntil ?? 0;
+  const cooldownActive = cd > Date.now();
 
   $("s-queue").textContent = queue.length;
   $("s-proc").textContent = stats.processed ?? 0;
@@ -28,34 +37,53 @@ function render(resp) {
   $("s-blk").textContent = stats.blocked ?? 0;
   $("s-hour").textContent = `${resp?.perHour ?? 0} / ${resp?.hourlyLimit ?? 50}`;
   $("s-day").textContent = `${resp?.perDay ?? 0} / ${resp?.dailyLimit ?? 250}`;
-  const cd = resp?.blockedUntil ?? 0;
-  if (cd > Date.now()) {
+  if (cooldownActive) {
     $("s-cool").textContent = `⛔ ${Math.ceil((cd - Date.now()) / 60000)} min`;
-    $("s-cool").style.color = "#ef4444";
+    $("s-cool").style.color = "#fca5a5";
   } else {
     $("s-cool").textContent = "—";
     $("s-cool").style.color = "";
   }
   $("qcount").textContent = queue.length;
 
+  // Pulse + Title
+  const pulse = $("pulse");
+  pulse.className = "pulse" + (cooldownActive ? " err" : running ? " run" : "");
+  document.title = (running ? "● " : cooldownActive ? "⛔ " : "") + `Autosnipe (${queue.length})`;
+
+  // Status
   const status = $("status");
-  if (cd > Date.now()) {
-    status.className = "status idle";
-    status.style.background = "#fee2e2"; status.style.color = "#991b1b";
-    status.textContent = `🛑 Bot-Schutz erkannt — Cooldown läuft (${Math.ceil((cd - Date.now()) / 60000)}min)`;
+  if (cooldownActive) {
+    status.className = "status err";
+    status.textContent = `🛑 Bot-Schutz erkannt — Cooldown läuft (${Math.ceil((cd - Date.now()) / 60000)} min). Du kannst ihn manuell aufheben.`;
   } else if (running) {
-    status.className = "status run"; status.style.background = ""; status.style.color = "";
+    status.className = "status run";
     status.textContent = current
-      ? `🔄 Prüfe ${shortUrl(current.url)} …`
-      : `🔄 Lade Warteschlange…`;
+      ? `🔄 Verarbeite ${shortUrl(current.url)} …`
+      : `🔄 Lade Warteschlange vom Server …`;
   } else if (stats.finishedAt && (stats.processed > 0 || stats.errors > 0)) {
-    status.className = "status done"; status.style.background = ""; status.style.color = "";
-    status.textContent = `✅ Fertig — ${stats.processed} ok, ${stats.errors} Fehler`;
+    status.className = "status done";
+    status.textContent = `✅ Letzter Lauf fertig — ${stats.processed} ok, ${stats.errors} Fehler, ${stats.blocked ?? 0} Blocks`;
   } else {
-    status.className = "status idle"; status.style.background = ""; status.style.color = "";
-    status.textContent = "Bereit.";
+    status.className = "status";
+    status.textContent = "Bereit. Klick auf Start — der Tab bleibt offen und du siehst alles live.";
   }
 
+  // Aktuell-Karte
+  const now = $("now");
+  if (current) {
+    now.className = "now";
+    $("now-url").innerHTML = `<a href="${current.url}" target="_blank" style="color:#fff;text-decoration:underline">${current.url}</a>`;
+    $("now-step").textContent = `Schritt: ${current.step ?? (running ? "lädt …" : "—")}`;
+    $("now-elapsed").textContent = `Dauer: ${fmtDuration(Date.now() - (current.startedAt ?? Date.now()))}`;
+  } else {
+    now.className = "now idle";
+    $("now-url").textContent = running ? "— warte auf nächstes Inserat —" : "— nichts aktiv —";
+    $("now-step").textContent = "Schritt: —";
+    $("now-elapsed").textContent = "Dauer: —";
+  }
+
+  // Button
   const btn = $("ctrlBtn");
   if (running) {
     btn.className = "btn-stop";
@@ -68,13 +96,13 @@ function render(resp) {
   // Queue
   const qList = $("queueList");
   if (queue.length === 0 && !current) {
-    qList.innerHTML = '<div class="empty">Warteschlange leer</div>';
+    qList.innerHTML = '<div class="empty">Warteschlange leer — Server hat aktuell keine Inserate.</div>';
   } else {
     qList.innerHTML =
       (current ? `<div class="list-item"><span class="dot curr"></span><a href="${current.url}" target="_blank">${shortUrl(current.url)}</a><span class="ts">aktiv</span></div>` : "") +
       queue
         .filter((q) => !current || q.url !== current.url)
-        .map((q) => `<div class="list-item"><span class="dot" style="background:#d1d5db"></span><a href="${q.url}" target="_blank">${shortUrl(q.url)}</a></div>`)
+        .map((q) => `<div class="list-item"><span class="dot wait"></span><a href="${q.url}" target="_blank">${shortUrl(q.url)}</a></div>`)
         .join("");
   }
 
@@ -112,4 +140,5 @@ $("clearCooldown").addEventListener("click", () => {
 });
 
 refresh();
-setInterval(refresh, 1500);
+// Tab bleibt offen — schneller Poll, damit du alles live siehst
+setInterval(refresh, 1000);
