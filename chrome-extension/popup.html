@@ -3,67 +3,64 @@
 <head>
   <meta charset="utf-8" />
   <style>
-    body { font-family: system-ui, -apple-system, sans-serif; width: 340px; padding: 16px; margin: 0; background: #f9fafb; color: #111827; }
+    body { font-family: system-ui, -apple-system, sans-serif; width: 380px; padding: 14px; margin: 0; background: #f9fafb; color: #111827; }
     h1 { font-size: 16px; margin: 0 0 4px; }
-    .sub { font-size: 11px; color: #6b7280; margin-bottom: 14px; }
-    .card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; margin-bottom: 10px; }
-    .card h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; margin: 0 0 8px; }
-    .row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
+    .sub { font-size: 11px; color: #6b7280; margin-bottom: 12px; }
+    .card { background: white; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; margin-bottom: 10px; }
+    .card h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: #6b7280; margin: 0 0 6px; display:flex; justify-content:space-between; align-items:center; }
+    .row { display: flex; justify-content: space-between; font-size: 12px; padding: 2px 0; }
     .label { color: #6b7280; }
     .value { font-weight: 600; }
-    .toggle { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; }
-    .switch { position: relative; width: 44px; height: 24px; background: #d1d5db; border-radius: 12px; cursor: pointer; transition: .2s; }
-    .switch.on { background: #10b981; }
-    .switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; background: white; border-radius: 50%; transition: .2s; }
-    .switch.on::after { left: 22px; }
-    button { width: 100%; padding: 10px; border-radius: 8px; border: none; cursor: pointer; background: #6366f1; color: white; font-weight: 600; font-size: 13px; }
+    button { width: 100%; padding: 10px; border-radius: 8px; border: none; cursor: pointer; color: white; font-weight: 600; font-size: 13px; }
+    .btn-start { background: #10b981; }
+    .btn-stop { background: #ef4444; }
     button:disabled { opacity: .5; cursor: not-allowed; }
-    .status { padding: 10px; border-radius: 8px; font-size: 12px; margin-bottom: 10px; }
-    .status.ok { background: #d1fae5; color: #065f46; }
-    .status.idle { background: #fef3c7; color: #92400e; }
+    .status { padding: 8px 10px; border-radius: 8px; font-size: 12px; margin-bottom: 10px; font-weight: 500; }
+    .status.idle { background: #f3f4f6; color: #374151; }
     .status.run { background: #dbeafe; color: #1e40af; }
-    select { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #d1d5db; font-size: 13px; }
-    a { color: #6366f1; text-decoration: none; font-size: 12px; }
+    .status.done { background: #d1fae5; color: #065f46; }
+    .list { max-height: 160px; overflow-y: auto; font-size: 11px; }
+    .list-item { padding: 5px 6px; border-bottom: 1px solid #f3f4f6; display:flex; gap:6px; align-items:center; }
+    .list-item:last-child { border-bottom: none; }
+    .list-item .dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+    .dot.ok { background:#10b981; } .dot.err { background:#ef4444; } .dot.curr { background:#3b82f6; animation:pulse 1s infinite; }
+    @keyframes pulse { 0%,100% {opacity:1} 50%{opacity:.3} }
+    .list-item a { color: #6366f1; text-decoration: none; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .list-item .ts { color:#9ca3af; font-size:10px; flex-shrink:0; }
+    .clearbtn { background:none; color:#6b7280; padding:0; width:auto; font-size:10px; font-weight:400; cursor:pointer; }
+    .empty { padding: 10px; text-align:center; color:#9ca3af; font-size:11px; }
     .footer { text-align: center; margin-top: 10px; }
+    a.foot { color: #6366f1; text-decoration: none; font-size: 11px; }
   </style>
 </head>
 <body>
-  <h1>Autosnipe Auto-Worker</h1>
-  <div class="sub">Holt Inserate automatisch von Autosnipe und scraped sie nebenbei.</div>
+  <h1>Autosnipe Worker</h1>
+  <div class="sub">Manuell starten — arbeitet Inserate Schritt für Schritt ab.</div>
 
-  <div id="status" class="status idle">Lade Status…</div>
+  <div id="status" class="status idle">Bereit.</div>
 
-  <div class="card">
-    <div class="toggle">
-      <span><strong>Auto-Worker</strong><br><span style="font-size:11px;color:#6b7280">Läuft im Hintergrund</span></span>
-      <div id="toggle" class="switch"></div>
-    </div>
-  </div>
+  <button id="ctrlBtn" class="btn-start">▶ Start</button>
 
-  <div class="card">
-    <h2>Intervall</h2>
-    <select id="interval">
-      <option value="1">Alle 1 Minute</option>
-      <option value="2" selected>Alle 2 Minuten</option>
-      <option value="5">Alle 5 Minuten</option>
-      <option value="10">Alle 10 Minuten</option>
-      <option value="30">Alle 30 Minuten</option>
-    </select>
-  </div>
-
-  <div class="card">
+  <div class="card" style="margin-top:10px">
     <h2>Statistik</h2>
-    <div class="row"><span class="label">Läufe gesamt</span><span class="value" id="s-runs">0</span></div>
+    <div class="row"><span class="label">In Warteschlange</span><span class="value" id="s-queue">0</span></div>
     <div class="row"><span class="label">Verarbeitet</span><span class="value" id="s-proc">0</span></div>
     <div class="row"><span class="label">Fehler</span><span class="value" id="s-err">0</span></div>
-    <div class="row"><span class="label">Letzter Lauf</span><span class="value" id="s-last">—</span></div>
-    <div class="row"><span class="label">Letzter Batch</span><span class="value" id="s-batch">—</span></div>
+    <div class="row"><span class="label">Gestartet</span><span class="value" id="s-start">—</span></div>
   </div>
 
-  <button id="runNow">▶ Jetzt einen Lauf starten</button>
+  <div class="card">
+    <h2>Warteschlange <span id="qcount" style="color:#9ca3af">0</span></h2>
+    <div id="queueList" class="list"></div>
+  </div>
+
+  <div class="card">
+    <h2>Verlauf <button id="clearHist" class="clearbtn">leeren</button></h2>
+    <div id="historyList" class="list"></div>
+  </div>
 
   <div class="footer">
-    <a href="https://autosnipe.shop/queue" target="_blank">→ Queue öffnen</a>
+    <a class="foot" href="https://autosnipe.shop/queue" target="_blank">→ Swipe Queue öffnen</a>
   </div>
 
   <script src="popup.js"></script>
