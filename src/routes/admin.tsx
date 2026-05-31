@@ -549,15 +549,11 @@ interface SessionRow {
 }
 
 function VisitorsTab() {
+  const listSessions = useServerFn(listUserSessions);
   const { data: sessions = [], isLoading } = useQuery({
     queryKey: ["user_sessions"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("user_sessions")
-        .select("*")
-        .order("last_seen", { ascending: false })
-        .limit(50);
-      if (error) throw error;
+      const data = await listSessions();
       return (data ?? []) as SessionRow[];
     },
   });
