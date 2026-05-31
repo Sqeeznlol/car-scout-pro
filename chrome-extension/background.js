@@ -1,80 +1,67 @@
 // ============================================================
-// Autosnipe Auto-Worker
-// Läuft im Hintergrund, holt alle X Minuten eine Liste von
-// mobile.de-URLs vom Backend, öffnet sie nacheinander in
-// versteckten Tabs, lässt content.js scrapen+senden,
-// schließt die Tabs wieder.
+// Autosnipe Manual Worker
+// Kein Intervall. User klickt "Start" → wir holen alle offenen
+// Inserate aus dem Backend, arbeiten sie Stück für Stück ab
+// (versteckte Tabs), führen Verlauf + Live-Queue.
 // ============================================================
 
 const QUEUE_URL = "https://autosnipe.shop/api/public/hooks/extension-queue";
-const ALARM_NAME = "autosnipe-worker";
-const DEFAULT_INTERVAL_MIN = 2;
-const BATCH_SIZE = 5;          // wie viele URLs pro Lauf
-const TAB_TIMEOUT_MS = 35000;  // max Zeit pro Inserat bevor wir den Tab killen
-const GAP_BETWEEN_MS = 2500;   // Pause zwischen Tabs (entspannt mobile.de)
+const TAB_TIMEOUT_MS = 35000;
+const GAP_BETWEEN_MS = 1500;
+const HISTORY_MAX = 100;
+const FETCH_BATCH = 50; // pro Backend-Aufruf
 
 // ---- State ----
-const pending = new Map(); // tabId -> { url, timeoutId, resolve }
+const pending = new Map(); // tabId -> { item, timeoutId, resolve }
 let workerRunning = false;
-let stats = { runs: 0, processed: 0, errors: 0, lastRun: null, lastBatch: 0 };
+let stopRequested = false;
+let currentQueue = []; // [{url, id, title?}]
+let currentItem = null;
+let history = []; // [{url, ok, ts, message?}]
+let stats = { processed: 0, errors: 0, startedAt: null, finishedAt: null };
 
-// ---- Init ----
-chrome.runtime.onInstalled.addListener(async () => {
-  const { worker_enabled, worker_interval_min } = await chrome.storage.local.get([
-    "worker_enabled",
-    "worker_interval_min",
-  ]);
-  if (worker_enabled === undefined) {
-    await chrome.storage.local.set({ worker_enabled: true, worker_interval_min: DEFAULT_INTERVAL_MIN });
-  }
-  setupAlarm(worker_interval_min ?? DEFAULT_INTERVAL_MIN);
-});
-
-chrome.runtime.onStartup.addListener(async () => {
-  const { worker_interval_min } = await chrome.storage.local.get("worker_interval_min");
-  setupAlarm(worker_interval_min ?? DEFAULT_INTERVAL_MIN);
-});
-
-function setupAlarm(intervalMin) {
-  chrome.alarms.clear(ALARM_NAME, () => {
-    chrome.alarms.create(ALARM_NAME, {
-      delayInMinutes: 0.1,
-      periodInMinutes: Math.max(1, intervalMin),
-    });
-  });
-}
-
-chrome.alarms.onAlarm.addListener(async (a) => {
-  if (a.name !== ALARM_NAME) return;
-  const { worker_enabled } = await chrome.storage.local.get("worker_enabled");
-  if (worker_enabled === false) return;
-  runWorker().catch((e) => console.warn("[Autosnipe] worker error", e));
-});
+// ---- Bootstrap ----
+(async () => {
+  const stored = await chrome.storage.local.get(["worker_history", "worker_stats"]);
+  history = stored.worker_history ?? [];
+  stats = stored.worker_stats ?? stats;
+})();
 
 // ---- Message bus ----
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "sync-result") {
     chrome.storage.local.set({ last_sync: { ...msg.data, ts: Date.now() } });
-    // Wenn dieser Tab vom Worker geöffnet wurde -> schließen
     const tabId = sender.tab?.id;
     if (tabId && pending.has(tabId)) {
-      finishTab(tabId, true);
+      finishTab(tabId, true, "ok");
     }
   } else if (msg.type === "worker-status") {
-    sendResponse({ running: workerRunning, stats, pending: pending.size });
+    sendResponse({
+      running: workerRunning,
+      stopRequested,
+      queue: currentQueue,
+      current: currentItem,
+      history,
+      stats,
+      pending: pending.size,
+    });
     return true;
-  } else if (msg.type === "worker-trigger") {
-    runWorker().catch(() => {});
+  } else if (msg.type === "worker-start") {
+    if (!workerRunning) runWorker().catch((e) => console.warn("[Autosnipe]", e));
     sendResponse({ ok: true });
     return true;
-  } else if (msg.type === "worker-set-interval") {
-    setupAlarm(msg.intervalMin || DEFAULT_INTERVAL_MIN);
+  } else if (msg.type === "worker-stop") {
+    stopRequested = true;
+    sendResponse({ ok: true });
+    return true;
+  } else if (msg.type === "worker-clear-history") {
+    history = [];
+    chrome.storage.local.set({ worker_history: history });
     sendResponse({ ok: true });
     return true;
   }
 });
 
-// Cleanup falls Tab manuell geschlossen wird
 chrome.tabs.onRemoved.addListener((tabId) => {
   if (pending.has(tabId)) {
     const p = pending.get(tabId);
@@ -86,59 +73,76 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 
 // ---- Worker core ----
 async function runWorker() {
-  if (workerRunning) return;
   workerRunning = true;
-  stats.runs++;
-  stats.lastRun = Date.now();
-  await persistStats();
+  stopRequested = false;
+  stats = { processed: 0, errors: 0, startedAt: Date.now(), finishedAt: null };
+  await persist();
 
   try {
-    const res = await fetch(`${QUEUE_URL}?limit=${BATCH_SIZE}`, { cache: "no-store" });
-    const json = await res.json();
-    const items = json?.items ?? [];
-    stats.lastBatch = items.length;
-    await persistStats();
+    while (!stopRequested) {
+      // Hole nächsten Batch
+      const items = await fetchQueue(FETCH_BATCH);
+      currentQueue = items;
+      await persist();
 
-    if (items.length === 0) {
-      workerRunning = false;
-      return;
-    }
+      if (items.length === 0) break;
 
-    for (const it of items) {
-      const ok = await processOne(it.url);
-      if (ok) stats.processed++;
-      else stats.errors++;
-      await persistStats();
-      await sleep(GAP_BETWEEN_MS);
+      for (const item of items) {
+        if (stopRequested) break;
+        currentItem = item;
+        await persist();
+
+        const result = await processOne(item);
+        if (result.ok) stats.processed++;
+        else stats.errors++;
+
+        pushHistory({ url: item.url, ok: result.ok, ts: Date.now(), message: result.message });
+        currentQueue = currentQueue.filter((x) => x.url !== item.url);
+        currentItem = null;
+        await persist();
+        await sleep(GAP_BETWEEN_MS);
+      }
     }
   } catch (e) {
-    console.warn("[Autosnipe] runWorker", e);
-    stats.errors++;
-    await persistStats();
+    console.warn("[Autosnipe] runWorker error", e);
   } finally {
     workerRunning = false;
+    currentItem = null;
+    stats.finishedAt = Date.now();
+    await persist();
   }
 }
 
-function processOne(url) {
+async function fetchQueue(limit) {
+  try {
+    const res = await fetch(`${QUEUE_URL}?limit=${limit}`, { cache: "no-store" });
+    const json = await res.json();
+    return (json?.items ?? []).map((x) => ({ id: x.id, url: x.url }));
+  } catch (e) {
+    console.warn("[Autosnipe] queue fetch failed", e);
+    return [];
+  }
+}
+
+function processOne(item) {
   return new Promise((resolve) => {
-    chrome.tabs.create({ url, active: false, pinned: true }, (tab) => {
-      if (!tab?.id) return resolve(false);
+    chrome.tabs.create({ url: item.url, active: false, pinned: true }, (tab) => {
+      if (!tab?.id) return resolve({ ok: false, message: "Tab konnte nicht geöffnet werden" });
       const tabId = tab.id;
-      const timeoutId = setTimeout(() => finishTab(tabId, false), TAB_TIMEOUT_MS);
-      pending.set(tabId, { url, timeoutId, resolve });
+      const timeoutId = setTimeout(() => finishTab(tabId, false, "Timeout (Bot-Schutz / Login / langsam)"), TAB_TIMEOUT_MS);
+      pending.set(tabId, { item, timeoutId, resolve });
     });
   });
 }
 
-function finishTab(tabId, success) {
+function finishTab(tabId, success, message) {
   const p = pending.get(tabId);
   if (!p) return;
   clearTimeout(p.timeoutId);
   pending.delete(tabId);
-  if (!success) reportError(p.url, "Timeout: kein sync-result innerhalb der Frist (Bot-Schutz / Login / langsam?)");
+  if (!success) reportError(p.item.url, message);
   try { chrome.tabs.remove(tabId, () => void chrome.runtime.lastError); } catch (_) {}
-  p.resolve?.(success);
+  p.resolve?.({ ok: success, message });
 }
 
 function reportError(url, message) {
@@ -157,9 +161,18 @@ function reportError(url, message) {
   } catch (_) {}
 }
 
+function pushHistory(entry) {
+  history.unshift(entry);
+  if (history.length > HISTORY_MAX) history.length = HISTORY_MAX;
+}
 
-async function persistStats() {
-  await chrome.storage.local.set({ worker_stats: stats });
+async function persist() {
+  await chrome.storage.local.set({
+    worker_history: history,
+    worker_stats: stats,
+    worker_queue: currentQueue,
+    worker_current: currentItem,
+  });
 }
 
 function sleep(ms) {

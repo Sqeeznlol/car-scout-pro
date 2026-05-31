@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/public/hooks/extension-queue")({
       OPTIONS: async () => new Response(null, { status: 204, headers: CORS }),
       GET: async ({ request }) => {
         const url = new URL(request.url);
-        const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "5", 10) || 5, 20);
+        const limit = Math.min(parseInt(url.searchParams.get("limit") ?? "5", 10) || 5, 100);
         try {
           const items = await getQueue(limit);
           return new Response(JSON.stringify({ ok: true, items }), {

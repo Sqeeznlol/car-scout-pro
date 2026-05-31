@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Autosnipe — Mobile.de Auto-Worker",
-  "version": "2.0.0",
-  "description": "Läuft im Hintergrund: holt unbearbeitete Inserate von Autosnipe, scraped sie nebenbei in versteckten Tabs und sendet MwSt, Standort, Preise & Bilder zurück.",
-  "permissions": ["storage", "tabs", "alarms", "notifications"],
+  "name": "Autosnipe — Mobile.de Manual Worker",
+  "version": "3.0.0",
+  "description": "Du klickst Start — die Extension arbeitet alle offenen Inserate Schritt für Schritt ab, mit Live-Queue und Verlauf.",
+  "permissions": ["storage", "tabs", "notifications"],
   "host_permissions": [
     "https://*.mobile.de/*",
     "https://autosnipe.shop/*"

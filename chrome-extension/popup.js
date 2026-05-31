@@ -1,69 +1,97 @@
 const $ = (id) => document.getElementById(id);
 
-async function refresh() {
-  const { worker_enabled, worker_interval_min, worker_stats } = await chrome.storage.local.get([
-    "worker_enabled",
-    "worker_interval_min",
-    "worker_stats",
-  ]);
-
-  const enabled = worker_enabled !== false;
-  $("toggle").classList.toggle("on", enabled);
-  $("interval").value = String(worker_interval_min ?? 2);
-
-  const s = worker_stats || { runs: 0, processed: 0, errors: 0, lastRun: null, lastBatch: 0 };
-  $("s-runs").textContent = s.runs;
-  $("s-proc").textContent = s.processed;
-  $("s-err").textContent = s.errors;
-  $("s-batch").textContent = s.lastBatch ?? "—";
-  $("s-last").textContent = s.lastRun ? timeAgo(s.lastRun) : "—";
-
-  chrome.runtime.sendMessage({ type: "worker-status" }, (resp) => {
-    const status = $("status");
-    if (!enabled) {
-      status.className = "status idle";
-      status.textContent = "⏸ Auto-Worker ist deaktiviert.";
-    } else if (resp?.running) {
-      status.className = "status run";
-      status.textContent = `🔄 Lauf aktiv — ${resp.pending} Tab(s) offen`;
-    } else {
-      status.className = "status ok";
-      status.textContent = `✅ Aktiv — wartet auf nächsten Lauf (alle ${worker_interval_min ?? 2} min)`;
-    }
-  });
-}
-
 function timeAgo(ts) {
+  if (!ts) return "—";
   const s = Math.floor((Date.now() - ts) / 1000);
   if (s < 60) return `vor ${s}s`;
   if (s < 3600) return `vor ${Math.floor(s / 60)}min`;
   return `vor ${Math.floor(s / 3600)}h`;
 }
 
-$("toggle").addEventListener("click", async () => {
-  const { worker_enabled } = await chrome.storage.local.get("worker_enabled");
-  const next = worker_enabled === false;
-  await chrome.storage.local.set({ worker_enabled: next });
-  refresh();
-});
+function shortUrl(u) {
+  try {
+    const id = /[?&]id=(\d+)/.exec(u || "")?.[1];
+    return id ? `mobile.de #${id}` : (u || "").slice(0, 50);
+  } catch { return u; }
+}
 
-$("interval").addEventListener("change", async (e) => {
-  const min = parseInt(e.target.value, 10);
-  await chrome.storage.local.set({ worker_interval_min: min });
-  chrome.runtime.sendMessage({ type: "worker-set-interval", intervalMin: min }, () => refresh());
-});
+function render(resp) {
+  const running = resp?.running;
+  const queue = resp?.queue ?? [];
+  const current = resp?.current;
+  const history = resp?.history ?? [];
+  const stats = resp?.stats ?? {};
 
-$("runNow").addEventListener("click", () => {
-  $("runNow").disabled = true;
-  $("runNow").textContent = "Starte…";
-  chrome.runtime.sendMessage({ type: "worker-trigger" }, () => {
-    setTimeout(() => {
-      $("runNow").disabled = false;
-      $("runNow").textContent = "▶ Jetzt einen Lauf starten";
-      refresh();
-    }, 800);
+  $("s-queue").textContent = queue.length;
+  $("s-proc").textContent = stats.processed ?? 0;
+  $("s-err").textContent = stats.errors ?? 0;
+  $("s-start").textContent = stats.startedAt ? timeAgo(stats.startedAt) : "—";
+  $("qcount").textContent = queue.length;
+
+  const status = $("status");
+  if (running) {
+    status.className = "status run";
+    status.textContent = current
+      ? `🔄 Prüfe ${shortUrl(current.url)} …`
+      : `🔄 Lade Warteschlange…`;
+  } else if (stats.finishedAt && (stats.processed > 0 || stats.errors > 0)) {
+    status.className = "status done";
+    status.textContent = `✅ Fertig — ${stats.processed} verarbeitet, ${stats.errors} Fehler`;
+  } else {
+    status.className = "status idle";
+    status.textContent = "Bereit.";
+  }
+
+  const btn = $("ctrlBtn");
+  if (running) {
+    btn.className = "btn-stop";
+    btn.textContent = "■ Stoppen";
+  } else {
+    btn.className = "btn-start";
+    btn.textContent = "▶ Start";
+  }
+
+  // Queue
+  const qList = $("queueList");
+  if (queue.length === 0 && !current) {
+    qList.innerHTML = '<div class="empty">Warteschlange leer</div>';
+  } else {
+    qList.innerHTML =
+      (current ? `<div class="list-item"><span class="dot curr"></span><a href="${current.url}" target="_blank">${shortUrl(current.url)}</a><span class="ts">aktiv</span></div>` : "") +
+      queue
+        .filter((q) => !current || q.url !== current.url)
+        .map((q) => `<div class="list-item"><span class="dot" style="background:#d1d5db"></span><a href="${q.url}" target="_blank">${shortUrl(q.url)}</a></div>`)
+        .join("");
+  }
+
+  // History
+  const hList = $("historyList");
+  if (history.length === 0) {
+    hList.innerHTML = '<div class="empty">Noch kein Verlauf</div>';
+  } else {
+    hList.innerHTML = history
+      .map(
+        (h) =>
+          `<div class="list-item" title="${(h.message ?? "").replace(/"/g, "'")}"><span class="dot ${h.ok ? "ok" : "err"}"></span><a href="${h.url}" target="_blank">${shortUrl(h.url)}</a><span class="ts">${timeAgo(h.ts)}</span></div>`,
+      )
+      .join("");
+  }
+}
+
+function refresh() {
+  chrome.runtime.sendMessage({ type: "worker-status" }, (resp) => render(resp || {}));
+}
+
+$("ctrlBtn").addEventListener("click", () => {
+  chrome.runtime.sendMessage({ type: "worker-status" }, (resp) => {
+    const type = resp?.running ? "worker-stop" : "worker-start";
+    chrome.runtime.sendMessage({ type }, () => refresh());
   });
 });
 
+$("clearHist").addEventListener("click", () => {
+  chrome.runtime.sendMessage({ type: "worker-clear-history" }, () => refresh());
+});
+
 refresh();
-setInterval(refresh, 2000);
+setInterval(refresh, 1500);

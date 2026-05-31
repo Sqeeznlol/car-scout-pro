@@ -72,18 +72,18 @@ function QueuePage() {
 
   const [sortKey, setSortKey] = useState<SortKey>("margin");
   const [lastDecided, setLastDecided] = useState<string | null>(null);
-  const [onlyWithMwst, setOnlyWithMwst] = useState(false);
 
   const filteredVehicles = useMemo(() => {
     return vehicles.filter((v) => {
       if (v.decision) return false;
       if (v.year == null || v.year < 2021) return false;
       if (v.mileage_km != null && v.mileage_km > 100000) return false;
-      // onlyWithMwst: filtere nur explizit MwSt-lose (§25a) aus; unbekannt (null) bleibt drin
-      if (onlyWithMwst && v.seller_has_mwst === false) return false;
+      // Nur Fahrzeuge mit explizit ausweisbarer MwSt anzeigen.
+      // Unklare oder §25a werden ausgeblendet — die Extension prüft sie im Hintergrund.
+      if (v.seller_has_mwst !== true) return false;
       return true;
     });
-  }, [vehicles, onlyWithMwst]);
+  }, [vehicles]);
 
   const queue = useMemo(() => {
     const ts = (v: VehicleWithAnalysis) => new Date(v.received_at ?? v.created_at).getTime();
@@ -169,18 +169,12 @@ function QueuePage() {
         ))}
       </div>
 
-      <label className="flex items-center gap-2 mb-4 text-xs text-muted-foreground cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={onlyWithMwst}
-          onChange={(e) => setOnlyWithMwst(e.target.checked)}
-          className="h-4 w-4 accent-primary"
-        />
-        <span>§25a-Fahrzeuge ohne MwSt-Ausweis ausblenden</span>
-      </label>
+      <div className="mb-4 text-xs text-muted-foreground">
+        Es werden nur Fahrzeuge mit ausweisbarer MwSt angezeigt. Die Extension prüft im Hintergrund.
+      </div>
 
       {queue.length === 0 ? (
-        <EmptyState hasAny={vehicles.length > 0} hiddenCount={hiddenCount} onClearFilter={() => setOnlyWithMwst(false)} />
+        <EmptyState hasAny={vehicles.length > 0} hiddenCount={hiddenCount} onClearFilter={() => { /* noop */ }} />
       ) : (
         <div className="space-y-4">
           {queue.map((v) => (
