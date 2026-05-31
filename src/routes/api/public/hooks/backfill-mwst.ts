@@ -7,7 +7,7 @@ async function runBackfill() {
   const { data: rows, error } = await supabaseAdmin
     .from("vehicles")
     .select("id, listing_url, seller_has_mwst, country_code, location, skip_reason")
-    .or("seller_has_mwst.is.null,country_code.is.null")
+    .or("seller_has_mwst.is.null,country_code.is.null,pending_review.eq.true")
     .not("listing_url", "is", null)
     .is("skip_reason", null)
     .limit(15);

@@ -19,6 +19,7 @@ import { Route as VehicleIdRouteImport } from './routes/vehicle.$id'
 import { Route as ApiPublicHooksTestJinaRouteImport } from './routes/api/public/hooks/test-jina'
 import { Route as ApiPublicHooksSyncGmailRouteImport } from './routes/api/public/hooks/sync-gmail'
 import { Route as ApiPublicHooksScrapeBatchRouteImport } from './routes/api/public/hooks/scrape-batch'
+import { Route as ApiPublicHooksResolveReviewQueueRouteImport } from './routes/api/public/hooks/resolve-review-queue'
 import { Route as ApiPublicHooksExtensionUnavailableRouteImport } from './routes/api/public/hooks/extension-unavailable'
 import { Route as ApiPublicHooksExtensionQueueRouteImport } from './routes/api/public/hooks/extension-queue'
 import { Route as ApiPublicHooksExtensionIngestRouteImport } from './routes/api/public/hooks/extension-ingest'
@@ -76,6 +77,12 @@ const ApiPublicHooksScrapeBatchRoute =
     path: '/api/public/hooks/scrape-batch',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksResolveReviewQueueRoute =
+  ApiPublicHooksResolveReviewQueueRouteImport.update({
+    id: '/api/public/hooks/resolve-review-queue',
+    path: '/api/public/hooks/resolve-review-queue',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksExtensionUnavailableRoute =
   ApiPublicHooksExtensionUnavailableRouteImport.update({
     id: '/api/public/hooks/extension-unavailable',
@@ -120,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
+  '/api/public/hooks/resolve-review-queue': typeof ApiPublicHooksResolveReviewQueueRoute
   '/api/public/hooks/scrape-batch': typeof ApiPublicHooksScrapeBatchRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
@@ -137,6 +145,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
+  '/api/public/hooks/resolve-review-queue': typeof ApiPublicHooksResolveReviewQueueRoute
   '/api/public/hooks/scrape-batch': typeof ApiPublicHooksScrapeBatchRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
@@ -155,6 +164,7 @@ export interface FileRoutesById {
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
+  '/api/public/hooks/resolve-review-queue': typeof ApiPublicHooksResolveReviewQueueRoute
   '/api/public/hooks/scrape-batch': typeof ApiPublicHooksScrapeBatchRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
   '/api/public/hooks/test-jina': typeof ApiPublicHooksTestJinaRoute
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/extension-unavailable'
+    | '/api/public/hooks/resolve-review-queue'
     | '/api/public/hooks/scrape-batch'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/extension-unavailable'
+    | '/api/public/hooks/resolve-review-queue'
     | '/api/public/hooks/scrape-batch'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
@@ -208,6 +220,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/extension-unavailable'
+    | '/api/public/hooks/resolve-review-queue'
     | '/api/public/hooks/scrape-batch'
     | '/api/public/hooks/sync-gmail'
     | '/api/public/hooks/test-jina'
@@ -226,6 +239,7 @@ export interface RootRouteChildren {
   ApiPublicHooksExtensionIngestRoute: typeof ApiPublicHooksExtensionIngestRoute
   ApiPublicHooksExtensionQueueRoute: typeof ApiPublicHooksExtensionQueueRoute
   ApiPublicHooksExtensionUnavailableRoute: typeof ApiPublicHooksExtensionUnavailableRoute
+  ApiPublicHooksResolveReviewQueueRoute: typeof ApiPublicHooksResolveReviewQueueRoute
   ApiPublicHooksScrapeBatchRoute: typeof ApiPublicHooksScrapeBatchRoute
   ApiPublicHooksSyncGmailRoute: typeof ApiPublicHooksSyncGmailRoute
   ApiPublicHooksTestJinaRoute: typeof ApiPublicHooksTestJinaRoute
@@ -303,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksScrapeBatchRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/resolve-review-queue': {
+      id: '/api/public/hooks/resolve-review-queue'
+      path: '/api/public/hooks/resolve-review-queue'
+      fullPath: '/api/public/hooks/resolve-review-queue'
+      preLoaderRoute: typeof ApiPublicHooksResolveReviewQueueRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/extension-unavailable': {
       id: '/api/public/hooks/extension-unavailable'
       path: '/api/public/hooks/extension-unavailable'
@@ -355,6 +376,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksExtensionQueueRoute: ApiPublicHooksExtensionQueueRoute,
   ApiPublicHooksExtensionUnavailableRoute:
     ApiPublicHooksExtensionUnavailableRoute,
+  ApiPublicHooksResolveReviewQueueRoute: ApiPublicHooksResolveReviewQueueRoute,
   ApiPublicHooksScrapeBatchRoute: ApiPublicHooksScrapeBatchRoute,
   ApiPublicHooksSyncGmailRoute: ApiPublicHooksSyncGmailRoute,
   ApiPublicHooksTestJinaRoute: ApiPublicHooksTestJinaRoute,
