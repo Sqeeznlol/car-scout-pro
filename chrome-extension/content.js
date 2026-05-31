@@ -124,9 +124,12 @@
     const dealerEl = document.querySelector(
       '[data-testid*="dealer"], [data-testid*="seller"], [class*="dealer"], [class*="seller-info"], aside'
     );
-    const dealerText = dealerEl ? cleanText(dealerEl.textContent) : bodyText;
+    const dealerText = dealerEl ? cleanText(dealerEl.textContent) : "";
 
-    const addrMatch = /(DE|AT|CH|IT|FR|NL|BE|LU|PL|CZ|ES|PT|HU)-(\d{4,5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-\s]{2,40}?)(?=\s*$|\s*[,\n]|\s+Tel|\s{2,})/.exec(dealerText);
+    // Adresse zuerst im Dealer-Block suchen, dann im gesamten Body als Fallback
+    const ADDR_RE = /\b(DE|AT|CH|IT|FR|NL|BE|LU|PL|CZ|ES|PT|HU|DK|SE|NO|FI|SK|SI|HR)-(\d{4,5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-\s]{2,40}?)(?=\s*$|\s*[,\n<•|·]|\s+Tel|\s{2,}|\s+\d)/;
+    let addrMatch = dealerText ? ADDR_RE.exec(dealerText) : null;
+    if (!addrMatch) addrMatch = ADDR_RE.exec(bodyText);
     if (addrMatch) {
       data.country_code = addrMatch[1];
       data.location = `${addrMatch[2]} ${addrMatch[3].trim()}`.replace(/\s+/g, " ");
