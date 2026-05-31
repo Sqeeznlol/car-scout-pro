@@ -169,18 +169,12 @@ function QueuePage() {
         ))}
       </div>
 
-      <label className="flex items-center gap-2 mb-4 text-xs text-muted-foreground cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={onlyWithMwst}
-          onChange={(e) => setOnlyWithMwst(e.target.checked)}
-          className="h-4 w-4 accent-primary"
-        />
-        <span>§25a-Fahrzeuge ohne MwSt-Ausweis ausblenden</span>
-      </label>
+      <div className="mb-4 text-xs text-muted-foreground">
+        Es werden nur Fahrzeuge mit ausweisbarer MwSt angezeigt. Die Extension prüft im Hintergrund.
+      </div>
 
       {queue.length === 0 ? (
-        <EmptyState hasAny={vehicles.length > 0} hiddenCount={hiddenCount} onClearFilter={() => setOnlyWithMwst(false)} />
+        <EmptyState hasAny={vehicles.length > 0} hiddenCount={hiddenCount} onClearFilter={() => { /* noop */ }} />
       ) : (
         <div className="space-y-4">
           {queue.map((v) => (
