@@ -1,44 +1,104 @@
 // ============================================================
-// Autosnipe Manual Worker
-// Kein Intervall. User klickt "Start" → wir holen alle offenen
-// Inserate aus dem Backend, arbeiten sie Stück für Stück ab
-// (versteckte Tabs), führen Verlauf + Live-Queue.
+// Autosnipe Manual Worker — Anti-Ban Edition
+// - Zufällige Wartezeiten zwischen Inseraten (8-18s)
+// - Lange Pause nach jedem Mini-Batch (60-120s alle 12 Inserate)
+// - Harter Stundenlimit (max 50/h)
+// - Tageslimit (max 250/Tag)
+// - Bot-Schutz erkannt → sofortiger Stopp + 30min Cooldown
+// - Immer nur 1 Tab gleichzeitig (sequenziell, nicht parallel)
 // ============================================================
 
 const QUEUE_URL = "https://autosnipe.shop/api/public/hooks/extension-queue";
 const TAB_TIMEOUT_MS = 35000;
-const GAP_BETWEEN_MS = 1500;
+
+// --- Anti-Ban Konfiguration ---
+const GAP_MIN_MS = 8000;          // min Pause zwischen Inseraten
+const GAP_MAX_MS = 18000;         // max Pause zwischen Inseraten
+const MICRO_BATCH = 12;           // alle 12 Inserate eine lange Pause
+const LONG_PAUSE_MIN_MS = 60_000; // 1 min
+const LONG_PAUSE_MAX_MS = 120_000;// 2 min
+const HOURLY_LIMIT = 50;
+const DAILY_LIMIT = 250;
+const BLOCKED_COOLDOWN_MS = 30 * 60_000; // 30 min nach Bot-Schutz
+const FETCH_BATCH = 25;
+
 const HISTORY_MAX = 100;
-const FETCH_BATCH = 50; // pro Backend-Aufruf
 
 // ---- State ----
 const pending = new Map(); // tabId -> { item, timeoutId, resolve }
 let workerRunning = false;
 let stopRequested = false;
-let currentQueue = []; // [{url, id, title?}]
+let blockedUntil = 0; // timestamp
+let currentQueue = [];
 let currentItem = null;
-let history = []; // [{url, ok, ts, message?}]
-let stats = { processed: 0, errors: 0, startedAt: null, finishedAt: null };
+let history = [];
+let recentTimestamps = []; // für Rate-Limit (timestamps der letzten Anfragen)
+let stats = { processed: 0, errors: 0, blocked: 0, startedAt: null, finishedAt: null };
 
 // ---- Bootstrap ----
 (async () => {
-  const stored = await chrome.storage.local.get(["worker_history", "worker_stats"]);
+  const stored = await chrome.storage.local.get(["worker_history", "worker_stats", "worker_timestamps", "blocked_until"]);
   history = stored.worker_history ?? [];
   stats = stored.worker_stats ?? stats;
+  recentTimestamps = stored.worker_timestamps ?? [];
+  blockedUntil = stored.blocked_until ?? 0;
 })();
+
+// ---- Helpers ----
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const rand = (min, max) => Math.floor(min + Math.random() * (max - min));
+const now = () => Date.now();
+
+function pruneTimestamps() {
+  const cutoff = now() - 24 * 60 * 60_000;
+  recentTimestamps = recentTimestamps.filter((t) => t > cutoff);
+}
+function countInLastMs(ms) {
+  const cutoff = now() - ms;
+  return recentTimestamps.filter((t) => t > cutoff).length;
+}
+function rateLimitWaitMs() {
+  pruneTimestamps();
+  const perHour = countInLastMs(3600_000);
+  const perDay = countInLastMs(24 * 3600_000);
+  if (perDay >= DAILY_LIMIT) {
+    // warte bis ältester Tages-Timestamp aus dem Fenster fällt
+    const oldest = recentTimestamps[recentTimestamps.length - DAILY_LIMIT] ?? now();
+    return Math.max(60_000, oldest + 24 * 3600_000 - now());
+  }
+  if (perHour >= HOURLY_LIMIT) {
+    const oldest = recentTimestamps[recentTimestamps.length - HOURLY_LIMIT] ?? now();
+    return Math.max(60_000, oldest + 3600_000 - now());
+  }
+  return 0;
+}
 
 // ---- Message bus ----
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "sync-result") {
-    chrome.storage.local.set({ last_sync: { ...msg.data, ts: Date.now() } });
+    chrome.storage.local.set({ last_sync: { ...msg.data, ts: now() } });
     const tabId = sender.tab?.id;
-    if (tabId && pending.has(tabId)) {
-      finishTab(tabId, true, "ok");
-    }
+    if (tabId && pending.has(tabId)) finishTab(tabId, true, "ok");
+  } else if (msg.type === "blocked-detected") {
+    // Bot-Schutz! Sofort stoppen.
+    blockedUntil = now() + BLOCKED_COOLDOWN_MS;
+    stopRequested = true;
+    stats.blocked = (stats.blocked || 0) + 1;
+    chrome.storage.local.set({ blocked_until: blockedUntil });
+    pushHistory({ url: msg.url, ok: false, ts: now(), message: "🛑 Bot-Schutz erkannt — 30min Cooldown" });
+    const tabId = sender.tab?.id;
+    if (tabId && pending.has(tabId)) finishTab(tabId, false, "blocked");
+    persist();
   } else if (msg.type === "worker-status") {
+    pruneTimestamps();
     sendResponse({
       running: workerRunning,
       stopRequested,
+      blockedUntil,
+      perHour: countInLastMs(3600_000),
+      perDay: countInLastMs(24 * 3600_000),
+      hourlyLimit: HOURLY_LIMIT,
+      dailyLimit: DAILY_LIMIT,
       queue: currentQueue,
       current: currentItem,
       history,
@@ -59,6 +119,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     chrome.storage.local.set({ worker_history: history });
     sendResponse({ ok: true });
     return true;
+  } else if (msg.type === "worker-clear-cooldown") {
+    blockedUntil = 0;
+    chrome.storage.local.set({ blocked_until: 0 });
+    sendResponse({ ok: true });
+    return true;
   }
 });
 
@@ -67,40 +132,73 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     const p = pending.get(tabId);
     clearTimeout(p.timeoutId);
     pending.delete(tabId);
-    p.resolve?.(false);
+    p.resolve?.({ ok: false, message: "Tab geschlossen" });
   }
 });
 
 // ---- Worker core ----
 async function runWorker() {
+  if (now() < blockedUntil) {
+    const minLeft = Math.ceil((blockedUntil - now()) / 60_000);
+    pushHistory({ url: "", ok: false, ts: now(), message: `⏸ Cooldown noch ${minLeft} min` });
+    await persist();
+    return;
+  }
   workerRunning = true;
   stopRequested = false;
-  stats = { processed: 0, errors: 0, startedAt: Date.now(), finishedAt: null };
+  stats = { processed: 0, errors: 0, blocked: 0, startedAt: now(), finishedAt: null };
   await persist();
+
+  let sinceLongPause = 0;
 
   try {
     while (!stopRequested) {
-      // Hole nächsten Batch
+      // Rate-Limit Check
+      const waitMs = rateLimitWaitMs();
+      if (waitMs > 0) {
+        pushHistory({ url: "", ok: false, ts: now(), message: `⏸ Limit erreicht — warte ${Math.ceil(waitMs / 60_000)}min` });
+        await persist();
+        break;
+      }
+
       const items = await fetchQueue(FETCH_BATCH);
       currentQueue = items;
       await persist();
-
       if (items.length === 0) break;
 
       for (const item of items) {
         if (stopRequested) break;
+        if (now() < blockedUntil) { stopRequested = true; break; }
+        if (rateLimitWaitMs() > 0) { stopRequested = true; break; }
+
         currentItem = item;
         await persist();
 
         const result = await processOne(item);
+        recentTimestamps.push(now());
+        chrome.storage.local.set({ worker_timestamps: recentTimestamps });
+
         if (result.ok) stats.processed++;
         else stats.errors++;
 
-        pushHistory({ url: item.url, ok: result.ok, ts: Date.now(), message: result.message });
+        pushHistory({ url: item.url, ok: result.ok, ts: now(), message: result.message });
         currentQueue = currentQueue.filter((x) => x.url !== item.url);
         currentItem = null;
+        sinceLongPause++;
         await persist();
-        await sleep(GAP_BETWEEN_MS);
+
+        if (stopRequested) break;
+
+        // Lange Pause alle MICRO_BATCH Inserate (wirkt menschlich)
+        if (sinceLongPause >= MICRO_BATCH) {
+          const pause = rand(LONG_PAUSE_MIN_MS, LONG_PAUSE_MAX_MS);
+          pushHistory({ url: "", ok: true, ts: now(), message: `☕ Pause ${Math.round(pause / 1000)}s` });
+          await persist();
+          await sleep(pause);
+          sinceLongPause = 0;
+        } else {
+          await sleep(rand(GAP_MIN_MS, GAP_MAX_MS));
+        }
       }
     }
   } catch (e) {
@@ -108,7 +206,7 @@ async function runWorker() {
   } finally {
     workerRunning = false;
     currentItem = null;
-    stats.finishedAt = Date.now();
+    stats.finishedAt = now();
     await persist();
   }
 }
@@ -129,7 +227,7 @@ function processOne(item) {
     chrome.tabs.create({ url: item.url, active: false, pinned: true }, (tab) => {
       if (!tab?.id) return resolve({ ok: false, message: "Tab konnte nicht geöffnet werden" });
       const tabId = tab.id;
-      const timeoutId = setTimeout(() => finishTab(tabId, false, "Timeout (Bot-Schutz / Login / langsam)"), TAB_TIMEOUT_MS);
+      const timeoutId = setTimeout(() => finishTab(tabId, false, "Timeout (Bot-Schutz / langsam)"), TAB_TIMEOUT_MS);
       pending.set(tabId, { item, timeoutId, resolve });
     });
   });
@@ -173,8 +271,4 @@ async function persist() {
     worker_queue: currentQueue,
     worker_current: currentItem,
   });
-}
-
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
 }

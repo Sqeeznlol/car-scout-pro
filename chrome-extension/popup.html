@@ -35,19 +35,25 @@
 </head>
 <body>
   <h1>Autosnipe Worker</h1>
-  <div class="sub">Manuell starten — arbeitet Inserate Schritt für Schritt ab.</div>
+  <div class="sub">Anti-Ban Modus: 8–18s zwischen Inseraten, Pause nach jeweils 12, max 50/h.</div>
 
   <div id="status" class="status idle">Bereit.</div>
 
   <button id="ctrlBtn" class="btn-start">▶ Start</button>
 
   <div class="card" style="margin-top:10px">
+    <h2>Schutz-Limits</h2>
+    <div class="row"><span class="label">Letzte Stunde</span><span class="value" id="s-hour">0 / 50</span></div>
+    <div class="row"><span class="label">Letzte 24h</span><span class="value" id="s-day">0 / 250</span></div>
+    <div class="row"><span class="label">Cooldown</span><span class="value" id="s-cool">—</span></div>
+  </div>
+
+  <div class="card">
     <h2>Statistik</h2>
     <div class="row"><span class="label">In Warteschlange</span><span class="value" id="s-queue">0</span></div>
     <div class="row"><span class="label">Verarbeitet</span><span class="value" id="s-proc">0</span></div>
     <div class="row"><span class="label">Fehler</span><span class="value" id="s-err">0</span></div>
-    <div class="row"><span class="label">Gestartet</span><span class="value" id="s-start">—</span></div>
-  </div>
+    <div class="row"><span class="label">Bot-Blocks</span><span class="value" id="s-blk">0</span></div>
 
   <div class="card">
     <h2>Warteschlange <span id="qcount" style="color:#9ca3af">0</span></h2>
