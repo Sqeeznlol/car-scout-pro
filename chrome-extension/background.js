@@ -26,6 +26,7 @@ const HISTORY_MAX = 100;
 
 // ---- State ----
 const pending = new Map(); // tabId -> { item, timeoutId, resolve }
+const tabVehicleId = new Map(); // tabId -> vehicle_id (UUID aus queue)
 let workerRunning = false;
 let stopRequested = false;
 let blockedUntil = 0; // timestamp
