@@ -92,8 +92,16 @@ function AdminPage() {
       </div>
 
       <Tabs defaultValue="costs">
-        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-9">
+        <TabsList className="w-full overflow-x-auto flex justify-start lg:grid lg:grid-cols-10">
           <TabsTrigger value="costs"><Sliders className="h-4 w-4" /> Kosten</TabsTrigger>
+          <TabsTrigger value="review" className="relative">
+            <AlertTriangle className="h-4 w-4" /> Prüfung
+            {pendingCount > 0 && (
+              <span className="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-[10px] font-bold text-white">
+                {pendingCount}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="email"><Mail className="h-4 w-4" /> E-Mail</TabsTrigger>
           <TabsTrigger value="insights"><Sparkles className="h-4 w-4" /> Insights</TabsTrigger>
           <TabsTrigger value="visitors"><Users className="h-4 w-4" /> Besucher</TabsTrigger>
@@ -103,6 +111,11 @@ function AdminPage() {
           <TabsTrigger value="errors"><Ban className="h-4 w-4" /> Fehler</TabsTrigger>
           <TabsTrigger value="edit"><CarIcon className="h-4 w-4" /> Bearbeiten</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="review" className="mt-4">
+          <ReviewTab />
+        </TabsContent>
+
 
 
         <TabsContent value="costs" className="space-y-4 mt-4">
