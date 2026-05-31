@@ -6,6 +6,7 @@ import { estimateChMarketValue } from "@/lib/ch-market.server";
 import { getLiveEurChfRate } from "@/lib/fx.server";
 
 interface IngestPayload {
+  vehicle_id?: string;
   mobile_de_id?: string;
   url?: string;
   title?: string;
