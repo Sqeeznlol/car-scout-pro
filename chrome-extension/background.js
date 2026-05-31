@@ -76,6 +76,11 @@ function rateLimitWaitMs() {
 
 // ---- Message bus ----
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "get-vehicle-id") {
+    const tabId = sender.tab?.id;
+    sendResponse({ vehicle_id: tabId ? tabVehicleId.get(tabId) ?? null : null });
+    return true;
+  }
   if (msg.type === "sync-result") {
     chrome.storage.local.set({ last_sync: { ...msg.data, ts: now() } });
     const tabId = sender.tab?.id;
