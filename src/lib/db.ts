@@ -17,6 +17,7 @@ export async function fetchVehicles(): Promise<VehicleWithAnalysis[]> {
     .from("vehicles")
     .select("*, analysis:vehicle_analyses(*), decision:decisions(*)")
     .is("skip_reason", null)
+    .eq("extension_archived", false)
     .eq("pending_review", false)
     .eq("seller_has_mwst", true)
     .or("country_code.eq.DE,country_code.is.null")
