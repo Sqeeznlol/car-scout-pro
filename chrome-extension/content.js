@@ -158,9 +158,22 @@
     const websiteEl = document.querySelector('a[href^="http"]:not([href*="mobile.de"]):not([href*="ebay"]):not([href*="facebook"]):not([href*="twitter"])');
     if (websiteEl) data.seller_website = websiteEl.href;
 
+    // Bilder: bevorzugt aus Gallery-Container, sonst gefiltert über die ganze Seite.
+    // Stock-/Profil-/Logo-Bilder (z.B. "Frau mit Hut" Platzhalter) ausschliessen.
+    const galleryRoot =
+      document.querySelector(
+        '[data-testid*="gallery"], [data-testid*="image"], [class*="gallery"], [class*="Gallery"], [class*="image-gallery"], [class*="ImageGallery"], section[aria-label*="ilder" i], section[aria-label*="oto" i]'
+      ) || document;
     const imgs = Array.from(
-      document.querySelectorAll('img[src*="mo-prod"], img[src*="classistatic"], img[srcset*="mo-prod"], img[srcset*="classistatic"]')
+      galleryRoot.querySelectorAll('img[src*="mo-prod"], img[src*="classistatic"], img[srcset*="mo-prod"], img[srcset*="classistatic"]')
     );
+    const isBadImg = (u, alt) => {
+      const s = (u || "").toLowerCase();
+      const a = (alt || "").toLowerCase();
+      if (/logo|avatar|profile|placeholder|stock|dealer|haendler|händler|user|seller/.test(s)) return true;
+      if (/logo|avatar|profil|platzhalter|stock|händler|haendler|verkäufer/.test(a)) return true;
+      return false;
+    };
     const urls = new Set();
     for (const img of imgs) {
       let url = img.src;
@@ -168,7 +181,19 @@
         const last = img.srcset.split(",").map((s) => s.trim().split(" ")[0]).pop();
         if (last) url = last;
       }
-      if (url) urls.add(url);
+      if (!url) continue;
+      if (isBadImg(url, img.alt)) continue;
+      // sehr kleine Bilder (Icons, Thumbs) raus
+      const w = img.naturalWidth || img.width || 0;
+      const h = img.naturalHeight || img.height || 0;
+      if (w && w < 200) continue;
+      if (h && h < 150) continue;
+      urls.add(url);
+    }
+    // Fallback: OG-Image vom Inserat
+    if (urls.size === 0) {
+      const og = document.querySelector('meta[property="og:image"]')?.getAttribute("content");
+      if (og && !isBadImg(og, "")) urls.add(og);
     }
     data.image_urls = Array.from(urls).slice(0, 30);
     data.image_url = data.image_urls[0] || null;
