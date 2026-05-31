@@ -57,22 +57,74 @@ async function ingest(payload: IngestPayload) {
   const idFromUrl = payload.url?.match(/[?&]id=(\d+)/)?.[1] ?? null;
   const idMatch = payload.mobile_de_id ?? idFromUrl;
 
-  let query = supabaseAdmin
-    .from("vehicles")
-    .select("id, listing_url, source_message_id, make, model, year, mileage_km, location, fuel, seller_type, distance_km, price_eur")
-    .limit(1);
+  const SELECT_COLS = "id, listing_url, source_message_id, make, model, year, mileage_km, location, fuel, seller_type, distance_km, price_eur";
 
+  type ExistingRow = {
+    id: string;
+    listing_url: string | null;
+    source_message_id: string | null;
+    make: string | null;
+    model: string | null;
+    year: number | null;
+    mileage_km: number | null;
+    location: string | null;
+    fuel: string | null;
+    seller_type: string | null;
+    distance_km: number | null;
+    price_eur: number | null;
+  };
+
+  let existing: ExistingRow | null = null;
+
+  // 1) Direkt per vehicle_id
   if (payload.vehicle_id) {
-    query = query.eq("id", payload.vehicle_id);
-  } else if (idMatch) {
-    query = query.or(`mobile_de_listing_id.eq.${idMatch},source_message_id.ilike.%${idMatch}%`);
-  } else if (payload.url) {
-    query = query.eq("listing_url", payload.url);
+    const { data } = await supabaseAdmin
+      .from("vehicles").select(SELECT_COLS).eq("id", payload.vehicle_id).limit(1).maybeSingle();
+    existing = (data as ExistingRow | null) ?? null;
   }
 
-  const { data: existing } = await query.maybeSingle();
+  // 2) Fallback: per mobile_de_listing_id / source_message_id
+  if (!existing && idMatch) {
+    const { data } = await supabaseAdmin
+      .from("vehicles").select(SELECT_COLS)
+      .or(`mobile_de_listing_id.eq.${idMatch},source_message_id.ilike.%${idMatch}%`)
+      .limit(1).maybeSingle();
+    existing = (data as ExistingRow | null) ?? null;
+  }
+
+  // 3) Fallback: per listing_url
+  if (!existing && payload.url) {
+    const { data } = await supabaseAdmin
+      .from("vehicles").select(SELECT_COLS).eq("listing_url", payload.url).limit(1).maybeSingle();
+    existing = (data as ExistingRow | null) ?? null;
+  }
+
+  // 4) Nichts gefunden → neuen Vehicle-Eintrag automatisch anlegen
   if (!existing) {
-    return { ok: false, error: "vehicle not found", archived: false };
+    if (!idMatch && !payload.url) {
+      return { ok: false, error: "vehicle not found and no id/url to create one", archived: false };
+    }
+    const { data: inserted, error: insErr } = await supabaseAdmin
+      .from("vehicles")
+      .insert({
+        source: "mobile.de",
+        title: payload.title ?? `mobile.de ${idMatch ?? ""}`.trim(),
+        listing_url: payload.url ?? null,
+        mobile_de_listing_id: idMatch ?? null,
+        price_eur: payload.price_eur ?? null,
+        mileage_km: payload.mileage_km ?? null,
+        year: payload.year ?? null,
+        fuel: payload.fuel ?? null,
+        location: payload.location ?? null,
+        seller_type: payload.seller_type ?? null,
+        received_at: new Date().toISOString(),
+      } as never)
+      .select(SELECT_COLS)
+      .single();
+    if (insErr || !inserted) {
+      return { ok: false, error: `auto-create failed: ${insErr?.message ?? "unknown"}`, archived: false };
+    }
+    existing = inserted as ExistingRow;
   }
 
   // CRITICAL: scraped_at SOFORT stempeln — egal was danach passiert.
