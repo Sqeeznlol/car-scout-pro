@@ -142,6 +142,16 @@ async function ingest(payload: ExtensionPayload) {
     return { ok: false, error: insErr?.message ?? "upsert failed" };
   }
 
+  // DE listing without ausweisbare MwSt / Netto → goes to Admin "Prüfung" instead of Swipe Queue.
+  // User manually enters Netto (→ Queue) or confirms none (→ Archive).
+  if (payload.seller_has_mwst !== true || !payload.price_eur_netto) {
+    await supabaseAdmin
+      .from("vehicles")
+      .update({ pending_review: true, seller_has_mwst: payload.seller_has_mwst ?? false })
+      .eq("id", inserted_row.id);
+    return { ok: true, vehicle_id: inserted_row.id, pending_review: true, reason: "kein Nettopreis erkannt — wartet auf Prüfung" };
+  }
+
   const { data: cfg } = await supabaseAdmin.from("app_config").select("*").eq("id", 1).single();
   const liveRate = await getLiveEurChfRate();
   const config: ConfigInput = {
