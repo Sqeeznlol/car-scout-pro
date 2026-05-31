@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import { fetchTelegramChatId, sendTestTelegram } from "@/lib/notifications.functions";
+import { getMyNotificationFilter, saveMyNotificationFilter } from "@/lib/notification-filters.functions";
 import { toast } from "sonner";
 import { Bell, Eye, EyeOff, RefreshCw, Send, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
