@@ -115,7 +115,7 @@ async function ingest(payload: IngestPayload) {
     if (payload.equipment) cleaned.equipment = payload.equipment;
     if (payload.description) cleaned.description = payload.description;
 
-    await supabaseAdmin.from("vehicles").update(cleaned).eq("id", existing.id);
+    await supabaseAdmin.from("vehicles").update(cleaned as never).eq("id", existing.id);
     return { ok: true, pending_review: true, reason: "kein Nettopreis — wartet auf Prüfung" };
   }
 
@@ -163,7 +163,7 @@ async function ingest(payload: IngestPayload) {
     pending_review: false,
   };
   const cleanUpdate = Object.fromEntries(Object.entries(update).filter(([, v]) => v !== undefined));
-  await supabaseAdmin.from("vehicles").update(cleanUpdate).eq("id", existing.id);
+  await supabaseAdmin.from("vehicles").update(cleanUpdate as never).eq("id", existing.id);
 
   // Analyse neu berechnen
   const { data: cfg } = await supabaseAdmin.from("app_config").select("*").eq("id", 1).single();
