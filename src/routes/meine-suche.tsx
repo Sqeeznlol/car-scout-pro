@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { supabase } from "@/integrations/supabase/client";
 import { fetchTelegramChatId, sendTestTelegram } from "@/lib/notifications.functions";
+import { getMyNotificationFilter, saveMyNotificationFilter } from "@/lib/notification-filters.functions";
 import { toast } from "sonner";
 import { Bell, Eye, EyeOff, RefreshCw, Send, Save } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -52,19 +52,20 @@ function MeineSuche() {
   const [saving, setSaving] = useState(false);
   const fetchChat = useServerFn(fetchTelegramChatId);
   const sendTest = useServerFn(sendTestTelegram);
+  const loadFilter = useServerFn(getMyNotificationFilter);
+  const saveFilter = useServerFn(saveMyNotificationFilter);
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("notification_filters")
-        .select("*")
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (data) setF({ ...DEFAULT_FILTER, ...(data as unknown as Filter) });
+      try {
+        const data = await loadFilter();
+        if (data) setF({ ...DEFAULT_FILTER, ...(data as unknown as Filter) });
+      } catch (e) {
+        toast.error("Fehler beim Laden: " + (e instanceof Error ? e.message : String(e)));
+      }
       setLoading(false);
     })();
-  }, []);
+  }, [loadFilter]);
 
   const toggleMake = (m: string) =>
     setF((p) => ({ ...p, makes: p.makes.includes(m) ? p.makes.filter((x) => x !== m) : [...p.makes, m] }));
@@ -81,14 +82,15 @@ function MeineSuche() {
 
   const save = async () => {
     setSaving(true);
-    const payload = { ...f, updated_at: new Date().toISOString() };
-    const { data, error } = f.id
-      ? await supabase.from("notification_filters").update(payload).eq("id", f.id).select().single()
-      : await supabase.from("notification_filters").insert(payload).select().single();
-    setSaving(false);
-    if (error) return toast.error("Fehler: " + error.message);
-    setF({ ...DEFAULT_FILTER, ...(data as unknown as Filter) });
-    toast.success("Suchabo gespeichert ✅");
+    try {
+      const row = await saveFilter({ data: f });
+      setF({ ...DEFAULT_FILTER, ...(row as unknown as Filter) });
+      toast.success("Suchabo gespeichert ✅");
+    } catch (e) {
+      toast.error("Fehler: " + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleFetchChat = async () => {
