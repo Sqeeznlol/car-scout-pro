@@ -26,6 +26,7 @@ const HISTORY_MAX = 100;
 
 // ---- State ----
 const pending = new Map(); // tabId -> { item, timeoutId, resolve }
+const tabVehicleId = new Map(); // tabId -> vehicle_id (UUID aus queue)
 let workerRunning = false;
 let stopRequested = false;
 let blockedUntil = 0; // timestamp
@@ -75,6 +76,11 @@ function rateLimitWaitMs() {
 
 // ---- Message bus ----
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "get-vehicle-id") {
+    const tabId = sender.tab?.id;
+    sendResponse({ vehicle_id: tabId ? tabVehicleId.get(tabId) ?? null : null });
+    return true;
+  }
   if (msg.type === "sync-result") {
     chrome.storage.local.set({ last_sync: { ...msg.data, ts: now() } });
     const tabId = sender.tab?.id;
@@ -128,6 +134,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 chrome.tabs.onRemoved.addListener((tabId) => {
+  tabVehicleId.delete(tabId);
   if (pending.has(tabId)) {
     const p = pending.get(tabId);
     clearTimeout(p.timeoutId);
@@ -227,6 +234,7 @@ function processOne(item) {
     chrome.tabs.create({ url: item.url, active: false, pinned: true }, (tab) => {
       if (!tab?.id) return resolve({ ok: false, message: "Tab konnte nicht geöffnet werden" });
       const tabId = tab.id;
+      if (item.id) tabVehicleId.set(tabId, item.id);
       const timeoutId = setTimeout(() => finishTab(tabId, false, "Timeout (Bot-Schutz / langsam)"), TAB_TIMEOUT_MS);
       pending.set(tabId, { item, timeoutId, resolve });
     });
@@ -239,6 +247,7 @@ function finishTab(tabId, success, message) {
   clearTimeout(p.timeoutId);
   pending.delete(tabId);
   if (!success) reportError(p.item.url, message);
+  tabVehicleId.delete(tabId);
   try { chrome.tabs.remove(tabId, () => void chrome.runtime.lastError); } catch (_) {}
   p.resolve?.({ ok: success, message });
 }

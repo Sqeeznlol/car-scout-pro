@@ -124,9 +124,12 @@
     const dealerEl = document.querySelector(
       '[data-testid*="dealer"], [data-testid*="seller"], [class*="dealer"], [class*="seller-info"], aside'
     );
-    const dealerText = dealerEl ? cleanText(dealerEl.textContent) : bodyText;
+    const dealerText = dealerEl ? cleanText(dealerEl.textContent) : "";
 
-    const addrMatch = /(DE|AT|CH|IT|FR|NL|BE|LU|PL|CZ|ES|PT|HU)-(\d{4,5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-\s]{2,40}?)(?=\s*$|\s*[,\n]|\s+Tel|\s{2,})/.exec(dealerText);
+    // Adresse zuerst im Dealer-Block suchen, dann im gesamten Body als Fallback
+    const ADDR_RE = /\b(DE|AT|CH|IT|FR|NL|BE|LU|PL|CZ|ES|PT|HU|DK|SE|NO|FI|SK|SI|HR)-(\d{4,5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-\s]{2,40}?)(?=\s*$|\s*[,\n<•|·]|\s+Tel|\s{2,}|\s+\d)/;
+    let addrMatch = dealerText ? ADDR_RE.exec(dealerText) : null;
+    if (!addrMatch) addrMatch = ADDR_RE.exec(bodyText);
     if (addrMatch) {
       data.country_code = addrMatch[1];
       data.location = `${addrMatch[2]} ${addrMatch[3].trim()}`.replace(/\s+/g, " ");
@@ -315,13 +318,27 @@
     }
   }
 
-  function init() {
+  function getVehicleId() {
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage({ type: "get-vehicle-id" }, (resp) => {
+          if (chrome.runtime.lastError) return resolve(null);
+          resolve(resp?.vehicle_id ?? null);
+        });
+      } catch (_) {
+        resolve(null);
+      }
+    });
+  }
+
+  async function init() {
     // 1) Bot-Schutz erkannt → Worker stoppen, KEIN weiterer Request
     if (detectBlocked()) {
       showBanner("🛑 Bot-Schutz erkannt — Worker pausiert", "err");
       chrome.runtime.sendMessage({ type: "blocked-detected", url: location.href });
       return;
     }
+    const vehicle_id = await getVehicleId();
     const id = getListingId();
     if (id && detectUnavailable()) {
       reportUnavailable(id);
@@ -331,9 +348,10 @@
     if (!data) {
       // Fallback: ohne Daten trotzdem ingest pingen, damit das Inserat
       // aus der Queue rauskommt und nicht endlos wiederholt wird.
-      send({ mobile_de_id: id, url: location.href, country_code: "DE" });
+      send({ vehicle_id, mobile_de_id: id, url: location.href, country_code: "DE" });
       return;
     }
+    if (vehicle_id) data.vehicle_id = vehicle_id;
     send(data);
     addReSyncButton();
   }
