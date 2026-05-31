@@ -39,12 +39,30 @@ export async function fetchPendingReview(): Promise<VehicleWithAnalysis[]> {
     .eq("pending_review", true)
     .eq("confirmed_no_netto", false)
     .is("skip_reason", null)
+    .order("price_eur", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []).map((row) => {
+  const rows = (data ?? []).map((row) => {
     const r = row as unknown as Record<string, unknown>;
     const analysis = Array.isArray(r.analysis) ? (r.analysis[0] ?? null) : (r.analysis ?? null);
     return { ...(row as DbVehicle), analysis: analysis as DbAnalysis | null, decision: null };
+  });
+  // Sekundär-Sort: ohne Preis → nach Luxus-Marke (Ferrari, Lambo, …)
+  const luxuryRank: Record<string, number> = {
+    bugatti: 1, koenigsegg: 2, pagani: 3, ferrari: 4, lamborghini: 5,
+    "rolls-royce": 6, rollsroyce: 6, mclaren: 7, bentley: 8,
+    "aston martin": 9, astonmartin: 9, maserati: 10, porsche: 11,
+    maybach: 12, lotus: 13, "mercedes-amg": 14, "mercedes-benz": 15,
+    mercedes: 15, audi: 16, bmw: 17, jaguar: 18,
+    "land rover": 19, landrover: 19,
+  };
+  const rank = (m: string | null | undefined) => luxuryRank[(m ?? "").toLowerCase().trim()] ?? 999;
+  return rows.sort((a, b) => {
+    const ap = a.price_eur != null;
+    const bp = b.price_eur != null;
+    if (ap && bp) return Number(b.price_eur) - Number(a.price_eur);
+    if (ap !== bp) return ap ? -1 : 1;
+    return rank(a.make) - rank(b.make);
   });
 }
 
