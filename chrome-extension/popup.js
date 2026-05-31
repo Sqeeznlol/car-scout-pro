@@ -25,20 +25,34 @@ function render(resp) {
   $("s-queue").textContent = queue.length;
   $("s-proc").textContent = stats.processed ?? 0;
   $("s-err").textContent = stats.errors ?? 0;
-  $("s-start").textContent = stats.startedAt ? timeAgo(stats.startedAt) : "—";
+  $("s-blk").textContent = stats.blocked ?? 0;
+  $("s-hour").textContent = `${resp?.perHour ?? 0} / ${resp?.hourlyLimit ?? 50}`;
+  $("s-day").textContent = `${resp?.perDay ?? 0} / ${resp?.dailyLimit ?? 250}`;
+  const cd = resp?.blockedUntil ?? 0;
+  if (cd > Date.now()) {
+    $("s-cool").textContent = `⛔ ${Math.ceil((cd - Date.now()) / 60000)} min`;
+    $("s-cool").style.color = "#ef4444";
+  } else {
+    $("s-cool").textContent = "—";
+    $("s-cool").style.color = "";
+  }
   $("qcount").textContent = queue.length;
 
   const status = $("status");
-  if (running) {
-    status.className = "status run";
+  if (cd > Date.now()) {
+    status.className = "status idle";
+    status.style.background = "#fee2e2"; status.style.color = "#991b1b";
+    status.textContent = `🛑 Bot-Schutz erkannt — Cooldown läuft (${Math.ceil((cd - Date.now()) / 60000)}min)`;
+  } else if (running) {
+    status.className = "status run"; status.style.background = ""; status.style.color = "";
     status.textContent = current
       ? `🔄 Prüfe ${shortUrl(current.url)} …`
       : `🔄 Lade Warteschlange…`;
   } else if (stats.finishedAt && (stats.processed > 0 || stats.errors > 0)) {
-    status.className = "status done";
-    status.textContent = `✅ Fertig — ${stats.processed} verarbeitet, ${stats.errors} Fehler`;
+    status.className = "status done"; status.style.background = ""; status.style.color = "";
+    status.textContent = `✅ Fertig — ${stats.processed} ok, ${stats.errors} Fehler`;
   } else {
-    status.className = "status idle";
+    status.className = "status idle"; status.style.background = ""; status.style.color = "";
     status.textContent = "Bereit.";
   }
 
