@@ -762,6 +762,15 @@ export type Database = {
       }
     }
     Functions: {
+      claim_extension_queue: {
+        Args: { lease_minutes?: number; limit_count?: number }
+        Returns: {
+          extension_attempts: number
+          id: string
+          listing_url: string
+          source_message_id: string
+        }[]
+      }
       increment_extension_attempts: {
         Args: { vehicle_ids: string[] }
         Returns: undefined
