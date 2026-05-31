@@ -17,6 +17,7 @@ async function getQueue(limit: number) {
     .eq("extension_archived", false)
     .not("listing_url", "is", null)
     .lt("extension_attempts", 3)
+    .order("price_eur", { ascending: false, nullsFirst: false })
     .order("last_extension_attempt_at", { ascending: true, nullsFirst: true })
     .order("extension_attempts", { ascending: true })
     .order("created_at", { ascending: false })
