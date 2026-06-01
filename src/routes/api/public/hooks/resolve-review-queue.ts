@@ -87,7 +87,7 @@ async function recomputeAnalysisForVehicle(vehicleId: string, config: ConfigInpu
 interface ResolveSummary {
   checked: number;
   resolved_netto: number;
-  kept_mwst_only: number;
+  archived_mwst_without_netto: number;
   archived_25a: number;
   archived_non_de: number;
   unresolved: number;
@@ -113,7 +113,7 @@ async function runResolve(): Promise<ResolveSummary> {
   const summary: ResolveSummary = {
     checked: 0,
     resolved_netto: 0,
-    kept_mwst_only: 0,
+    archived_mwst_without_netto: 0,
     archived_25a: 0,
     archived_non_de: 0,
     unresolved: 0,
@@ -194,40 +194,23 @@ async function runResolve(): Promise<ResolveSummary> {
           .eq("id", v.id);
         summary.archived_25a++;
       } else if (det.has_mwst === true) {
-        // MwSt erkannt, aber kein Netto-Betrag im Inserat → aus Brutto ableiten (DE 19%).
-        const brutto = Number(v.price_eur ?? 0);
-        const derivedNetto = brutto > 0 ? Math.round(brutto / 1.19) : null;
-        if (derivedNetto) {
-          await supabaseAdmin
-            .from("vehicles")
-            .update({
-              price_eur_netto: derivedNetto,
-              seller_has_mwst: true,
-              netto_manually_set: false,
-              pending_review: false,
-              extension_archived: false,
-              reviewed_at: nowIso(),
-              country_code: det.country_code ?? undefined,
-              last_review_resolve_at: nowIso(),
-              review_resolve_attempts: (v.review_resolve_attempts ?? 0) + 1,
-              review_reason: "auto_derived_netto_19pct",
-            })
-            .eq("id", v.id);
-          await recomputeAnalysisForVehicle(v.id, config);
-          summary.resolved_netto++;
-        } else {
-          await supabaseAdmin
-            .from("vehicles")
-            .update({
-              seller_has_mwst: true,
-              country_code: det.country_code ?? undefined,
-              last_review_resolve_at: nowIso(),
-              review_resolve_attempts: (v.review_resolve_attempts ?? 0) + 1,
-              review_reason: "mwst_ohne_brutto",
-            })
-            .eq("id", v.id);
-          summary.kept_mwst_only++;
-        }
+        // MwSt erkannt, aber kein separater Netto-Betrag im Inserat → für CH-Queue nicht interessant.
+        await supabaseAdmin
+          .from("vehicles")
+          .update({
+            price_eur_netto: null,
+            seller_has_mwst: true,
+            pending_review: false,
+            extension_archived: true,
+            skip_reason: "no_explicit_netto_price",
+            reviewed_at: nowIso(),
+            country_code: det.country_code ?? undefined,
+            last_review_resolve_at: nowIso(),
+            review_resolve_attempts: (v.review_resolve_attempts ?? 0) + 1,
+            review_reason: "mwst_without_explicit_netto",
+          })
+          .eq("id", v.id);
+        summary.archived_mwst_without_netto++;
       } else {
         // Jina hat nichts brauchbares
         await supabaseAdmin
