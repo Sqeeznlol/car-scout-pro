@@ -5,8 +5,8 @@ import { computeAnalysis, recomputeWithMarket, type ConfigInput } from "@/lib/an
 import { getLiveEurChfRate } from "@/lib/fx.server";
 import { estimateChMarketValue } from "@/lib/ch-market.server";
 
-const BATCH = 15;
-const DELAY_MS = 3500;
+const BATCH = 40;
+const DELAY_MS = 1500;
 
 async function loadConfig(): Promise<ConfigInput> {
   const { data: cfg } = await supabaseAdmin.from("app_config").select("*").eq("id", 1).single();
