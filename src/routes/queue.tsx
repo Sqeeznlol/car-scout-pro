@@ -311,7 +311,7 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/0 to-black/30 pointer-events-none" />
         <div className="absolute bottom-3 left-3 right-3 text-white pointer-events-none">
           {vehicle.make && <div className="text-xs uppercase tracking-wider text-white/70">{vehicle.make}</div>}
-          <div className="text-xl font-semibold leading-tight line-clamp-2">{vehicle.title}</div>
+          <div className="text-xl font-semibold leading-tight line-clamp-2">{cleanTitle(vehicle.title)}</div>
         </div>
       </div>
 
