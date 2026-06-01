@@ -33,6 +33,13 @@ export const Route = createFileRoute("/api/public/hooks/extension-queue")({
         const limit = Math.min(20, Math.max(1, parseInt(url.searchParams.get("limit") || "5", 10)));
         try {
           const items = await getQueue(limit);
+          // Fire-and-forget: jeder Extension-Poll löst nebenher einen Resolve-Batch aus,
+          // damit die pending_review-Queue per Jina automatisch leerläuft.
+          const origin = `${url.protocol}//${url.host}`;
+          fetch(`${origin}/api/public/hooks/resolve-review-queue`, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+          }).catch(() => { /* ignore */ });
           return new Response(JSON.stringify({ ok: true, items }), {
             status: 200,
             headers: { "content-type": "application/json", ...CORS_HEADERS, "cache-control": "no-store" },

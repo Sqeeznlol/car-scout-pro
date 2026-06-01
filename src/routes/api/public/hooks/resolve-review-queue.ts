@@ -5,8 +5,8 @@ import { computeAnalysis, recomputeWithMarket, type ConfigInput } from "@/lib/an
 import { getLiveEurChfRate } from "@/lib/fx.server";
 import { estimateChMarketValue } from "@/lib/ch-market.server";
 
-const BATCH = 15;
-const DELAY_MS = 3500;
+const BATCH = 40;
+const DELAY_MS = 1500;
 
 async function loadConfig(): Promise<ConfigInput> {
   const { data: cfg } = await supabaseAdmin.from("app_config").select("*").eq("id", 1).single();
@@ -194,18 +194,40 @@ async function runResolve(): Promise<ResolveSummary> {
           .eq("id", v.id);
         summary.archived_25a++;
       } else if (det.has_mwst === true) {
-        // MwSt erwähnt aber kein Betrag → in Queue lassen
-        await supabaseAdmin
-          .from("vehicles")
-          .update({
-            seller_has_mwst: true,
-            country_code: det.country_code ?? undefined,
-            last_review_resolve_at: nowIso(),
-            review_resolve_attempts: (v.review_resolve_attempts ?? 0) + 1,
-            review_reason: "mwst_ohne_betrag",
-          })
-          .eq("id", v.id);
-        summary.kept_mwst_only++;
+        // MwSt erkannt, aber kein Netto-Betrag im Inserat → aus Brutto ableiten (DE 19%).
+        const brutto = Number(v.price_eur ?? 0);
+        const derivedNetto = brutto > 0 ? Math.round(brutto / 1.19) : null;
+        if (derivedNetto) {
+          await supabaseAdmin
+            .from("vehicles")
+            .update({
+              price_eur_netto: derivedNetto,
+              seller_has_mwst: true,
+              netto_manually_set: false,
+              pending_review: false,
+              extension_archived: false,
+              reviewed_at: nowIso(),
+              country_code: det.country_code ?? undefined,
+              last_review_resolve_at: nowIso(),
+              review_resolve_attempts: (v.review_resolve_attempts ?? 0) + 1,
+              review_reason: "auto_derived_netto_19pct",
+            })
+            .eq("id", v.id);
+          await recomputeAnalysisForVehicle(v.id, config);
+          summary.resolved_netto++;
+        } else {
+          await supabaseAdmin
+            .from("vehicles")
+            .update({
+              seller_has_mwst: true,
+              country_code: det.country_code ?? undefined,
+              last_review_resolve_at: nowIso(),
+              review_resolve_attempts: (v.review_resolve_attempts ?? 0) + 1,
+              review_reason: "mwst_ohne_brutto",
+            })
+            .eq("id", v.id);
+          summary.kept_mwst_only++;
+        }
       } else {
         // Jina hat nichts brauchbares
         await supabaseAdmin
