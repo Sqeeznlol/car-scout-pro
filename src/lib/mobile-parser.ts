@@ -157,11 +157,15 @@ function detectLocation(text: string): string | null {
 }
 
 export function detectMwStFromText(block: string): { has_mwst: boolean | null; netto_eur: number | null } {
-  // Pattern 1: "54.538 € (Netto), 19% MwSt."
-  const m1 = /([\d.]+(?:[.,]\d{2})?)\s*€\s*\(Netto\)(?:[,\s]*\d+\s*%\s*MwSt)?/i.exec(block);
-  if (m1) {
-    const netto = parseInt(m1[1].replace(/\D/g, ""), 10);
-    if (netto >= 1000 && netto <= 500000) return { has_mwst: true, netto_eur: netto };
+  const nettoPatterns = [
+    /([\d.'’\s]+(?:[.,]\d{2})?)\s*€\s*\(\s*Netto\s*\)(?:[,\s]*\d+\s*%\s*MwSt)?/i,
+    /(?:Netto(?:preis)?|Preis\s*\(\s*Netto\s*\)|Netto\s*:)\s*[:\-]?\s*([\d.'’\s]+(?:[.,]\d{2})?)\s*€?/i,
+    /([\d.'’\s]+(?:[.,]\d{2})?)\s*€\s*netto\b/i,
+  ];
+  for (const re of nettoPatterns) {
+    const m = re.exec(block);
+    const netto = m ? parseInt(m[1].replace(/\D/g, ""), 10) : null;
+    if (netto && netto >= 1000 && netto <= 10_000_000) return { has_mwst: true, netto_eur: netto };
   }
   if (/zzgl\.?\s*\d+\s*%?\s*MwSt|exkl\.?\s*MwSt|Nettopreis|MwSt\.?\s*ausweisbar|MwSt\.?\s*ausgewiesen|netto\s*(?:zzgl|exkl|\+)|Brutto.*Netto/i.test(block)) {
     return { has_mwst: true, netto_eur: null };
