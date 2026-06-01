@@ -40,6 +40,10 @@ export const Route = createFileRoute("/api/public/hooks/extension-queue")({
             method: "POST",
             headers: { "content-type": "application/json" },
           }).catch(() => { /* ignore */ });
+          return new Response(JSON.stringify({ ok: true, items }), {
+            status: 200,
+            headers: { "content-type": "application/json", ...CORS_HEADERS, "cache-control": "no-store" },
+          });
         } catch (e) {
           return new Response(
             JSON.stringify({ ok: false, error: e instanceof Error ? e.message : String(e) }),
