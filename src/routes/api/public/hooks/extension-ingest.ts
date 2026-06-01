@@ -243,7 +243,7 @@ async function ingest(payload: IngestPayload) {
   const update: Record<string, unknown> = {
     title: payload.title,
     price_eur: payload.price_eur ?? existing.price_eur,
-    price_eur_netto: payload.price_eur_netto,
+    price_eur_netto: effectiveNetto,
     seller_has_mwst: true,
     mileage_km: payload.mileage_km ?? existing.mileage_km,
     year: payload.year ?? existing.year,
