@@ -178,8 +178,36 @@ async function ingest(payload: IngestPayload) {
     return { ok: true, archived: true, reason: `non-DE (${country})` };
   }
 
-  // Kein Netto erkannt → Prüfung-Tab (nicht archivieren!)
-  if (payload.seller_has_mwst !== true || !payload.price_eur_netto) {
+  // Netto-Ableitung: wenn Extension MwSt erkannt hat, aber den expliziten
+  // "X € (Netto)"-String nicht parsen konnte → aus Bruttopreis ableiten (DE 19%).
+  let effectiveHasMwst = payload.seller_has_mwst;
+  let effectiveNetto = payload.price_eur_netto ?? null;
+  const bruttoForCalc = payload.price_eur ?? existing.price_eur ?? null;
+
+  if (effectiveHasMwst === true && !effectiveNetto && bruttoForCalc && bruttoForCalc > 0) {
+    effectiveNetto = Math.round(Number(bruttoForCalc) / (1 + DE_MWST));
+  }
+
+  // Fallback: weder bestätigt noch netto → Jina inline probieren (ein Versuch).
+  if ((effectiveHasMwst !== true || !effectiveNetto) && payload.url) {
+    try {
+      const jina = await fetchListingDetails(payload.url);
+      if (jina.has_mwst === true) {
+        effectiveHasMwst = true;
+        if (jina.netto_eur && jina.netto_eur > 0) effectiveNetto = jina.netto_eur;
+        else if (bruttoForCalc && bruttoForCalc > 0) {
+          effectiveNetto = Math.round(Number(bruttoForCalc) / (1 + DE_MWST));
+        }
+      } else if (jina.has_mwst === false) {
+        effectiveHasMwst = false;
+      }
+    } catch {
+      /* jina optional */
+    }
+  }
+
+  // Immer noch kein Netto → Prüfung-Tab
+  if (effectiveHasMwst !== true || !effectiveNetto) {
     const cleaned: Record<string, unknown> = {
       pending_review: true,
       country_code: country || "DE",
