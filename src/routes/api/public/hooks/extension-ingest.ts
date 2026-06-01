@@ -141,16 +141,26 @@ async function ingest(payload: IngestPayload) {
     }
   }
 
-  // CRITICAL: scraped_at SOFORT stempeln — egal was danach passiert.
-  // Ohne das würde die Extension dieselben Inserate ewig wiederholen.
-  await supabaseAdmin
-    .from("vehicles")
-    .update({
-      extension_scraped_at: new Date().toISOString(),
-      extension_synced_at: new Date().toISOString(),
-      ...(idFromUrl ? { mobile_de_listing_id: idFromUrl } : {}),
-    })
-    .eq("id", existing.id);
+  // Echte Detaildaten vorhanden? Reiner Fallback-Ping (nur id/url/country) zählt nicht.
+  const hasRealData = Boolean(
+    (typeof payload.price_eur === "number" && payload.price_eur > 0) ||
+      payload.mileage_km ||
+      payload.seller_name ||
+      payload.seller_address ||
+      (payload.image_urls && payload.image_urls.length > 0),
+  );
+
+  // synced_at IMMER stempeln (Extension hat angeklopft).
+  // scraped_at NUR bei echten Daten — sonst bleibt das Inserat in der Claim-Queue
+  // und wird erneut versucht (extension_attempts < 3 limitiert automatisch).
+  const stampUpdate: Record<string, unknown> = {
+    extension_synced_at: new Date().toISOString(),
+    ...(idFromUrl ? { mobile_de_listing_id: idFromUrl } : {}),
+  };
+  if (hasRealData) {
+    stampUpdate.extension_scraped_at = new Date().toISOString();
+  }
+  await supabaseAdmin.from("vehicles").update(stampUpdate as never).eq("id", existing.id);
 
   const country = (payload.country_code ?? "DE").toUpperCase();
   if (country && country !== "DE") {
