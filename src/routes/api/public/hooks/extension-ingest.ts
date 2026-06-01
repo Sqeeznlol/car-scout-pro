@@ -4,6 +4,9 @@ import { computeAnalysis, recomputeWithMarket, type ConfigInput } from "@/lib/an
 import { computeDistanceToKloten } from "@/lib/distance.server";
 import { estimateChMarketValue } from "@/lib/ch-market.server";
 import { getLiveEurChfRate } from "@/lib/fx.server";
+import { fetchListingDetails } from "@/lib/mwst-detector.server";
+
+const DE_MWST = 0.19;
 
 interface IngestPayload {
   vehicle_id?: string;
