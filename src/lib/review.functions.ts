@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { computeAnalysis, type ConfigInput } from "@/lib/analysis";
+import { getLiveEurChfRate } from "@/lib/fx.server";
 import { z } from "zod";
 
 const ApplyNettoInput = z.object({
@@ -29,7 +30,7 @@ export const applyManualNetto = createServerFn({ method: "POST" })
 
     const { data: cfg } = await supabaseAdmin.from("app_config").select("*").eq("id", 1).single();
     const config: ConfigInput = {
-      eur_chf_rate: Number(cfg?.eur_chf_rate) || 0.96,
+      eur_chf_rate: await getLiveEurChfRate().catch(() => Number(cfg?.eur_chf_rate) || 0.96),
       chf_per_km: Number(cfg?.chf_per_km) || 1.5,
       customs_flat: Number(cfg?.customs_flat) || 160,
       vat_rate: Number(cfg?.vat_rate) || 0.081,
