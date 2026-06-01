@@ -350,28 +350,12 @@ const QueueCard = memo(function QueueCard({ vehicle, onDecide }: {
               {showBreakdown ? "▲ ausblenden" : "▼ alle Kosten CH"}
             </div>
           </button>
-          <div className="rounded-xl border border-primary/30 bg-primary/10 p-3">
-            <div className="text-[11px] text-primary mb-1">📊 MARKTPREIS CH</div>
-            <div className="text-xl font-bold text-primary tabular-nums">
-              {market > 0 ? fmtChf(market) : "— nicht gefunden"}
-            </div>
-            <div className="text-[11px] text-primary/70 mt-0.5">
-              {compCount > 0 ? `${compCount} Inserate CH` : "AutoScout24.ch"}
-            </div>
-          </div>
           <div className={cn("rounded-xl border p-3", marginTone.border, marginTone.bg)}>
             <div className={cn("text-[11px] mb-1 opacity-70", marginTone.text)}>💰 MARGE</div>
             <div className={cn("text-xl font-bold tabular-nums", marginTone.text)}>
               {margin === -Infinity ? "—" : `${margin >= 0 ? "+" : ""}${fmtChf(margin)}`}
             </div>
             <div className={cn("text-[11px] opacity-60 mt-0.5", marginTone.text)}>nach Import CH</div>
-          </div>
-          <div className="rounded-xl border border-border bg-surface p-3">
-            <div className="text-[11px] text-muted-foreground mb-1">🔍 VERGLEICH</div>
-            <div className="text-sm font-semibold mt-1">{vsMarketText}</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">
-              {compCount > 0 ? `${compCount} ähnliche in CH` : "kein CH-Vergleich"}
-            </div>
           </div>
         </div>
 
