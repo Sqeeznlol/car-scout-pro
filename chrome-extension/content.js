@@ -10,6 +10,20 @@
     return Number.isFinite(n) ? n : null;
   };
 
+  function extractExplicitNetto(text, brutto) {
+    const patterns = [
+      /([\d.'’\s]+(?:[,.]\d{2})?)\s*€\s*\(\s*Netto\s*\)(?:[,\s]*\d+\s*%\s*MwSt)?/i,
+      /(?:Netto(?:preis)?|Preis\s*\(\s*Netto\s*\)|Netto\s*:)\s*[:\-]?\s*([\d.'’\s]+(?:[,.]\d{2})?)\s*€?/i,
+      /([\d.'’\s]+(?:[,.]\d{2})?)\s*€\s*netto\b/i,
+    ];
+    for (const re of patterns) {
+      const m = re.exec(text);
+      const value = m ? parseInt2(m[1]) : null;
+      if (value && value >= 500 && value <= 10_000_000 && (!brutto || value < brutto)) return value;
+    }
+    return null;
+  }
+
   function getListingId() {
     const u = new URL(location.href);
     return u.searchParams.get("id") || null;
@@ -62,9 +76,9 @@
     if (!priceMatch) priceMatch = /([\d.]+)\s*€\s*(?:Sehr guter Preis|Guter Preis|Ohne Bewertung|Hoher Preis)/.exec(bodyText);
     if (priceMatch) data.price_eur = parseInt2(priceMatch[1]);
 
-    const nettoMatch = /([\d.]+(?:[,.]\d{2})?)\s*€\s*\(Netto\)(?:[,\s]*\d+\s*%\s*MwSt)?/i.exec(bodyText);
-    if (nettoMatch) {
-      data.price_eur_netto = parseInt2(nettoMatch[1]);
+    const explicitNetto = extractExplicitNetto(bodyText, data.price_eur);
+    if (explicitNetto) {
+      data.price_eur_netto = explicitNetto;
       data.seller_has_mwst = true;
     } else if (/zzgl\.?\s*\d+\s*%?\s*MwSt|MwSt\.?\s*ausweisbar|MwSt\.?\s*ausgewiesen|Nettopreis/i.test(bodyText)) {
       data.seller_has_mwst = true;
