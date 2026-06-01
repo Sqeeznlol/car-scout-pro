@@ -6,8 +6,6 @@ import { estimateChMarketValue } from "@/lib/ch-market.server";
 import { getLiveEurChfRate } from "@/lib/fx.server";
 import { fetchListingDetails } from "@/lib/mwst-detector.server";
 
-const DE_MWST = 0.19;
-
 interface IngestPayload {
   vehicle_id?: string;
   mobile_de_id?: string;
@@ -178,15 +176,10 @@ async function ingest(payload: IngestPayload) {
     return { ok: true, archived: true, reason: `non-DE (${country})` };
   }
 
-  // Netto-Ableitung: wenn Extension MwSt erkannt hat, aber den expliziten
-  // "X € (Netto)"-String nicht parsen konnte → aus Bruttopreis ableiten (DE 19%).
+  // Netto nur akzeptieren, wenn mobile.de wirklich einen separaten Netto-Betrag liefert.
+  // "MwSt. ausweisbar" allein reicht nicht — ohne expliziten Netto-Preis ist es für CH nicht interessant.
   let effectiveHasMwst = payload.seller_has_mwst;
   let effectiveNetto = payload.price_eur_netto ?? null;
-  const bruttoForCalc = payload.price_eur ?? existing.price_eur ?? null;
-
-  if (effectiveHasMwst === true && !effectiveNetto && bruttoForCalc && bruttoForCalc > 0) {
-    effectiveNetto = Math.round(Number(bruttoForCalc) / (1 + DE_MWST));
-  }
 
   // Fallback: weder bestätigt noch netto → Jina inline probieren (ein Versuch).
   if ((effectiveHasMwst !== true || !effectiveNetto) && payload.url) {
@@ -195,9 +188,6 @@ async function ingest(payload: IngestPayload) {
       if (jina.has_mwst === true) {
         effectiveHasMwst = true;
         if (jina.netto_eur && jina.netto_eur > 0) effectiveNetto = jina.netto_eur;
-        else if (bruttoForCalc && bruttoForCalc > 0) {
-          effectiveNetto = Math.round(Number(bruttoForCalc) / (1 + DE_MWST));
-        }
       } else if (jina.has_mwst === false) {
         effectiveHasMwst = false;
       }
@@ -206,12 +196,16 @@ async function ingest(payload: IngestPayload) {
     }
   }
 
-  // Immer noch kein Netto → Prüfung-Tab
+  // Immer noch kein expliziter Netto-Betrag → nicht in die Swipe Queue aufnehmen.
   if (effectiveHasMwst !== true || !effectiveNetto) {
     const cleaned: Record<string, unknown> = {
-      pending_review: true,
+      pending_review: false,
+      extension_archived: true,
+      skip_reason: "no_explicit_netto_price",
       country_code: country || "DE",
-      seller_has_mwst: false,
+      seller_has_mwst: effectiveHasMwst === true,
+      price_eur_netto: null,
+      review_reason: effectiveHasMwst === true ? "mwst_without_explicit_netto" : "no_netto_price",
     };
     if (payload.title) cleaned.title = payload.title;
     if (payload.price_eur) cleaned.price_eur = payload.price_eur;
@@ -230,7 +224,7 @@ async function ingest(payload: IngestPayload) {
     if (payload.description) cleaned.description = payload.description;
 
     await supabaseAdmin.from("vehicles").update(cleaned as never).eq("id", existing.id);
-    return { ok: true, pending_review: true, reason: "kein Nettopreis — wartet auf Prüfung" };
+    return { ok: true, archived: true, reason: "kein expliziter Nettopreis" };
   }
 
   // Vollständige Verarbeitung: DE + Netto vorhanden

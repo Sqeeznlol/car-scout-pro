@@ -20,6 +20,7 @@ export async function fetchVehicles(): Promise<VehicleWithAnalysis[]> {
     .eq("extension_archived", false)
     .eq("pending_review", false)
     .eq("seller_has_mwst", true)
+    .not("price_eur_netto", "is", null)
     .or("country_code.eq.DE,country_code.is.null")
     .order("received_at", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });

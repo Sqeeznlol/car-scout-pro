@@ -46,7 +46,9 @@ function VehiclePage() {
 
   type MwStStatus = "unknown" | "with" | "without";
   const initialStatus: MwStStatus =
-    data?.seller_has_mwst === true ? "with" : data?.seller_has_mwst === false ? "without" : "unknown";
+    data?.seller_has_mwst === true && data?.price_eur_netto != null && Number(data.price_eur_netto) > 0
+      ? "with"
+      : data?.seller_has_mwst === false ? "without" : "unknown";
   const [mwstStatus, setMwstStatus] = useState<MwStStatus>(initialStatus);
   useEffect(() => { setMwstStatus(initialStatus); }, [initialStatus]);
 
@@ -63,6 +65,7 @@ function VehiclePage() {
   const v = data;
   const a = v.analysis;
   const current = v.decision?.decision;
+  const hasExplicitNetto = v.price_eur_netto != null && Number(v.price_eur_netto) > 0;
   
   const price_chf = Number(a?.price_chf ?? 0);
   const market = Number(a?.market_value_chf ?? 0);
@@ -283,7 +286,13 @@ function VehiclePage() {
         <Section title="Kostenaufstellung Import DE → CH">
           <div className="rounded-xl border border-border bg-card p-4 mb-3 flex flex-wrap gap-2 items-center">
             <span className="text-xs text-muted-foreground mr-2">MwSt-Ausweis Verkäufer:</span>
-            <MwStBtn active={mwstStatus === "with"} tone="success" onClick={() => handleMwstChange("with")} label="✓ Mit MwSt" sub="Nettobetrag (Händler)" />
+            {hasExplicitNetto ? (
+              <MwStBtn active={mwstStatus === "with"} tone="success" onClick={() => handleMwstChange("with")} label="✓ Mit MwSt" sub="Brutto + Netto vorhanden" />
+            ) : (
+              <div className="flex-1 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+                MwSt ausgeschrieben, aber kein separater Netto-Betrag
+              </div>
+            )}
             <MwStBtn active={mwstStatus === "without"} tone="warning" onClick={() => handleMwstChange("without")} label="✗ Ohne MwSt" sub="§25a / Privat" />
             <MwStBtn active={mwstStatus === "unknown"} tone="info" onClick={() => handleMwstChange("unknown")} label="? Unklar" sub="noch prüfen" />
           </div>
