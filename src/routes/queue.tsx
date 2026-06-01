@@ -97,9 +97,10 @@ function QueuePage() {
       if (v.decision) return false;
       if (v.year == null || v.year < 2021) return false;
       if (v.mileage_km != null && v.mileage_km > 100000) return false;
-      // Nur Fahrzeuge mit explizit ausweisbarer MwSt anzeigen.
-      // Unklare oder §25a werden ausgeblendet — die Extension prüft sie im Hintergrund.
+      // Nur Fahrzeuge mit ausweisbarer MwSt UND explizitem Netto-Betrag anzeigen.
+      // "MwSt. ausweisbar" ohne separaten Netto-Preis reicht für die CH-Queue nicht.
       if (v.seller_has_mwst !== true) return false;
+      if (v.price_eur_netto == null || Number(v.price_eur_netto) <= 0) return false;
       return true;
     });
   }, [vehicles]);
@@ -199,7 +200,7 @@ function QueuePage() {
       </div>
 
       <div className="mb-4 text-xs text-muted-foreground">
-        Es werden nur Fahrzeuge mit ausweisbarer MwSt angezeigt. Die Extension prüft im Hintergrund.
+        Es werden nur Fahrzeuge mit Brutto- und explizitem Netto-Betrag angezeigt. Die Extension prüft im Hintergrund.
       </div>
 
       {queue.length === 0 ? (
