@@ -20,6 +20,7 @@ import { Route as ApiPublicHooksTestJinaRouteImport } from './routes/api/public/
 import { Route as ApiPublicHooksSyncGmailRouteImport } from './routes/api/public/hooks/sync-gmail'
 import { Route as ApiPublicHooksScrapeBatchRouteImport } from './routes/api/public/hooks/scrape-batch'
 import { Route as ApiPublicHooksResolveReviewQueueRouteImport } from './routes/api/public/hooks/resolve-review-queue'
+import { Route as ApiPublicHooksRefreshRatesRouteImport } from './routes/api/public/hooks/refresh-rates'
 import { Route as ApiPublicHooksExtensionUnavailableRouteImport } from './routes/api/public/hooks/extension-unavailable'
 import { Route as ApiPublicHooksExtensionQueueRouteImport } from './routes/api/public/hooks/extension-queue'
 import { Route as ApiPublicHooksExtensionIngestRouteImport } from './routes/api/public/hooks/extension-ingest'
@@ -83,6 +84,12 @@ const ApiPublicHooksResolveReviewQueueRoute =
     path: '/api/public/hooks/resolve-review-queue',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksRefreshRatesRoute =
+  ApiPublicHooksRefreshRatesRouteImport.update({
+    id: '/api/public/hooks/refresh-rates',
+    path: '/api/public/hooks/refresh-rates',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksExtensionUnavailableRoute =
   ApiPublicHooksExtensionUnavailableRouteImport.update({
     id: '/api/public/hooks/extension-unavailable',
@@ -127,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
+  '/api/public/hooks/refresh-rates': typeof ApiPublicHooksRefreshRatesRoute
   '/api/public/hooks/resolve-review-queue': typeof ApiPublicHooksResolveReviewQueueRoute
   '/api/public/hooks/scrape-batch': typeof ApiPublicHooksScrapeBatchRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
@@ -145,6 +153,7 @@ export interface FileRoutesByTo {
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
+  '/api/public/hooks/refresh-rates': typeof ApiPublicHooksRefreshRatesRoute
   '/api/public/hooks/resolve-review-queue': typeof ApiPublicHooksResolveReviewQueueRoute
   '/api/public/hooks/scrape-batch': typeof ApiPublicHooksScrapeBatchRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
@@ -164,6 +173,7 @@ export interface FileRoutesById {
   '/api/public/hooks/extension-ingest': typeof ApiPublicHooksExtensionIngestRoute
   '/api/public/hooks/extension-queue': typeof ApiPublicHooksExtensionQueueRoute
   '/api/public/hooks/extension-unavailable': typeof ApiPublicHooksExtensionUnavailableRoute
+  '/api/public/hooks/refresh-rates': typeof ApiPublicHooksRefreshRatesRoute
   '/api/public/hooks/resolve-review-queue': typeof ApiPublicHooksResolveReviewQueueRoute
   '/api/public/hooks/scrape-batch': typeof ApiPublicHooksScrapeBatchRoute
   '/api/public/hooks/sync-gmail': typeof ApiPublicHooksSyncGmailRoute
@@ -184,6 +194,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/extension-unavailable'
+    | '/api/public/hooks/refresh-rates'
     | '/api/public/hooks/resolve-review-queue'
     | '/api/public/hooks/scrape-batch'
     | '/api/public/hooks/sync-gmail'
@@ -202,6 +213,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/extension-unavailable'
+    | '/api/public/hooks/refresh-rates'
     | '/api/public/hooks/resolve-review-queue'
     | '/api/public/hooks/scrape-batch'
     | '/api/public/hooks/sync-gmail'
@@ -220,6 +232,7 @@ export interface FileRouteTypes {
     | '/api/public/hooks/extension-ingest'
     | '/api/public/hooks/extension-queue'
     | '/api/public/hooks/extension-unavailable'
+    | '/api/public/hooks/refresh-rates'
     | '/api/public/hooks/resolve-review-queue'
     | '/api/public/hooks/scrape-batch'
     | '/api/public/hooks/sync-gmail'
@@ -239,6 +252,7 @@ export interface RootRouteChildren {
   ApiPublicHooksExtensionIngestRoute: typeof ApiPublicHooksExtensionIngestRoute
   ApiPublicHooksExtensionQueueRoute: typeof ApiPublicHooksExtensionQueueRoute
   ApiPublicHooksExtensionUnavailableRoute: typeof ApiPublicHooksExtensionUnavailableRoute
+  ApiPublicHooksRefreshRatesRoute: typeof ApiPublicHooksRefreshRatesRoute
   ApiPublicHooksResolveReviewQueueRoute: typeof ApiPublicHooksResolveReviewQueueRoute
   ApiPublicHooksScrapeBatchRoute: typeof ApiPublicHooksScrapeBatchRoute
   ApiPublicHooksSyncGmailRoute: typeof ApiPublicHooksSyncGmailRoute
@@ -324,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksResolveReviewQueueRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/refresh-rates': {
+      id: '/api/public/hooks/refresh-rates'
+      path: '/api/public/hooks/refresh-rates'
+      fullPath: '/api/public/hooks/refresh-rates'
+      preLoaderRoute: typeof ApiPublicHooksRefreshRatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/extension-unavailable': {
       id: '/api/public/hooks/extension-unavailable'
       path: '/api/public/hooks/extension-unavailable'
@@ -376,6 +397,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksExtensionQueueRoute: ApiPublicHooksExtensionQueueRoute,
   ApiPublicHooksExtensionUnavailableRoute:
     ApiPublicHooksExtensionUnavailableRoute,
+  ApiPublicHooksRefreshRatesRoute: ApiPublicHooksRefreshRatesRoute,
   ApiPublicHooksResolveReviewQueueRoute: ApiPublicHooksResolveReviewQueueRoute,
   ApiPublicHooksScrapeBatchRoute: ApiPublicHooksScrapeBatchRoute,
   ApiPublicHooksSyncGmailRoute: ApiPublicHooksSyncGmailRoute,
@@ -384,3 +406,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
