@@ -9,6 +9,26 @@ export interface ListingDetails {
   signals: string[];
 }
 
+function parseEuroAmount(value: string | undefined): number | null {
+  if (!value) return null;
+  const n = parseInt(value.replace(/\D/g, ""), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+function extractExplicitNetto(text: string): number | null {
+  const patterns = [
+    /([\d.'’\s]+(?:[.,]\d{2})?)\s*€\s*\(\s*Netto\s*\)(?:[,\s]*(\d+)\s*%\s*MwSt)?/i,
+    /(?:Netto(?:preis)?|Preis\s*\(\s*Netto\s*\)|Netto\s*:)\s*[:\-]?\s*([\d.'’\s]+(?:[.,]\d{2})?)\s*€?/i,
+    /([\d.'’\s]+(?:[.,]\d{2})?)\s*€\s*netto\b/i,
+  ];
+  for (const re of patterns) {
+    const m = re.exec(text);
+    const netto = parseEuroAmount(m?.[1]);
+    if (netto && netto >= 500 && netto <= 10_000_000) return netto;
+  }
+  return null;
+}
+
 export async function fetchListingDetails(listingUrl: string): Promise<ListingDetails> {
   const result: ListingDetails = {
     has_mwst: null,
@@ -53,14 +73,11 @@ export async function fetchListingDetails(listingUrl: string): Promise<ListingDe
     }
 
     // 1) MwSt-Erkennung
-    const nettoMatch = /([\d.]+(?:[.,]\d{2})?)\s*€\s*\(Netto\)(?:[,\s]*(\d+)\s*%\s*MwSt)?/i.exec(text);
-    if (nettoMatch) {
-      const netto = parseInt(nettoMatch[1].replace(/\D/g, ""), 10);
-      if (netto >= 500 && netto <= 1_000_000) {
-        result.has_mwst = true;
-        result.netto_eur = netto;
-        result.signals.push(`netto_explicit:${netto}`);
-      }
+    const netto = extractExplicitNetto(text);
+    if (netto) {
+      result.has_mwst = true;
+      result.netto_eur = netto;
+      result.signals.push(`netto_explicit:${netto}`);
     }
     if (result.has_mwst === null) {
       if (/MwSt\.?\s*ausweisbar|MwSt\.?\s*ausgewiesen|zzgl\.?\s*\d+\s*%?\s*MwSt|exkl\.?\s*MwSt|Nettopreis|netto\s*(?:zzgl|exkl|\+|,\s*\d+\s*%)/i.test(text)) {
