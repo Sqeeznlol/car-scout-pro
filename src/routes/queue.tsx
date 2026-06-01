@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTracking } from "@/hooks/useTracking";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchCurrentEurRate } from "@/lib/exchange-rates.functions";
 
 function haptic(ms = 10) {
   if (typeof navigator !== "undefined" && "vibrate" in navigator) {
@@ -57,6 +58,12 @@ function vsMarketPct(v: VehicleWithAnalysis): number {
 
 function QueuePage() {
   const qc = useQueryClient();
+  const { data: rateInfo } = useQuery({
+    queryKey: ["eur-rate"],
+    queryFn: () => fetchCurrentEurRate(),
+    refetchInterval: 60 * 60 * 1000,
+    staleTime: 30 * 60 * 1000,
+  });
   const { data: vehicles = [], isLoading } = useQuery({
     queryKey: ["vehicles"],
     queryFn: fetchVehicles,
@@ -152,7 +159,17 @@ function QueuePage() {
             {hiddenCount > 0 ? ` · ${hiddenCount} ausgefiltert` : ""}
           </p>
         </div>
-        <div className="flex gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          {rateInfo && (
+            <div className="hidden sm:flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] text-muted-foreground">
+              <span className="font-medium text-foreground">EUR→CHF {Number(rateInfo.rate).toFixed(4)}</span>
+              <span className={cn(
+                "h-1.5 w-1.5 rounded-full",
+                rateInfo.source === "BAZG" ? "bg-success" : rateInfo.source === "cache" ? "bg-warning" : "bg-destructive",
+              )} />
+              <span className="uppercase tracking-wide">{rateInfo.source}</span>
+            </div>
+          )}
           {lastDecided && (
             <Button size="sm" variant="ghost" onClick={() => { undoMut.mutate(lastDecided); setLastDecided(null); }}>
               <Undo2 className="h-4 w-4" /> <span className="hidden sm:inline">Undo</span>

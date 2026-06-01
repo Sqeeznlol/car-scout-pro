@@ -270,6 +270,30 @@ export type Database = {
         }
         Relationships: []
       }
+      exchange_rates: {
+        Row: {
+          currency_code: string
+          fetched_at: string
+          rate_chf: number
+          source: string
+          valid_date: string
+        }
+        Insert: {
+          currency_code: string
+          fetched_at?: string
+          rate_chf: number
+          source?: string
+          valid_date: string
+        }
+        Update: {
+          currency_code?: string
+          fetched_at?: string
+          rate_chf?: number
+          source?: string
+          valid_date?: string
+        }
+        Relationships: []
+      }
       notification_filters: {
         Row: {
           created_at: string
