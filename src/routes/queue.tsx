@@ -15,6 +15,18 @@ function haptic(ms = 10) {
   }
 }
 
+function cleanTitle(title: string | null | undefined): string {
+  if (!title) return "";
+  let t = title;
+  // Remove price patterns: "12.345 EUR", "12,345 €", "EUR 12.345", "€ 12345"
+  t = t.replace(/(?:€|EUR|CHF)\s*[\d.,'\s]+\d/gi, "");
+  t = t.replace(/[\d][\d.,'\s]*\s*(?:€|EUR|CHF)/gi, "");
+  // Remove trailing separators left behind: " - ", " | ", " · "
+  t = t.replace(/[\s\-|·,;:]+$/g, "");
+  t = t.replace(/^[\s\-|·,;:]+/g, "");
+  return t.replace(/\s{2,}/g, " ").trim();
+}
+
 export const Route = createFileRoute("/queue")({
   component: QueuePage,
 });
