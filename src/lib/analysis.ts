@@ -85,6 +85,7 @@ export function calculateImportCosts(
   distance_km: number,
   sell_price_chf: number,
   c: ConfigInput,
+  explicit_netto_eur?: number | null,
 ): ImportCostsResult {
   const deVat = c.de_vat_rate ?? DE_VAT_RATE;
   const kaufpreis_chf = price_eur * c.eur_chf_rate;
@@ -92,8 +93,13 @@ export function calculateImportCosts(
   const mfk_aufbereitung_chf = c.mfk_flat + c.preparation_flat;
 
   // Scenario A — MwSt ausweisbar (Händlerkauf mit Rechnung)
-  const de_mwst_erstattung = kaufpreis_chf - kaufpreis_chf / (1 + deVat);
-  const netto_a = kaufpreis_chf - de_mwst_erstattung;
+  // Wenn explizit Netto-Betrag aus dem Inserat vorhanden → diesen verwenden,
+  // sonst aus Brutto ableiten (Brutto / 1.19).
+  const useExplicit = typeof explicit_netto_eur === "number" && explicit_netto_eur > 0;
+  const netto_a = useExplicit
+    ? (explicit_netto_eur as number) * c.eur_chf_rate
+    : kaufpreis_chf / (1 + deVat);
+  const de_mwst_erstattung = kaufpreis_chf - netto_a;
   const automobilsteuer_a = netto_a * c.automobilsteuer_rate;
   const zoll_a = c.customs_flat;
   const ch_mwst_a = (netto_a + zoll_a) * c.vat_rate;
