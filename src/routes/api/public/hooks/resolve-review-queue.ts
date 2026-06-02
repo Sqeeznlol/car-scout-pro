@@ -142,7 +142,7 @@ async function runResolve(): Promise<ResolveSummary> {
       const det = await fetchListingDetails(v.listing_url);
 
       // Edge function liefert ggf. frische title/price/location → übernehmen
-      const baseUpdate: Record<string, unknown> = {};
+      const baseUpdate: { title?: string; price_eur?: number; location?: string } = {};
       if (det.title) baseUpdate.title = det.title;
       if (det.price_eur && det.price_eur > 0) baseUpdate.price_eur = det.price_eur;
       if (det.location) baseUpdate.location = det.location;
