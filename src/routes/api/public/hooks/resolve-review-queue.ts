@@ -141,6 +141,15 @@ async function runResolve(): Promise<ResolveSummary> {
     try {
       const det = await fetchListingDetails(v.listing_url);
 
+      // Edge function liefert ggf. frische title/price/location → übernehmen
+      const baseUpdate: { title?: string; price_eur?: number; location?: string } = {};
+      if (det.title) baseUpdate.title = det.title;
+      if (det.price_eur && det.price_eur > 0) baseUpdate.price_eur = det.price_eur;
+      if (det.location) baseUpdate.location = det.location;
+      if (Object.keys(baseUpdate).length > 0) {
+        await supabaseAdmin.from("vehicles").update(baseUpdate).eq("id", v.id);
+      }
+
       // Non-DE → archive
       if (det.country_code && det.country_code !== "DE") {
         await supabaseAdmin

@@ -1,32 +1,36 @@
-// Liest mobile.de Inserate über Jina AI Reader (gratis, umgeht Bot-Schutz).
-// Extrahiert MwSt-Status, Netto-Preis, Standort (PLZ+Stadt) und Land.
+// Holt mobile.de Inserat-Daten über die Supabase Edge Function `fetch-mobile-de`
+// (ersetzt den direkten Jina-Aufruf; Browser-CORS-Probleme entfallen).
 
 export interface ListingDetails {
   has_mwst: boolean | null;
   netto_eur: number | null;
-  location: string | null;   // "71088 Holzgerlingen" — Nominatim-kompatibel
+  location: string | null;     // "71088 Holzgerlingen" — Nominatim-kompatibel
   country_code: string | null; // "DE", "AT", etc.
+  title: string | null;
+  price_eur: number | null;
   signals: string[];
 }
 
-function parseEuroAmount(value: string | undefined): number | null {
-  if (!value) return null;
-  const n = parseInt(value.replace(/\D/g, ""), 10);
-  return Number.isFinite(n) ? n : null;
+function cleanMobileUrl(listingUrl: string): string {
+  try {
+    const u = new URL(listingUrl);
+    if (u.hostname.includes("click.news.mobile.de") || u.hostname.includes("link.news.mobile.de")) {
+      return listingUrl; // tracking link — edge function folgt Redirects
+    }
+    const id = u.searchParams.get("id");
+    if (id && u.pathname.includes("/fahrzeuge/details.html")) {
+      return `https://suchen.mobile.de/fahrzeuge/details.html?id=${id}`;
+    }
+  } catch {
+    /* keep original */
+  }
+  return listingUrl;
 }
 
-function extractExplicitNetto(text: string): number | null {
-  const patterns = [
-    /([\d.'’\s]+(?:[.,]\d{2})?)\s*€\s*\(\s*Netto\s*\)(?:[,\s]*(\d+)\s*%\s*MwSt)?/i,
-    /(?:Netto(?:preis)?|Preis\s*\(\s*Netto\s*\)|Netto\s*:)\s*[:\-]?\s*([\d.'’\s]+(?:[.,]\d{2})?)\s*€?/i,
-    /([\d.'’\s]+(?:[.,]\d{2})?)\s*€\s*netto\b/i,
-  ];
-  for (const re of patterns) {
-    const m = re.exec(text);
-    const netto = parseEuroAmount(m?.[1]);
-    if (netto && netto >= 500 && netto <= 10_000_000) return netto;
-  }
-  return null;
+function edgeFunctionUrl(): string {
+  const base = process.env.SUPABASE_URL;
+  if (!base) throw new Error("SUPABASE_URL not configured");
+  return `${base.replace(/\/+$/, "")}/functions/v1/fetch-mobile-de`;
 }
 
 export async function fetchListingDetails(listingUrl: string): Promise<ListingDetails> {
@@ -35,70 +39,53 @@ export async function fetchListingDetails(listingUrl: string): Promise<ListingDe
     netto_eur: null,
     location: null,
     country_code: null,
+    title: null,
+    price_eur: null,
     signals: [],
   };
   if (!listingUrl || !/mobile\.de/i.test(listingUrl)) return result;
 
-  let cleanUrl = listingUrl;
-  try {
-    const u = new URL(listingUrl);
-    if (u.hostname.includes("click.news.mobile.de") || u.hostname.includes("link.news.mobile.de")) {
-      // tracking link — Jina folgt Redirects, also OK
-    } else {
-      const id = u.searchParams.get("id");
-      if (id && u.pathname.includes("/fahrzeuge/details.html")) {
-        cleanUrl = `https://suchen.mobile.de/fahrzeuge/details.html?id=${id}`;
-      }
-    }
-  } catch {
-    /* keep original */
-  }
+  const cleanUrl = cleanMobileUrl(listingUrl);
 
-  const jinaUrl = `https://r.jina.ai/${cleanUrl}`;
   try {
-    const res = await fetch(jinaUrl, {
+    const apiKey = process.env.SUPABASE_PUBLISHABLE_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+    const res = await fetch(edgeFunctionUrl(), {
+      method: "POST",
       headers: {
-        "Accept": "text/plain",
-        "X-Locale": "de-DE",
+        "Content-Type": "application/json",
+        ...(apiKey ? { apikey: apiKey, Authorization: `Bearer ${apiKey}` } : {}),
       },
+      body: JSON.stringify({ url: cleanUrl }),
     });
+
     if (!res.ok) {
-      result.signals.push(`jina_status_${res.status}`);
-      return result;
-    }
-    const text = await res.text();
-    if (!text || text.length < 200) {
-      result.signals.push("empty_response");
+      result.signals.push(`edge_status_${res.status}`);
       return result;
     }
 
-    // 1) MwSt-Erkennung
-    const netto = extractExplicitNetto(text);
-    if (netto) {
-      result.has_mwst = true;
-      result.netto_eur = netto;
-      result.signals.push(`netto_explicit:${netto}`);
-    }
-    if (result.has_mwst === null) {
-      if (/MwSt\.?\s*ausweisbar|MwSt\.?\s*ausgewiesen|zzgl\.?\s*\d+\s*%?\s*MwSt|exkl\.?\s*MwSt|Nettopreis|netto\s*(?:zzgl|exkl|\+|,\s*\d+\s*%)/i.test(text)) {
-        result.has_mwst = true;
-        result.signals.push("mwst_keyword");
-      }
-    }
-    if (/§\s*25\s*a|Differenzbesteu/i.test(text)) {
-      if (result.has_mwst !== true) {
-        result.has_mwst = false;
-        result.signals.push("§25a");
-      }
+    const data = (await res.json()) as Partial<{
+      title: string | null;
+      price_eur: number | null;
+      location: string | null;
+      country_code: string | null;
+      has_mwst: boolean | null;
+      netto_eur: number | null;
+      signals: string[];
+      error: string;
+    }>;
+
+    if (data.error) {
+      result.signals.push(`edge_error:${data.error.slice(0, 60)}`);
+      return result;
     }
 
-    // 2) Standort + Land aus "DE-71088 Holzgerlingen"
-    const addrMatch = /\b(DE|AT|CH|IT|FR|NL|BE|LU|DK|PL|CZ|ES|PT|SE|NO|FI|HU|SK|SI|HR)-(\d{4,5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-\s]{2,40}?)(?=\s*[,\n<•|·]|\s*$|\s*\d|\s+Tel)/.exec(text);
-    if (addrMatch) {
-      result.country_code = addrMatch[1];
-      result.location = `${addrMatch[2]} ${addrMatch[3].trim()}`.replace(/\s+/g, " ");
-      result.signals.push(`addr:${result.country_code}`);
-    }
+    result.title = data.title ?? null;
+    result.price_eur = typeof data.price_eur === "number" ? data.price_eur : null;
+    result.location = data.location ?? null;
+    result.country_code = data.country_code ?? null;
+    result.has_mwst = data.has_mwst ?? null;
+    result.netto_eur = typeof data.netto_eur === "number" ? data.netto_eur : null;
+    if (Array.isArray(data.signals)) result.signals.push(...data.signals);
 
     return result;
   } catch (e) {
