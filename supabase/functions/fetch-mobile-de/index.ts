@@ -230,6 +230,7 @@ Deno.serve(async (req: Request) => {
 
     const price_gross_eur = price.eur;
     const price_net_eur = analysis.netto_eur;
+    const has_net_price = price_net_eur != null && price_net_eur > 0;
 
     return new Response(
       JSON.stringify({
@@ -239,9 +240,10 @@ Deno.serve(async (req: Request) => {
         price_raw: price.raw,
         price_gross_eur,
         price_net_eur,
+        has_net_price,
         location: analysis.location_addr ?? ogLocation,
         country_code: analysis.country_code,
-        has_mwst: analysis.has_mwst,
+        has_mwst: has_net_price ? true : analysis.has_mwst,
         netto_eur: price_net_eur,
         signals: analysis.signals,
         fetched_at: new Date().toISOString(),
