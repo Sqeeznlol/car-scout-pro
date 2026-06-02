@@ -98,8 +98,9 @@ function VehiclePage() {
       : market;
   const distKmForCalc = Number(v.distance_km ?? 0);
   const priceEurForCalc = Number(v.price_eur ?? 0);
+  const explicitNettoEur = hasExplicitNetto ? Number(v.price_eur_netto) : null;
   const costs = priceEurForCalc > 0
-    ? calculateImportCosts(priceEurForCalc, distKmForCalc, sellPriceForCalc, cfgInput)
+    ? calculateImportCosts(priceEurForCalc, distKmForCalc, sellPriceForCalc, cfgInput, explicitNettoEur)
     : null;
 
   const transport_chf = costs?.transport_chf ?? 0;
