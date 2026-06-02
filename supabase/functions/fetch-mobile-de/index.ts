@@ -204,16 +204,21 @@ Deno.serve(async (req: Request) => {
     const ogLocation = extractLocation(html);
     const analysis = analyseHtml(html);
 
+    const price_gross_eur = price.eur;
+    const price_net_eur = analysis.netto_eur;
+
     return new Response(
       JSON.stringify({
         url: target.toString(),
         title,
-        price_eur: price.eur,
+        price_eur: price_gross_eur,
         price_raw: price.raw,
+        price_gross_eur,
+        price_net_eur,
         location: analysis.location_addr ?? ogLocation,
         country_code: analysis.country_code,
         has_mwst: analysis.has_mwst,
-        netto_eur: analysis.netto_eur,
+        netto_eur: price_net_eur,
         signals: analysis.signals,
         fetched_at: new Date().toISOString(),
       }),
