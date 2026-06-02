@@ -91,6 +91,24 @@ function extractExplicitNetto(text: string): number | null {
   return null;
 }
 
+function extractNettoFromHtml(html: string): number | null {
+  // mobile.de specific: <... class="...net-price..."> 483.151 € (Netto) ...
+  const classPatterns = [
+    /class=["'][^"']*(?:net[-_]?price|price[-_]block__net|price[-_]net)[^"']*["'][^>]*>([\s\S]{0,200}?)</gi,
+    /data-testid=["'][^"']*net[-_]?price[^"']*["'][^>]*>([\s\S]{0,200}?)</gi,
+  ];
+  for (const re of classPatterns) {
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(html)) !== null) {
+      const inner = stripTags(m[1]);
+      const numMatch = /([\d.'’\s]+(?:[.,]\d{2})?)\s*€/.exec(inner);
+      const n = parseEuroAmount(numMatch?.[1]);
+      if (n && n >= 500 && n <= 10_000_000) return n;
+    }
+  }
+  return null;
+}
+
 function analyseHtml(html: string) {
   const text = stripTags(html);
   const signals: string[] = [];
@@ -99,8 +117,14 @@ function analyseHtml(html: string) {
   let country_code: string | null = null;
   let location_addr: string | null = null;
 
-  const netto = extractExplicitNetto(text);
-  if (netto) {
+  const nettoHtml = extractNettoFromHtml(html);
+  if (nettoHtml) {
+    has_mwst = true;
+    netto_eur = nettoHtml;
+    signals.push(`netto_html:${nettoHtml}`);
+  }
+  const netto = netto_eur ?? extractExplicitNetto(text);
+  if (netto && !netto_eur) {
     has_mwst = true;
     netto_eur = netto;
     signals.push(`netto_explicit:${netto}`);
@@ -204,16 +228,21 @@ Deno.serve(async (req: Request) => {
     const ogLocation = extractLocation(html);
     const analysis = analyseHtml(html);
 
+    const price_gross_eur = price.eur;
+    const price_net_eur = analysis.netto_eur;
+
     return new Response(
       JSON.stringify({
         url: target.toString(),
         title,
-        price_eur: price.eur,
+        price_eur: price_gross_eur,
         price_raw: price.raw,
+        price_gross_eur,
+        price_net_eur,
         location: analysis.location_addr ?? ogLocation,
         country_code: analysis.country_code,
         has_mwst: analysis.has_mwst,
-        netto_eur: analysis.netto_eur,
+        netto_eur: price_net_eur,
         signals: analysis.signals,
         fetched_at: new Date().toISOString(),
       }),
