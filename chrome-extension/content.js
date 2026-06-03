@@ -10,18 +10,48 @@
     return Number.isFinite(n) ? n : null;
   };
 
-  function extractExplicitNetto(text, brutto) {
+  function extractNettoFromText(text, brutto) {
     const patterns = [
       /([\d.'’\s]+(?:[,.]\d{2})?)\s*€\s*\(\s*Netto\s*\)(?:[,\s]*\d+\s*%\s*MwSt)?/i,
+      /([\d.'’\s]+(?:[,.]\d{2})?)\s*€[^\n]{0,80}\bNetto\b/i,
+      /\bNetto\b[^\n\d]{0,40}([\d.'’\s]+(?:[,.]\d{2})?)\s*€?/i,
       /(?:Netto(?:preis)?|Preis\s*\(\s*Netto\s*\)|Netto\s*:)\s*[:\-]?\s*([\d.'’\s]+(?:[,.]\d{2})?)\s*€?/i,
       /([\d.'’\s]+(?:[,.]\d{2})?)\s*€\s*netto\b/i,
     ];
+    const values = [];
     for (const re of patterns) {
-      const m = re.exec(text);
+      const m = re.exec(text || "");
       const value = m ? parseInt2(m[1]) : null;
-      if (value && value >= 500 && value <= 10_000_000 && (!brutto || value < brutto)) return value;
+      if (value && value >= 500 && value <= 10_000_000 && (!brutto || value < brutto)) values.push(value);
+    }
+    return values.length ? Math.max(...values) : null;
+  }
+
+  function extractNettoFromDom(brutto) {
+    const candidates = Array.from(document.querySelectorAll("[data-testid], [class], div, span, p, section"));
+    const texts = [];
+    for (const el of candidates) {
+      const attr = `${el.getAttribute("data-testid") || ""} ${el.getAttribute("class") || ""}`;
+      const ownText = cleanText(el.textContent);
+      if (!/netto|net[-_]?price|price[-_]?net/i.test(attr + " " + ownText)) continue;
+      const context = cleanText([
+        ownText,
+        el.previousElementSibling?.textContent || "",
+        el.nextElementSibling?.textContent || "",
+        el.parentElement?.textContent || "",
+      ].join("\n"));
+      if (/Erhöhter Preis|Fairer Preis|Günstiger Preis|Sehr guter Preis|Preisbewertung|Marktpreis|Preisanalyse/i.test(context)) continue;
+      texts.push(context);
+    }
+    for (const text of texts.sort((a, b) => a.length - b.length)) {
+      const value = extractNettoFromText(text, brutto);
+      if (value) return value;
     }
     return null;
+  }
+
+  function extractExplicitNetto(text, brutto) {
+    return extractNettoFromDom(brutto) || extractNettoFromText(text, brutto);
   }
 
   function getListingId() {
@@ -71,7 +101,7 @@
 
     const bodyText = document.body.innerText;
 
-    const priceEl = document.querySelector('[data-testid*="prime-price"], [data-testid*="price"], .price-block, h2');
+    const priceEl = document.querySelector('[data-testid*="prime-price"], [data-testid*="vip-price"], [data-testid*="price-block"], .price-block, h2');
     let priceMatch = priceEl ? /([\d.]+)\s*€/.exec(priceEl.textContent) : null;
     if (!priceMatch) priceMatch = /([\d.]+)\s*€\s*(?:Sehr guter Preis|Guter Preis|Ohne Bewertung|Hoher Preis)/.exec(bodyText);
     if (priceMatch) data.price_eur = parseInt2(priceMatch[1]);

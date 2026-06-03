@@ -87,6 +87,10 @@ async function processOne(v: {
       location: det.location ?? v.location,
       distance_km,
       pending_review: false,
+      extension_archived: false,
+      skip_reason: null,
+      review_reason: null,
+      confirmed_no_netto: false,
     })
     .eq("id", v.id);
 
@@ -110,6 +114,7 @@ async function processOne(v: {
   let analysis = computeAnalysis(
     {
       price_eur: Number(v.price_eur ?? 0),
+      explicit_netto_eur: det.netto_eur,
       mileage_km: v.mileage_km,
       year: v.year,
       location: det.location ?? v.location,
@@ -142,6 +147,7 @@ async function processOne(v: {
         analysis = recomputeWithMarket(
           {
             price_eur: Number(v.price_eur ?? 0),
+            explicit_netto_eur: det.netto_eur,
             mileage_km: v.mileage_km,
             year: v.year,
             location: det.location ?? v.location,

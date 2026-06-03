@@ -19,6 +19,7 @@ export interface ConfigInput {
 
 export interface VehicleInput {
   price_eur: number;
+  explicit_netto_eur?: number | null;
   mileage_km: number | null;
   year: number | null;
   location: string | null;
@@ -221,7 +222,9 @@ export function computeAnalysis(v: VehicleInput, c: ConfigInput): Analysis {
   const CH_MWST = 0.081;
 
   const kaufpreis_chf = v.price_eur * c.eur_chf_rate;
-  const netto_chf = kaufpreis_chf / (1 + DE_MWST);
+  const netto_chf = typeof v.explicit_netto_eur === "number" && v.explicit_netto_eur > 0
+    ? v.explicit_netto_eur * c.eur_chf_rate
+    : kaufpreis_chf / (1 + DE_MWST);
   const de_mwst_erstattung = kaufpreis_chf - netto_chf;
 
   const automobilsteuer_chf = netto_chf * CH_AUTO;
@@ -312,7 +315,7 @@ export function recomputeWithMarket(
   new_market_value_chf: number,
 ): Analysis {
   const distance = v.distance_km ?? distanceFromLocation(v.location);
-  const costs = calculateImportCosts(v.price_eur, distance, new_market_value_chf, c);
+  const costs = calculateImportCosts(v.price_eur, distance, new_market_value_chf, c, v.explicit_netto_eur);
   const expected_margin_chf = costs.without_mwst.margin_chf;
   const sub = {
     liquidity_score: analysis.liquidity_score,

@@ -80,6 +80,8 @@ function parseEuroAmount(value: string | undefined): number | null {
 function extractExplicitNetto(text: string): number | null {
   const patterns = [
     /([\d.'’\s]+(?:[.,]\d{2})?)\s*€\s*\(\s*Netto\s*\)(?:[,\s]*(\d+)\s*%\s*MwSt)?/i,
+    /([\d.'’\s]+(?:[.,]\d{2})?)\s*€[^\n]{0,80}\bNetto\b/i,
+    /\bNetto\b[^\n\d]{0,40}([\d.'’\s]+(?:[.,]\d{2})?)\s*€?/i,
     /(?:Netto(?:preis)?|Preis\s*\(\s*Netto\s*\)|Netto\s*:)\s*[:\-]?\s*([\d.'’\s]+(?:[.,]\d{2})?)\s*€?/i,
     /([\d.'’\s]+(?:[.,]\d{2})?)\s*€\s*netto\b/i,
   ];
@@ -94,13 +96,14 @@ function extractExplicitNetto(text: string): number | null {
 function extractNettoFromHtml(html: string): number | null {
   // mobile.de specific: <... class="...net-price..."> 483.151 € (Netto) ...
   const classPatterns = [
-    /class=["'][^"']*(?:net[-_]?price|price[-_]block__net|price[-_]net)[^"']*["'][^>]*>([\s\S]{0,200}?)</gi,
-    /data-testid=["'][^"']*net[-_]?price[^"']*["'][^>]*>([\s\S]{0,200}?)</gi,
+    /<[^>]+class=["'][^"']*(?:netto|net[-_]?price|price[-_]block__net|price[-_]net)[^"']*["'][^>]*>([\s\S]{0,600}?)<\/[^>]+>/gi,
+    /<[^>]+data-testid=["'][^"']*(?:netto|net[-_]?price|price[-_]net)[^"']*["'][^>]*>([\s\S]{0,600}?)<\/[^>]+>/gi,
   ];
   for (const re of classPatterns) {
     let m: RegExpExecArray | null;
     while ((m = re.exec(html)) !== null) {
       const inner = stripTags(m[1]);
+      if (/Erhöhter Preis|Fairer Preis|Günstiger Preis|Sehr guter Preis|Preisbewertung|Marktpreis|Preisanalyse/i.test(inner)) continue;
       const numMatch = /([\d.'’\s]+(?:[.,]\d{2})?)\s*€/.exec(inner);
       const n = parseEuroAmount(numMatch?.[1]);
       if (n && n >= 500 && n <= 10_000_000) return n;

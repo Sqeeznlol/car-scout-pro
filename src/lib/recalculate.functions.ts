@@ -30,7 +30,7 @@ export const recalculateAllVehicles = createServerFn({ method: "POST" }).handler
 
     const { data: vehicles, error: vErr } = await supabaseAdmin
       .from("vehicles")
-      .select("id, price_eur, mileage_km, year, location, fuel, seller_type, distance_km")
+      .select("id, price_eur, price_eur_netto, mileage_km, year, location, fuel, seller_type, distance_km")
       .is("skip_reason", null)
       .not("price_eur", "is", null);
 
@@ -45,6 +45,7 @@ export const recalculateAllVehicles = createServerFn({ method: "POST" }).handler
         const analysis = computeAnalysis(
           {
             price_eur: Number(v.price_eur),
+            explicit_netto_eur: v.price_eur_netto != null ? Number(v.price_eur_netto) : null,
             mileage_km: v.mileage_km,
             year: v.year,
             location: v.location,

@@ -58,7 +58,7 @@ async function ingest(payload: IngestPayload) {
   const idFromUrl = payload.url?.match(/[?&]id=(\d+)/)?.[1] ?? null;
   const idMatch = payload.mobile_de_id ?? idFromUrl;
 
-  const SELECT_COLS = "id, listing_url, source_message_id, make, model, year, mileage_km, location, fuel, seller_type, distance_km, price_eur";
+  const SELECT_COLS = "id, listing_url, source_message_id, make, model, year, mileage_km, location, fuel, seller_type, distance_km, price_eur, price_eur_netto, seller_has_mwst";
 
   type ExistingRow = {
     id: string;
@@ -73,6 +73,8 @@ async function ingest(payload: IngestPayload) {
     seller_type: string | null;
     distance_km: number | null;
     price_eur: number | null;
+    price_eur_netto: number | null;
+    seller_has_mwst: boolean | null;
   };
 
   let existing: ExistingRow | null = null;
@@ -178,8 +180,8 @@ async function ingest(payload: IngestPayload) {
 
   // Netto nur akzeptieren, wenn mobile.de wirklich einen separaten Netto-Betrag liefert.
   // "MwSt. ausweisbar" allein reicht nicht — ohne expliziten Netto-Preis ist es für CH nicht interessant.
-  let effectiveHasMwst = payload.seller_has_mwst;
-  let effectiveNetto = payload.price_eur_netto ?? null;
+  let effectiveHasMwst = payload.seller_has_mwst ?? existing.seller_has_mwst ?? undefined;
+  let effectiveNetto = payload.price_eur_netto ?? existing.price_eur_netto ?? null;
 
   // Fallback: weder bestätigt noch netto → Jina inline probieren (ein Versuch).
   if ((effectiveHasMwst !== true || !effectiveNetto) && payload.url) {
@@ -195,6 +197,7 @@ async function ingest(payload: IngestPayload) {
       /* jina optional */
     }
   }
+  if (effectiveNetto && effectiveNetto > 0) effectiveHasMwst = true;
 
   // Immer noch kein expliziter Netto-Betrag → nicht in die Swipe Queue aufnehmen.
   if (effectiveHasMwst !== true || !effectiveNetto) {
@@ -269,6 +272,10 @@ async function ingest(payload: IngestPayload) {
     country_code: country,
     distance_km,
     pending_review: false,
+    extension_archived: false,
+    skip_reason: null,
+    review_reason: null,
+    confirmed_no_netto: false,
   };
   const cleanUpdate = Object.fromEntries(Object.entries(update).filter(([, v]) => v !== undefined));
   await supabaseAdmin.from("vehicles").update(cleanUpdate as never).eq("id", existing.id);
@@ -294,6 +301,7 @@ async function ingest(payload: IngestPayload) {
   let analysis = computeAnalysis(
     {
       price_eur: Number(payload.price_eur ?? existing.price_eur ?? 0),
+      explicit_netto_eur: effectiveNetto,
       mileage_km: payload.mileage_km ?? existing.mileage_km ?? null,
       year: payload.year ?? existing.year ?? null,
       location: payload.location ?? existing.location ?? null,
@@ -326,6 +334,7 @@ async function ingest(payload: IngestPayload) {
         analysis = recomputeWithMarket(
           {
             price_eur: Number(payload.price_eur ?? existing.price_eur ?? 0),
+            explicit_netto_eur: effectiveNetto,
             mileage_km: payload.mileage_km ?? existing.mileage_km ?? null,
             year: payload.year ?? existing.year ?? null,
             location: payload.location ?? existing.location ?? null,

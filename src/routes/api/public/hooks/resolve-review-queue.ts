@@ -30,13 +30,14 @@ async function loadConfig(): Promise<ConfigInput> {
 async function recomputeAnalysisForVehicle(vehicleId: string, config: ConfigInput) {
   const { data: v, error } = await supabaseAdmin
     .from("vehicles")
-    .select("id, price_eur, mileage_km, year, location, fuel, seller_type, distance_km, make, model")
+    .select("id, price_eur, price_eur_netto, mileage_km, year, location, fuel, seller_type, distance_km, make, model")
     .eq("id", vehicleId)
     .single();
   if (error || !v) return;
 
   const input = {
     price_eur: Number(v.price_eur ?? 0),
+    explicit_netto_eur: v.price_eur_netto != null ? Number(v.price_eur_netto) : null,
     mileage_km: v.mileage_km,
     year: v.year,
     location: v.location,
@@ -175,6 +176,8 @@ async function runResolve(): Promise<ResolveSummary> {
             netto_manually_set: false,
             pending_review: false,
             extension_archived: false,
+            skip_reason: null,
+            confirmed_no_netto: false,
             reviewed_at: nowIso(),
             country_code: det.country_code ?? undefined,
             last_review_resolve_at: nowIso(),

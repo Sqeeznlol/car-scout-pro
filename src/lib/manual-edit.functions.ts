@@ -79,6 +79,7 @@ export const updateVehicleManual = createServerFn({ method: "POST" })
     let analysis = computeAnalysis(
       {
         price_eur: Number(v.price_eur),
+        explicit_netto_eur: v.price_eur_netto != null ? Number(v.price_eur_netto) : null,
         mileage_km: v.mileage_km,
         year: v.year,
         location: v.location,
@@ -98,6 +99,7 @@ export const updateVehicleManual = createServerFn({ method: "POST" })
       analysis = recomputeWithMarket(
         {
           price_eur: Number(v.price_eur),
+          explicit_netto_eur: v.price_eur_netto != null ? Number(v.price_eur_netto) : null,
           mileage_km: v.mileage_km,
           year: v.year,
           location: v.location,
