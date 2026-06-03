@@ -269,6 +269,10 @@ async function ingest(payload: IngestPayload) {
     country_code: country,
     distance_km,
     pending_review: false,
+    extension_archived: false,
+    skip_reason: null,
+    review_reason: null,
+    confirmed_no_netto: false,
   };
   const cleanUpdate = Object.fromEntries(Object.entries(update).filter(([, v]) => v !== undefined));
   await supabaseAdmin.from("vehicles").update(cleanUpdate as never).eq("id", existing.id);
@@ -294,6 +298,7 @@ async function ingest(payload: IngestPayload) {
   let analysis = computeAnalysis(
     {
       price_eur: Number(payload.price_eur ?? existing.price_eur ?? 0),
+      explicit_netto_eur: effectiveNetto,
       mileage_km: payload.mileage_km ?? existing.mileage_km ?? null,
       year: payload.year ?? existing.year ?? null,
       location: payload.location ?? existing.location ?? null,
@@ -326,6 +331,7 @@ async function ingest(payload: IngestPayload) {
         analysis = recomputeWithMarket(
           {
             price_eur: Number(payload.price_eur ?? existing.price_eur ?? 0),
+            explicit_netto_eur: effectiveNetto,
             mileage_km: payload.mileage_km ?? existing.mileage_km ?? null,
             year: payload.year ?? existing.year ?? null,
             location: payload.location ?? existing.location ?? null,
