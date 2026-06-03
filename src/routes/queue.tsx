@@ -97,6 +97,8 @@ function QueuePage() {
       if (v.decision) return false;
       if (v.year == null || v.year < 2021) return false;
       if (v.mileage_km != null && v.mileage_km > 100000) return false;
+      // Nur Fahrzeuge ab 80'000 € Bruttopreis – alles darunter ist für den CH-Import uninteressant.
+      if (v.price_eur == null || Number(v.price_eur) < 80000) return false;
       // Nur Fahrzeuge mit ausweisbarer MwSt UND explizitem Netto-Betrag anzeigen.
       // "MwSt. ausweisbar" ohne separaten Netto-Preis reicht für die CH-Queue nicht.
       if (v.seller_has_mwst !== true) return false;
