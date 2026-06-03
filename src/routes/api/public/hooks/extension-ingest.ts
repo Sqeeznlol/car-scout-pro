@@ -197,6 +197,7 @@ async function ingest(payload: IngestPayload) {
       /* jina optional */
     }
   }
+  if (effectiveNetto && effectiveNetto > 0) effectiveHasMwst = true;
 
   // Immer noch kein expliziter Netto-Betrag → nicht in die Swipe Queue aufnehmen.
   if (effectiveHasMwst !== true || !effectiveNetto) {
