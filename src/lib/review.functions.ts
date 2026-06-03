@@ -20,6 +20,9 @@ export const applyManualNetto = createServerFn({ method: "POST" })
         netto_manually_set: true,
         pending_review: false,
         extension_archived: false,
+        skip_reason: null,
+        review_reason: null,
+        confirmed_no_netto: false,
         reviewed_at: new Date().toISOString(),
       })
       .eq("id", data.vehicle_id)
@@ -47,6 +50,7 @@ export const applyManualNetto = createServerFn({ method: "POST" })
     const analysis = computeAnalysis(
       {
         price_eur: Number(vehicle.price_eur),
+        explicit_netto_eur: data.price_eur_netto,
         mileage_km: vehicle.mileage_km,
         year: vehicle.year,
         location: vehicle.location,
