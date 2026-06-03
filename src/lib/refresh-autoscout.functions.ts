@@ -28,6 +28,7 @@ export const refreshAutoScoutAll = createServerFn({ method: "POST" }).handler(as
     .from("vehicles")
     .select(`
       id, make, model, year, mileage_km, price_eur,
+      price_eur_netto,
       fuel, seller_type, location, distance_km,
       analysis:vehicle_analyses(autoscout_ch_scraped_at, autoscout_ch_price_avg)
     `)
@@ -64,6 +65,7 @@ export const refreshAutoScoutAll = createServerFn({ method: "POST" }).handler(as
       let freshAnalysis = computeAnalysis(
         {
           price_eur: Number(v.price_eur),
+          explicit_netto_eur: v.price_eur_netto != null ? Number(v.price_eur_netto) : null,
           mileage_km: v.mileage_km,
           year: v.year,
           location: v.location,
@@ -78,6 +80,7 @@ export const refreshAutoScoutAll = createServerFn({ method: "POST" }).handler(as
         freshAnalysis = recomputeWithMarket(
           {
             price_eur: Number(v.price_eur),
+            explicit_netto_eur: v.price_eur_netto != null ? Number(v.price_eur_netto) : null,
             mileage_km: v.mileage_km,
             year: v.year,
             location: v.location,
