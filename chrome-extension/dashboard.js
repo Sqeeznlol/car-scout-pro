@@ -63,11 +63,18 @@ function render(resp) {
       : `🔄 Lade Warteschlange vom Server …`;
   } else if (stats.finishedAt && (stats.processed > 0 || stats.errors > 0)) {
     status.className = "status done";
-    status.textContent = `✅ Letzter Lauf fertig — ${stats.processed} ok, ${stats.errors} Fehler, ${stats.blocked ?? 0} Blocks`;
+    const autoTxt = resp?.autoMode ? " · Vollautomatik aktiv — nächster Lauf folgt automatisch" : "";
+    status.textContent = `✅ Letzter Lauf fertig — ${stats.processed} ok, ${stats.errors} Fehler, ${stats.blocked ?? 0} Blocks${autoTxt}`;
   } else {
     status.className = "status";
-    status.textContent = "Bereit. Klick auf Start — der Tab bleibt offen und du siehst alles live.";
+    status.textContent = resp?.autoMode
+      ? "⏳ Vollautomatik aktiv — Worker startet automatisch sobald Inserate da sind."
+      : "Bereit. Klick auf Start — oder Vollautomatik einschalten.";
   }
+
+  // Auto-Toggle State
+  const auto = $("autoToggle");
+  if (auto && auto.checked !== !!resp?.autoMode) auto.checked = !!resp?.autoMode;
 
   // Aktuell-Karte
   const now = $("now");
@@ -137,6 +144,10 @@ $("clearHist").addEventListener("click", () => {
 
 $("clearCooldown").addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "worker-clear-cooldown" }, () => refresh());
+});
+
+$("autoToggle")?.addEventListener("change", (e) => {
+  chrome.runtime.sendMessage({ type: "worker-set-auto", value: e.target.checked }, () => refresh());
 });
 
 refresh();
