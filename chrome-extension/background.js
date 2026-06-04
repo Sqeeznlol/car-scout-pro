@@ -250,6 +250,18 @@ async function runWorker() {
     currentItem = null;
     stats.finishedAt = now();
     await persist();
+    // Auto-Mode: nächsten Lauf einplanen
+    if (autoMode) {
+      let nextMs;
+      if (now() < blockedUntil) {
+        nextMs = blockedUntil - now() + 1000; // nach Cooldown
+      } else {
+        const waitMs = rateLimitWaitMs();
+        if (waitMs > 0) nextMs = waitMs + 1000;
+        else nextMs = 3 * 60_000; // Queue war leer → in 3 min nochmal probieren
+      }
+      scheduleNextRun(nextMs);
+    }
   }
 }
 
