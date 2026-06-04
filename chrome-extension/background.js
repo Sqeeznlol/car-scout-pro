@@ -127,6 +127,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       running: workerRunning,
       stopRequested,
       blockedUntil,
+      autoMode,
       perHour: countInLastMs(3600_000),
       perDay: countInLastMs(24 * 3600_000),
       hourlyLimit: HOURLY_LIMIT,
@@ -146,6 +147,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     stopRequested = true;
     sendResponse({ ok: true });
     return true;
+  } else if (msg.type === "worker-set-auto") {
+    autoMode = !!msg.value;
+    chrome.storage.local.set({ auto_mode: autoMode });
+    if (autoMode && !workerRunning) scheduleNextRun(1000);
+    else if (!autoMode) { try { chrome.alarms.clear("autosnipe-worker-tick"); } catch (_) {} }
+    sendResponse({ ok: true, autoMode });
+    return true;
   } else if (msg.type === "worker-clear-history") {
     history = [];
     chrome.storage.local.set({ worker_history: history });
@@ -154,6 +162,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   } else if (msg.type === "worker-clear-cooldown") {
     blockedUntil = 0;
     chrome.storage.local.set({ blocked_until: 0 });
+    if (autoMode && !workerRunning) scheduleNextRun(1000);
     sendResponse({ ok: true });
     return true;
   }
