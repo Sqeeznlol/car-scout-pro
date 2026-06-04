@@ -146,6 +146,10 @@ $("clearCooldown").addEventListener("click", () => {
   chrome.runtime.sendMessage({ type: "worker-clear-cooldown" }, () => refresh());
 });
 
+$("autoToggle")?.addEventListener("change", (e) => {
+  chrome.runtime.sendMessage({ type: "worker-set-auto", value: e.target.checked }, () => refresh());
+});
+
 refresh();
 // Tab bleibt offen — schneller Poll, damit du alles live siehst
 setInterval(refresh, 1000);
