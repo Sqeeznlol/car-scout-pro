@@ -36,14 +36,40 @@ let history = [];
 let recentTimestamps = []; // für Rate-Limit (timestamps der letzten Anfragen)
 let stats = { processed: 0, errors: 0, blocked: 0, startedAt: null, finishedAt: null };
 
+let autoMode = true; // Vollautomatik: nach jedem Lauf neu starten
+
 // ---- Bootstrap ----
 (async () => {
-  const stored = await chrome.storage.local.get(["worker_history", "worker_stats", "worker_timestamps", "blocked_until"]);
+  const stored = await chrome.storage.local.get(["worker_history", "worker_stats", "worker_timestamps", "blocked_until", "auto_mode"]);
   history = stored.worker_history ?? [];
   stats = stored.worker_stats ?? stats;
   recentTimestamps = stored.worker_timestamps ?? [];
   blockedUntil = stored.blocked_until ?? 0;
+  autoMode = stored.auto_mode !== false; // default ON
+  scheduleNextRun(1000); // direkt nach Bootstrap loslegen
 })();
+
+// Auto-Start bei Chrome-Start / Install / Update
+chrome.runtime.onStartup?.addListener(() => scheduleNextRun(1000));
+chrome.runtime.onInstalled?.addListener(() => scheduleNextRun(1000));
+
+// Alarm-basierter Heartbeat — überlebt Service-Worker-Sleep
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name !== "autosnipe-worker-tick") return;
+  if (!autoMode) return;
+  if (workerRunning) return;
+  if (now() < blockedUntil) {
+    scheduleNextRun(blockedUntil - now() + 1000);
+    return;
+  }
+  runWorker().catch((e) => console.warn("[Autosnipe] tick", e));
+});
+
+function scheduleNextRun(delayMs) {
+  if (!autoMode) return;
+  const minutes = Math.max(0.1, delayMs / 60000);
+  try { chrome.alarms.create("autosnipe-worker-tick", { delayInMinutes: minutes }); } catch (_) {}
+}
 
 // ---- Helpers ----
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
