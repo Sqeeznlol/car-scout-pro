@@ -40,6 +40,8 @@ export async function fetchPendingReview(): Promise<VehicleWithAnalysis[]> {
     .eq("pending_review", true)
     .eq("confirmed_no_netto", false)
     .is("skip_reason", null)
+    // Gleicher Cutoff wie die Swipe Queue – alles unter 80'000 € ist für den CH-Import irrelevant.
+    .gte("price_eur", 80000)
     .order("price_eur", { ascending: false, nullsFirst: false })
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -65,6 +67,25 @@ export async function fetchPendingReview(): Promise<VehicleWithAnalysis[]> {
     if (ap !== bp) return ap ? -1 : 1;
     return rank(a.make) - rank(b.make);
   });
+}
+
+/**
+ * Zählt die im System bestätigten MwSt/Netto-Inserate (≥ 80'000 €, Brutto + expliziter Netto-Betrag).
+ * Wird im Admin angezeigt, damit klar ist wie viele Autos wirklich in der Swipe Queue stehen.
+ */
+export async function countActiveMwstQueue(): Promise<number> {
+  const { count, error } = await supabase
+    .from("vehicles")
+    .select("id", { count: "exact", head: true })
+    .is("skip_reason", null)
+    .eq("extension_archived", false)
+    .eq("pending_review", false)
+    .eq("seller_has_mwst", true)
+    .not("price_eur_netto", "is", null)
+    .gte("price_eur", 80000)
+    .or("country_code.eq.DE,country_code.is.null");
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function fetchVehicle(id: string): Promise<VehicleWithAnalysis | null> {
