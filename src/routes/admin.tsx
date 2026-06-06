@@ -119,6 +119,26 @@ function AdminPage() {
         </TabsList>
 
         <TabsContent value="review" className="mt-4 space-y-4">
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+              <div className="text-[11px] uppercase tracking-wider text-amber-600 dark:text-amber-400 font-semibold">
+                In Prüfung (≥ 80'000 €)
+              </div>
+              <div className="text-2xl font-bold tabular-nums mt-1">{pendingCount}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                Inserate ab 80'000 € Brutto, bei denen die Extension keinen Netto-Preis gefunden hat.
+              </div>
+            </div>
+            <div className="rounded-xl border border-success/30 bg-success/10 p-4">
+              <div className="text-[11px] uppercase tracking-wider text-success font-semibold">
+                Aktive Swipe Queue (Netto 19% MwSt)
+              </div>
+              <div className="text-2xl font-bold tabular-nums mt-1">{activeMwstCount}</div>
+              <div className="text-xs text-muted-foreground mt-0.5">
+                DE-Inserate ≥ 80'000 € mit Brutto + explizitem Netto-Betrag.
+              </div>
+            </div>
+          </div>
           <ResolveReviewQueueCard />
           <ReviewTab />
         </TabsContent>
