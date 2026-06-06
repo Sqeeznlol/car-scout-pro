@@ -1325,26 +1325,36 @@ function ExtensionStatusPanel() {
     queryKey: ["extension-stats"],
     refetchInterval: 10_000,
     queryFn: async () => {
+      // Alle Zähler sind auf den ≥ 80'000 € Cutoff abgestimmt (alles darunter ist für CH-Import irrelevant).
       const [toScrapeRes, inQueueRes, pendingRes, scrapedRes, nonDeRes, noNettoRes, unavailableRes, stuckRes] = await Promise.all([
         supabase.from("vehicles").select("id", { count: "exact", head: true })
           .is("extension_scraped_at", null).is("skip_reason", null)
-          .eq("extension_archived", false).not("listing_url", "is", null).lt("extension_attempts", 3),
+          .eq("extension_archived", false).not("listing_url", "is", null).lt("extension_attempts", 3)
+          .gte("price_eur", 80000),
         supabase.from("vehicles").select("id", { count: "exact", head: true })
           .is("skip_reason", null).eq("extension_archived", false)
           .eq("pending_review", false).eq("seller_has_mwst", true)
+          .not("price_eur_netto", "is", null)
+          .gte("price_eur", 80000)
           .or("country_code.eq.DE,country_code.is.null"),
         supabase.from("vehicles").select("id", { count: "exact", head: true })
-          .eq("pending_review", true).eq("confirmed_no_netto", false),
+          .eq("pending_review", true).eq("confirmed_no_netto", false)
+          .gte("price_eur", 80000),
         supabase.from("vehicles").select("id", { count: "exact", head: true })
-          .not("extension_scraped_at", "is", null),
+          .not("extension_scraped_at", "is", null)
+          .gte("price_eur", 80000),
         supabase.from("vehicles").select("id", { count: "exact", head: true })
-          .like("skip_reason", "non_de_dealer_%"),
+          .like("skip_reason", "non_de_dealer_%")
+          .gte("price_eur", 80000),
         supabase.from("vehicles").select("id", { count: "exact", head: true })
-          .eq("skip_reason", "no_netto_price"),
+          .eq("skip_reason", "no_netto_price")
+          .gte("price_eur", 80000),
         supabase.from("vehicles").select("id", { count: "exact", head: true })
-          .eq("skip_reason", "unavailable"),
+          .eq("skip_reason", "unavailable")
+          .gte("price_eur", 80000),
         supabase.from("vehicles").select("id", { count: "exact", head: true })
-          .gte("extension_attempts", 3).is("extension_scraped_at", null),
+          .gte("extension_attempts", 3).is("extension_scraped_at", null)
+          .gte("price_eur", 80000),
       ]);
       return {
         toScrape: toScrapeRes.count ?? 0,
