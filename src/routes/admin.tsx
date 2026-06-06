@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { fetchConfig, saveConfig, fetchVehicles, fetchPendingReview, type DbConfig, type VehicleWithAnalysis } from "@/lib/db";
+import { fetchConfig, saveConfig, fetchVehicles, fetchPendingReview, countActiveMwstQueue, type DbConfig, type VehicleWithAnalysis } from "@/lib/db";
 import { ReviewTab } from "@/components/ReviewTab";
 import { resetExtensionQueue } from "@/lib/review.functions";
 import { listUserSessions } from "@/lib/sessions.functions";
