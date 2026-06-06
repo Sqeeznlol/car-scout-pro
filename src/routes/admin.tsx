@@ -34,6 +34,7 @@ function AdminPage() {
   const { data: config } = useQuery({ queryKey: ["config"], queryFn: fetchConfig });
   const { data: vehicles = [] } = useQuery({ queryKey: ["vehicles"], queryFn: fetchVehicles });
   const { data: pendingList = [] } = useQuery({ queryKey: ["pending-review"], queryFn: fetchPendingReview, refetchInterval: 15_000 });
+  const { data: activeMwstCount = 0 } = useQuery({ queryKey: ["active-mwst-count"], queryFn: countActiveMwstQueue, refetchInterval: 30_000 });
   const pendingCount = pendingList.length;
   const [draft, setDraft] = useState<DbConfig | null>(null);
 
