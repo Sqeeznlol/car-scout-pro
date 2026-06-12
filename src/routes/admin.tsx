@@ -1421,6 +1421,29 @@ function ExtensionStatusPanel() {
         {cell("📦 Nicht verfügbar", stats?.unavailable)}
         {cell("🚫 Steckengeblieben", stats?.stuck, (stats?.stuck ?? 0) > 0 ? "text-danger" : "")}
       </div>
+      {(() => {
+        const scraped = stats?.scraped48 ?? 0;
+        const withNetto = stats?.withNetto48 ?? 0;
+        const derived = stats?.derived48 ?? 0;
+        const pct = scraped > 0 ? Math.round((withNetto / scraped) * 100) : 0;
+        const tone = pct >= 30 ? "text-success" : pct >= 10 ? "text-amber-500" : "text-danger";
+        return (
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Netto-Extraktionsrate (letzte 48h)
+              </div>
+              <div className={cn("text-2xl font-bold tabular-nums", tone)}>{pct}%</div>
+            </div>
+            <div className="h-2 bg-muted rounded overflow-hidden">
+              <div className={cn("h-full", pct >= 30 ? "bg-success" : pct >= 10 ? "bg-amber-500" : "bg-danger")} style={{ width: `${Math.min(100, pct)}%` }} />
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-1.5">
+              {withNetto.toLocaleString("de-CH")} von {scraped.toLocaleString("de-CH")} Scrapes mit Netto · davon {derived.toLocaleString("de-CH")} abgeleitet (÷1.19)
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
