@@ -1,0 +1,2 @@
+ALTER TABLE public.vehicles ADD COLUMN IF NOT EXISTS netto_derived BOOLEAN NOT NULL DEFAULT false;
+CREATE INDEX IF NOT EXISTS idx_vehicles_netto_derived ON public.vehicles(netto_derived) WHERE netto_derived = true;

@@ -599,6 +599,7 @@ export type Database = {
           mileage_km: number | null
           mobile_de_listing_id: string | null
           model: string | null
+          netto_derived: boolean
           netto_manually_set: boolean
           owner_count: number | null
           pending_review: boolean
@@ -664,6 +665,7 @@ export type Database = {
           mileage_km?: number | null
           mobile_de_listing_id?: string | null
           model?: string | null
+          netto_derived?: boolean
           netto_manually_set?: boolean
           owner_count?: number | null
           pending_review?: boolean
@@ -729,6 +731,7 @@ export type Database = {
           mileage_km?: number | null
           mobile_de_listing_id?: string | null
           model?: string | null
+          netto_derived?: boolean
           netto_manually_set?: boolean
           owner_count?: number | null
           pending_review?: boolean
