@@ -1326,7 +1326,8 @@ function ExtensionStatusPanel() {
     refetchInterval: 10_000,
     queryFn: async () => {
       // Alle Zähler sind auf den ≥ 80'000 € Cutoff abgestimmt (alles darunter ist für CH-Import irrelevant).
-      const [toScrapeRes, inQueueRes, pendingRes, scrapedRes, nonDeRes, noNettoRes, unavailableRes, stuckRes] = await Promise.all([
+      const since48h = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+      const [toScrapeRes, inQueueRes, pendingRes, scrapedRes, nonDeRes, noNettoRes, unavailableRes, stuckRes, scraped48Res, withNetto48Res, derived48Res] = await Promise.all([
         supabase.from("vehicles").select("id", { count: "exact", head: true })
           .is("extension_scraped_at", null).is("skip_reason", null)
           .eq("extension_archived", false).not("listing_url", "is", null).lt("extension_attempts", 3)
@@ -1355,6 +1356,14 @@ function ExtensionStatusPanel() {
         supabase.from("vehicles").select("id", { count: "exact", head: true })
           .gte("extension_attempts", 3).is("extension_scraped_at", null)
           .gte("price_eur", 80000),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .gte("extension_scraped_at", since48h),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .gte("extension_scraped_at", since48h)
+          .not("price_eur_netto", "is", null),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .gte("extension_scraped_at", since48h)
+          .eq("netto_derived", true),
       ]);
       return {
         toScrape: toScrapeRes.count ?? 0,
@@ -1365,6 +1374,9 @@ function ExtensionStatusPanel() {
         noNetto: noNettoRes.count ?? 0,
         unavailable: unavailableRes.count ?? 0,
         stuck: stuckRes.count ?? 0,
+        scraped48: scraped48Res.count ?? 0,
+        withNetto48: withNetto48Res.count ?? 0,
+        derived48: derived48Res.count ?? 0,
       };
     },
   });
@@ -1409,6 +1421,29 @@ function ExtensionStatusPanel() {
         {cell("📦 Nicht verfügbar", stats?.unavailable)}
         {cell("🚫 Steckengeblieben", stats?.stuck, (stats?.stuck ?? 0) > 0 ? "text-danger" : "")}
       </div>
+      {(() => {
+        const scraped = stats?.scraped48 ?? 0;
+        const withNetto = stats?.withNetto48 ?? 0;
+        const derived = stats?.derived48 ?? 0;
+        const pct = scraped > 0 ? Math.round((withNetto / scraped) * 100) : 0;
+        const tone = pct >= 30 ? "text-success" : pct >= 10 ? "text-amber-500" : "text-danger";
+        return (
+          <div className="rounded-lg border border-border bg-card p-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Netto-Extraktionsrate (letzte 48h)
+              </div>
+              <div className={cn("text-2xl font-bold tabular-nums", tone)}>{pct}%</div>
+            </div>
+            <div className="h-2 bg-muted rounded overflow-hidden">
+              <div className={cn("h-full", pct >= 30 ? "bg-success" : pct >= 10 ? "bg-amber-500" : "bg-danger")} style={{ width: `${Math.min(100, pct)}%` }} />
+            </div>
+            <div className="text-[11px] text-muted-foreground mt-1.5">
+              {withNetto.toLocaleString("de-CH")} von {scraped.toLocaleString("de-CH")} Scrapes mit Netto · davon {derived.toLocaleString("de-CH")} abgeleitet (÷1.19)
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }

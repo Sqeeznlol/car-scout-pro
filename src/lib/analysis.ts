@@ -94,8 +94,7 @@ export function calculateImportCosts(
   const mfk_aufbereitung_chf = c.mfk_flat + c.preparation_flat;
 
   // Scenario A — MwSt ausweisbar (Händlerkauf mit Rechnung)
-  // Wenn explizit Netto-Betrag aus dem Inserat vorhanden → diesen verwenden,
-  // sonst aus Brutto ableiten (Brutto / 1.19).
+  // BAZG: CH-MwSt 8.1% auf gesamte Bemessungsgrundlage (Netto + Transport + Automobilsteuer + Zoll)
   const useExplicit = typeof explicit_netto_eur === "number" && explicit_netto_eur > 0;
   const netto_a = useExplicit
     ? (explicit_netto_eur as number) * c.eur_chf_rate
@@ -103,7 +102,7 @@ export function calculateImportCosts(
   const de_mwst_erstattung = kaufpreis_chf - netto_a;
   const automobilsteuer_a = netto_a * c.automobilsteuer_rate;
   const zoll_a = c.customs_flat;
-  const ch_mwst_a = (netto_a + zoll_a) * c.vat_rate;
+  const ch_mwst_a = (netto_a + transport_chf + automobilsteuer_a + zoll_a) * c.vat_rate;
   const total_a = netto_a + automobilsteuer_a + zoll_a + ch_mwst_a + transport_chf + mfk_aufbereitung_chf;
   const margin_a = sell_price_chf - total_a;
   const max_buy_a_eur = Math.round(
@@ -116,7 +115,7 @@ export function calculateImportCosts(
   // Scenario B — Kein MwSt-Ausweis (Privat / §25a Differenzbesteuerung)
   const automobilsteuer_b = kaufpreis_chf * c.automobilsteuer_rate;
   const zoll_b = c.customs_flat;
-  const ch_mwst_b = (kaufpreis_chf + zoll_b) * c.vat_rate;
+  const ch_mwst_b = (kaufpreis_chf + transport_chf + automobilsteuer_b + zoll_b) * c.vat_rate;
   const total_b = kaufpreis_chf + automobilsteuer_b + zoll_b + ch_mwst_b + transport_chf + mfk_aufbereitung_chf;
   const margin_b = sell_price_chf - total_b;
   const max_buy_b_eur = Math.round(
@@ -229,10 +228,12 @@ export function computeAnalysis(v: VehicleInput, c: ConfigInput): Analysis {
 
   const automobilsteuer_chf = netto_chf * CH_AUTO;
   const zoll_chf = c.customs_flat;
-  const ch_mwst_chf = (netto_chf + zoll_chf) * CH_MWST;
 
   const distance_km = v.distance_km ?? null;
   const transport_chf = distance_km != null ? Math.round(distance_km * c.chf_per_km) : 0;
+
+  // BAZG: CH-MwSt 8.1% auf gesamte Bemessungsgrundlage (Netto + Transport + Automobilsteuer + Zoll)
+  const ch_mwst_chf = (netto_chf + transport_chf + automobilsteuer_chf + zoll_chf) * CH_MWST;
 
   const mfk_chf = c.mfk_flat;
   const preparation_chf = c.preparation_flat;
@@ -243,7 +244,7 @@ export function computeAnalysis(v: VehicleInput, c: ConfigInput): Analysis {
   );
 
   const automobilsteuer_b = kaufpreis_chf * CH_AUTO;
-  const ch_mwst_b = (kaufpreis_chf + zoll_chf) * CH_MWST;
+  const ch_mwst_b = (kaufpreis_chf + transport_chf + automobilsteuer_b + zoll_chf) * CH_MWST;
   const total_without_mwst = Math.round(
     kaufpreis_chf + automobilsteuer_b + zoll_chf + ch_mwst_b +
     transport_chf + mfk_chf + preparation_chf

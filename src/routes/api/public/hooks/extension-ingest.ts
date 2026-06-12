@@ -15,6 +15,7 @@ interface IngestPayload {
   price_eur?: number;
   price_eur_netto?: number;
   seller_has_mwst?: boolean;
+  netto_derived?: boolean;
   mileage_km?: number;
   year?: number;
   registration_month?: number;
@@ -42,6 +43,11 @@ interface IngestPayload {
   body_type?: string;
   doors?: number;
   seats?: number;
+}
+
+function isHybridOrEv(fuel: string | null | undefined): boolean {
+  if (!fuel) return false;
+  return /hybrid|elektro|electric|elektrisch|plug-?in|phev|bev|ev\b/i.test(fuel);
 }
 
 const CORS_HEADERS = {
@@ -178,10 +184,39 @@ async function ingest(payload: IngestPayload) {
     return { ok: true, archived: true, reason: `non-DE (${country})` };
   }
 
+  // Hybrid/Elektro raus — nur Benzin & Diesel sind für CH-Import interessant
+  const effFuel = payload.fuel ?? existing.fuel ?? null;
+  if (isHybridOrEv(effFuel)) {
+    await supabaseAdmin
+      .from("vehicles")
+      .update({
+        extension_archived: true,
+        skip_reason: "hybrid-ev",
+        country_code: country || "DE",
+        fuel: effFuel,
+      })
+      .eq("id", existing.id);
+    return { ok: true, archived: true, reason: "hybrid-ev" };
+  }
+
+  // Explizite Differenzbesteuerung → kein MwSt-Ausweis möglich
+  if (payload.seller_has_mwst === false) {
+    await supabaseAdmin
+      .from("vehicles")
+      .update({
+        extension_archived: true,
+        skip_reason: "differenzbesteuert",
+        country_code: country || "DE",
+        seller_has_mwst: false,
+      })
+      .eq("id", existing.id);
+    return { ok: true, archived: true, reason: "differenzbesteuert" };
+  }
+
   // Netto nur akzeptieren, wenn mobile.de wirklich einen separaten Netto-Betrag liefert.
-  // "MwSt. ausweisbar" allein reicht nicht — ohne expliziten Netto-Preis ist es für CH nicht interessant.
   let effectiveHasMwst = payload.seller_has_mwst ?? existing.seller_has_mwst ?? undefined;
   let effectiveNetto = payload.price_eur_netto ?? existing.price_eur_netto ?? null;
+  const nettoDerived = payload.netto_derived === true;
 
   // Fallback: weder bestätigt noch netto → Jina inline probieren (ein Versuch).
   if ((effectiveHasMwst !== true || !effectiveNetto) && payload.url) {
@@ -241,6 +276,7 @@ async function ingest(payload: IngestPayload) {
     title: payload.title,
     price_eur: payload.price_eur ?? existing.price_eur,
     price_eur_netto: effectiveNetto,
+    netto_derived: nettoDerived,
     seller_has_mwst: true,
     mileage_km: payload.mileage_km ?? existing.mileage_km,
     year: payload.year ?? existing.year,

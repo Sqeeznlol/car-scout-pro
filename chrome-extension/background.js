@@ -11,16 +11,16 @@
 const QUEUE_URL = "https://autosnipe.shop/api/public/hooks/extension-queue";
 const TAB_TIMEOUT_MS = 35000;
 
-// --- Anti-Ban Konfiguration ---
-const GAP_MIN_MS = 8000;          // min Pause zwischen Inseraten
-const GAP_MAX_MS = 18000;         // max Pause zwischen Inseraten
+// --- Anti-Ban Konfiguration (per PC; mehrere PCs laufen parallel über FOR UPDATE SKIP LOCKED) ---
+const GAP_MIN_MS = 6000;          // min Pause zwischen Inseraten
+const GAP_MAX_MS = 14000;         // max Pause zwischen Inseraten
 const MICRO_BATCH = 12;           // alle 12 Inserate eine lange Pause
-const LONG_PAUSE_MIN_MS = 60_000; // 1 min
-const LONG_PAUSE_MAX_MS = 120_000;// 2 min
-const HOURLY_LIMIT = 50;
-const DAILY_LIMIT = 250;
-const BLOCKED_COOLDOWN_MS = 30 * 60_000; // 30 min nach Bot-Schutz
-const FETCH_BATCH = 25;
+const LONG_PAUSE_MIN_MS = 45_000; // 45s
+const LONG_PAUSE_MAX_MS = 90_000; // 90s
+const HOURLY_LIMIT = 60;
+const DAILY_LIMIT = 400;
+const BLOCKED_COOLDOWN_MS = 15 * 60_000; // 15 min nach Bot-Schutz
+const FETCH_BATCH = 20;
 
 const HISTORY_MAX = 100;
 
