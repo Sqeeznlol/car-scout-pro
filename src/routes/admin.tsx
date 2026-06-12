@@ -1326,7 +1326,8 @@ function ExtensionStatusPanel() {
     refetchInterval: 10_000,
     queryFn: async () => {
       // Alle Zähler sind auf den ≥ 80'000 € Cutoff abgestimmt (alles darunter ist für CH-Import irrelevant).
-      const [toScrapeRes, inQueueRes, pendingRes, scrapedRes, nonDeRes, noNettoRes, unavailableRes, stuckRes] = await Promise.all([
+      const since48h = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
+      const [toScrapeRes, inQueueRes, pendingRes, scrapedRes, nonDeRes, noNettoRes, unavailableRes, stuckRes, scraped48Res, withNetto48Res, derived48Res] = await Promise.all([
         supabase.from("vehicles").select("id", { count: "exact", head: true })
           .is("extension_scraped_at", null).is("skip_reason", null)
           .eq("extension_archived", false).not("listing_url", "is", null).lt("extension_attempts", 3)
@@ -1355,6 +1356,14 @@ function ExtensionStatusPanel() {
         supabase.from("vehicles").select("id", { count: "exact", head: true })
           .gte("extension_attempts", 3).is("extension_scraped_at", null)
           .gte("price_eur", 80000),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .gte("extension_scraped_at", since48h),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .gte("extension_scraped_at", since48h)
+          .not("price_eur_netto", "is", null),
+        supabase.from("vehicles").select("id", { count: "exact", head: true })
+          .gte("extension_scraped_at", since48h)
+          .eq("netto_derived", true),
       ]);
       return {
         toScrape: toScrapeRes.count ?? 0,
@@ -1365,6 +1374,9 @@ function ExtensionStatusPanel() {
         noNetto: noNettoRes.count ?? 0,
         unavailable: unavailableRes.count ?? 0,
         stuck: stuckRes.count ?? 0,
+        scraped48: scraped48Res.count ?? 0,
+        withNetto48: withNetto48Res.count ?? 0,
+        derived48: derived48Res.count ?? 0,
       };
     },
   });
