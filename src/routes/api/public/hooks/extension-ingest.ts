@@ -276,6 +276,7 @@ async function ingest(payload: IngestPayload) {
     title: payload.title,
     price_eur: payload.price_eur ?? existing.price_eur,
     price_eur_netto: effectiveNetto,
+    netto_derived: nettoDerived,
     seller_has_mwst: true,
     mileage_km: payload.mileage_km ?? existing.mileage_km,
     year: payload.year ?? existing.year,
