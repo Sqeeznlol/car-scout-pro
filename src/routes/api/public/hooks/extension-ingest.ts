@@ -15,6 +15,7 @@ interface IngestPayload {
   price_eur?: number;
   price_eur_netto?: number;
   seller_has_mwst?: boolean;
+  netto_derived?: boolean;
   mileage_km?: number;
   year?: number;
   registration_month?: number;
@@ -42,6 +43,11 @@ interface IngestPayload {
   body_type?: string;
   doors?: number;
   seats?: number;
+}
+
+function isHybridOrEv(fuel: string | null | undefined): boolean {
+  if (!fuel) return false;
+  return /hybrid|elektro|electric|elektrisch|plug-?in|phev|bev|ev\b/i.test(fuel);
 }
 
 const CORS_HEADERS = {
