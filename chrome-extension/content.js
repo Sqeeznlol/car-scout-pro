@@ -10,6 +10,141 @@
     return Number.isFinite(n) ? n : null;
   };
 
+  // Robust number parser for prices encoded as number / string / cent-amount
+  function parseNumberAny(raw) {
+    if (raw == null) return null;
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      // Heuristik: > 10M ist sehr wahrscheinlich Cent
+      if (raw > 10_000_000) return Math.round(raw / 100);
+      return raw;
+    }
+    const s = String(raw).trim();
+    if (!s) return null;
+    // Versuche reine Zahl
+    if (/^\d+(\.\d+)?$/.test(s)) {
+      const n = parseFloat(s);
+      if (n > 10_000_000) return Math.round(n / 100);
+      return n;
+    }
+    // Formatiert "39.900,00 €" oder "39 900" oder "39'900"
+    const cleaned = s.replace(/[€$\s'’]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "");
+    const norm = cleaned.replace(",", ".");
+    const n = parseFloat(norm);
+    if (!Number.isFinite(n)) return null;
+    if (n > 10_000_000) return Math.round(n / 100);
+    return n;
+  }
+
+  const inRange = (v, brutto) =>
+    typeof v === "number" && v >= 500 && v <= 10_000_000 && (!brutto || v < brutto);
+
+  // ---------- STUFE 1: JSON-LD ----------
+  function extractFromJsonLd(brutto) {
+    const out = { netto: null, gross: null, hasMwst: null };
+    const scripts = document.querySelectorAll('script[type="application/ld+json"]');
+    const visit = (node) => {
+      if (!node || typeof node !== "object") return;
+      if (Array.isArray(node)) return node.forEach(visit);
+      // offers / priceSpecification
+      const offers = node.offers ?? node.Offers;
+      if (offers) {
+        const arr = Array.isArray(offers) ? offers : [offers];
+        for (const o of arr) visit(o);
+      }
+      const ps = node.priceSpecification ?? node.PriceSpecification;
+      if (ps) {
+        const arr = Array.isArray(ps) ? ps : [ps];
+        for (const p of arr) {
+          const price = parseNumberAny(p.price);
+          if (typeof p.valueAddedTaxIncluded === "boolean") {
+            if (p.valueAddedTaxIncluded === false && inRange(price, brutto)) {
+              out.netto = price;
+              out.hasMwst = true;
+            } else if (p.valueAddedTaxIncluded === true && inRange(price, null)) {
+              out.gross = price;
+            }
+          }
+        }
+      }
+      if (node.price != null && typeof node.valueAddedTaxIncluded === "boolean") {
+        const price = parseNumberAny(node.price);
+        if (node.valueAddedTaxIncluded === false && inRange(price, brutto)) {
+          out.netto = price;
+          out.hasMwst = true;
+        }
+      }
+      for (const k of Object.keys(node)) {
+        const v = node[k];
+        if (v && typeof v === "object") visit(v);
+      }
+    };
+    for (const s of scripts) {
+      try {
+        const parsed = JSON.parse(s.textContent || "null");
+        visit(parsed);
+        // @graph support
+        if (parsed && parsed["@graph"]) visit(parsed["@graph"]);
+      } catch (_) {
+        /* ignore broken json-ld */
+      }
+    }
+    return out;
+  }
+
+  // ---------- STUFE 2: Eingebettetes State-JSON in <script> ----------
+  function extractFromInlineJson(brutto) {
+    const out = { netto: null, gross: null, hasMwst: null, vatRate: null };
+    const scripts = document.querySelectorAll("script:not([src])");
+    const keyPatterns = [
+      // key": value (zahl oder string)
+      /"(netPrice|priceNet|net_price|nettoPrice|priceNetto)"\s*:\s*("?[\d.,'’\s€]+"?|\d+)/gi,
+      /"(grossPrice|priceGross|brutto|bruttoPrice)"\s*:\s*("?[\d.,'’\s€]+"?|\d+)/gi,
+      /"(vatRate|mwst|vat)"\s*:\s*("?\d+(?:[.,]\d+)?"?|\d+)/gi,
+      /"(vatDeductible)"\s*:\s*(true|false)/gi,
+      /"(priceVatType)"\s*:\s*"(NETTO|NET|GROSS|BRUTTO)"/gi,
+    ];
+    for (const sc of scripts) {
+      const text = sc.textContent || "";
+      if (text.length < 30 || text.length > 2_000_000) continue;
+      // Schneller Filter
+      if (!/net[A-Z_]?[Pp]rice|priceVatType|vatDeductible|nettoPrice|priceNetto|grossPrice|priceGross|vatRate/.test(text)) continue;
+      for (const re of keyPatterns) {
+        re.lastIndex = 0;
+        let m;
+        while ((m = re.exec(text)) !== null) {
+          const key = m[1].toLowerCase();
+          const raw = m[2].replace(/^"|"$/g, "");
+          if (key === "vatdeductible") {
+            if (raw === "true") out.hasMwst = true;
+            continue;
+          }
+          if (key === "pricevattype") {
+            if (/NETTO|NET/i.test(raw)) out.hasMwst = true;
+            continue;
+          }
+          if (key === "vatrate" || key === "vat" || key === "mwst") {
+            const r = parseFloat(raw.replace(",", "."));
+            if (Number.isFinite(r)) out.vatRate = r;
+            continue;
+          }
+          const n = parseNumberAny(raw);
+          if (/grossprice|pricegross|brutto/i.test(key)) {
+            if (inRange(n, null)) out.gross = n;
+          } else if (inRange(n, brutto)) {
+            out.netto = n;
+          }
+        }
+      }
+      if (out.netto) break;
+    }
+    if (out.netto && out.gross) {
+      const ratio = out.gross / out.netto;
+      if (ratio >= 1.17 && ratio <= 1.21) out.hasMwst = true;
+    }
+    return out;
+  }
+
+  // ---------- STUFE 3: DOM/Text Fallback ----------
   function extractNettoFromText(text, brutto) {
     const patterns = [
       /([\d.'’\s]+(?:[,.]\d{2})?)\s*€\s*\(\s*Netto\s*\)(?:[,\s]*\d+\s*%\s*MwSt)?/i,
@@ -22,7 +157,7 @@
     for (const re of patterns) {
       const m = re.exec(text || "");
       const value = m ? parseInt2(m[1]) : null;
-      if (value && value >= 500 && value <= 10_000_000 && (!brutto || value < brutto)) values.push(value);
+      if (inRange(value, brutto)) values.push(value);
     }
     return values.length ? Math.max(...values) : null;
   }
@@ -50,8 +185,42 @@
     return null;
   }
 
-  function extractExplicitNetto(text, brutto) {
-    return extractNettoFromDom(brutto) || extractNettoFromText(text, brutto);
+  // ---------- Master ----------
+  function extractMwstInfo(brutto, bodyText) {
+    const out = { netto: null, hasMwst: null, derived: false };
+
+    // Stufe 1
+    const jl = extractFromJsonLd(brutto);
+    if (jl.netto) { out.netto = jl.netto; out.hasMwst = true; return out; }
+    if (jl.hasMwst === true) out.hasMwst = true;
+
+    // Stufe 2
+    const inl = extractFromInlineJson(brutto);
+    if (inl.netto) { out.netto = inl.netto; out.hasMwst = true; return out; }
+    if (inl.hasMwst === true) out.hasMwst = true;
+
+    // Stufe 3 — DOM
+    const dom = extractNettoFromDom(brutto);
+    if (dom) { out.netto = dom; out.hasMwst = true; return out; }
+    const txt = extractNettoFromText(bodyText, brutto);
+    if (txt) { out.netto = txt; out.hasMwst = true; return out; }
+
+    // Differenzbesteuerung → explizit kein MwSt-Ausweis
+    if (/§\s*25\s*a|Differenzbesteu/i.test(bodyText)) {
+      out.hasMwst = false;
+      return out;
+    }
+
+    // MwSt-Indikator ohne expliziten Netto → Stufe 4: ableiten
+    const mwstKeywords = /MwSt\.?\s*ausweisbar|MwSt\.?\s*ausgewiesen|zzgl\.?\s*\d+\s*%?\s*MwSt|exkl\.?\s*MwSt|Nettopreis|netto\s*(?:zzgl|exkl|\+)/i;
+    if (out.hasMwst === true || mwstKeywords.test(bodyText) || inl.vatRate === 19) {
+      out.hasMwst = true;
+      if (brutto && brutto > 0) {
+        out.netto = Math.round(brutto / 1.19);
+        out.derived = true;
+      }
+    }
+    return out;
   }
 
   function getListingId() {
@@ -106,17 +275,17 @@
     if (!priceMatch) priceMatch = /([\d.]+)\s*€\s*(?:Sehr guter Preis|Guter Preis|Ohne Bewertung|Hoher Preis)/.exec(bodyText);
     if (priceMatch) data.price_eur = parseInt2(priceMatch[1]);
 
-    const explicitNetto = extractExplicitNetto(bodyText, data.price_eur);
-    if (explicitNetto) {
-      data.price_eur_netto = explicitNetto;
+    const mwst = extractMwstInfo(data.price_eur, bodyText);
+    if (mwst.netto) {
+      data.price_eur_netto = mwst.netto;
       data.seller_has_mwst = true;
-    } else if (/zzgl\.?\s*\d+\s*%?\s*MwSt|MwSt\.?\s*ausweisbar|MwSt\.?\s*ausgewiesen|Nettopreis/i.test(bodyText)) {
+      if (mwst.derived) data.netto_derived = true;
+    } else if (mwst.hasMwst === true) {
       data.seller_has_mwst = true;
-    } else if (/§\s*25\s*a|Differenzbesteu/i.test(bodyText)) {
-      data.seller_has_mwst = false;
-    } else {
+    } else if (mwst.hasMwst === false) {
       data.seller_has_mwst = false;
     }
+    // sonst: Feld weglassen (null/unknown) — Backend entscheidet
 
     data.mileage_km = parseInt2(findByLabel(["Kilometerstand", "km", "Laufleistung"]));
 
@@ -170,7 +339,6 @@
     );
     const dealerText = dealerEl ? cleanText(dealerEl.textContent) : "";
 
-    // Adresse zuerst im Dealer-Block suchen, dann im gesamten Body als Fallback
     const ADDR_RE = /\b(DE|AT|CH|IT|FR|NL|BE|LU|PL|CZ|ES|PT|HU|DK|SE|NO|FI|SK|SI|HR)-(\d{4,5})\s+([A-ZÄÖÜ][A-Za-zÄÖÜäöüß\-\s]{2,40}?)(?=\s*$|\s*[,\n<•|·]|\s+Tel|\s{2,}|\s+\d)/;
     let addrMatch = dealerText ? ADDR_RE.exec(dealerText) : null;
     if (!addrMatch) addrMatch = ADDR_RE.exec(bodyText);
@@ -202,8 +370,6 @@
     const websiteEl = document.querySelector('a[href^="http"]:not([href*="mobile.de"]):not([href*="ebay"]):not([href*="facebook"]):not([href*="twitter"])');
     if (websiteEl) data.seller_website = websiteEl.href;
 
-    // Bilder: bevorzugt aus Gallery-Container, sonst gefiltert über die ganze Seite.
-    // Stock-/Profil-/Logo-Bilder (z.B. "Frau mit Hut" Platzhalter) ausschliessen.
     const galleryRoot =
       document.querySelector(
         '[data-testid*="gallery"], [data-testid*="image"], [class*="gallery"], [class*="Gallery"], [class*="image-gallery"], [class*="ImageGallery"], section[aria-label*="ilder" i], section[aria-label*="oto" i]'
@@ -227,14 +393,12 @@
       }
       if (!url) continue;
       if (isBadImg(url, img.alt)) continue;
-      // sehr kleine Bilder (Icons, Thumbs) raus
       const w = img.naturalWidth || img.width || 0;
       const h = img.naturalHeight || img.height || 0;
       if (w && w < 200) continue;
       if (h && h < 150) continue;
       urls.add(url);
     }
-    // Fallback: OG-Image vom Inserat
     if (urls.size === 0) {
       const og = document.querySelector('meta[property="og:image"]')?.getAttribute("content");
       if (og && !isBadImg(og, "")) urls.add(og);
@@ -348,7 +512,6 @@
     return patterns.some((p) => txt.includes(p));
   }
 
-  // Erkennt Bot-Schutz / Captcha / Rate-Limit Seiten von mobile.de
   function detectBlocked() {
     const txt = (document.body.innerText || "").toLowerCase();
     const title = (document.title || "").toLowerCase();
@@ -401,7 +564,6 @@
   }
 
   async function init() {
-    // 1) Bot-Schutz erkannt → Worker stoppen, KEIN weiterer Request
     if (detectBlocked()) {
       showBanner("🛑 Bot-Schutz erkannt — Worker pausiert", "err");
       chrome.runtime.sendMessage({ type: "blocked-detected", url: location.href });
@@ -415,8 +577,6 @@
     }
     const data = parse();
     if (!data) {
-      // Fallback: ohne Daten trotzdem ingest pingen, damit das Inserat
-      // aus der Queue rauskommt und nicht endlos wiederholt wird.
       send({ vehicle_id, mobile_de_id: id, url: location.href, country_code: "DE" });
       return;
     }
@@ -425,7 +585,5 @@
     addReSyncButton();
   }
 
-  // Zufällige Wartezeit (1.5-3s) bevor wir anfangen — wirkt menschlicher
   setTimeout(init, 1500 + Math.random() * 1500);
 })();
-
